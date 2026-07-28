@@ -1,0 +1,6 @@
+# Replace with your actual domain. Free option: sign up at duckdns.org,
+# point a subdomain at your Oracle VM's public IP. Caddy handles the
+# TLS certificate automatically once the domain resolves.
+yourapp.duckdns.org {
+    reverse_proxy backend:8000
+}

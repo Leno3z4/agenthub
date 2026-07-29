@@ -58,6 +58,26 @@ def get_markets() -> list[dict]:
         })
     return markets
 
+def execute_trade(
+    agent_private_key: str,
+    coin: str,
+    is_buy: bool,
+    size: float,
+    leverage: int | None = None,
+    slippage: float = 0.01,
+) -> dict:
+    exchange = get_exchange_for_agent(agent_private_key)
+
+    if leverage is not None:
+        exchange.update_leverage(leverage, coin)
+
+    return exchange.market_open(
+        coin=coin,
+        is_buy=is_buy,
+        sz=size,
+        slippage=slippage,
+    )
+
 
 def execute_close(
     agent_private_key: str,

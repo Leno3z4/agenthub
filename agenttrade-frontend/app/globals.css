@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* strong custom easing curves — default CSS easings are too weak to feel intentional */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+body {
+  background-color: #0b0f14;
+  color: #e6ecf1;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ambient-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 320ms var(--ease-out) both;
+}
+
+.animate-pop-in {
+  animation: pop-in 200ms var(--ease-out) both;
+}
+
+.animate-ambient-pulse {
+  animation: ambient-pulse 2.2s ease-in-out infinite;
+}
+
+/* Reduced motion: keep opacity transitions (they aid comprehension),
+   drop movement/scale/pulse entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-pop-in,
+  .animate-ambient-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

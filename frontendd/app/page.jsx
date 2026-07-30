@@ -1,9 +1,11 @@
+import Nav from "../components/Nav";
+import ProductPreview from "../components/ProductPreview";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <main className="landing-page">
-      {/* Landing-page video background */}
+      {/* REAL LANDING PAGE VIDEO */}
       <video
         className="landing-video"
         autoPlay
@@ -11,33 +13,17 @@ export default function Home() {
         loop
         playsInline
         preload="metadata"
-        src="/videos/hero-bg.mp4""
-      />
+      >
+        <source src="/videos/hero-bg.mp4" type="video/mp4" />
+      </video>
 
-      {/* Cinematic overlay */}
       <div className="landing-overlay" />
-
-      {/* Atmospheric glow */}
       <div className="landing-glow" />
 
-      {/* Navigation */}
-      <nav className="landing-nav">
-        <Link href="/" className="landing-logo">
-          ALIAS
-        </Link>
+      {/* NAV */}
+      <Nav />
 
-        <div className="landing-nav-right">
-          <Link href="/login" className="landing-login">
-            Login
-          </Link>
-
-          <Link href="/onboarding" className="landing-launch">
-            Launch app
-          </Link>
-        </div>
-      </nav>
-
-      {/* Hero */}
+      {/* HERO */}
       <section className="landing-hero">
         <div className="landing-hero-copy">
           <div className="landing-eyebrow">
@@ -72,45 +58,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Product visual — no fabricated data */}
+        {/* PRODUCT PREVIEW */}
         <div className="hero-product">
-          <div className="product-window">
-            <div className="product-window-top">
-              <div className="product-brand">
-                <span className="product-dot" />
-                ALIAS
-              </div>
-
-              <div className="product-window-controls">
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-
-            <div className="product-window-body">
-              <div className="product-sidebar">
-                <div className="sidebar-active" />
-                <div />
-                <div />
-                <div />
-                <div />
-              </div>
-
-              <div className="product-content">
-                <div className="product-placeholder product-wide" />
-                <div className="product-placeholder-row">
-                  <div className="product-placeholder" />
-                  <div className="product-placeholder" />
-                </div>
-                <div className="product-placeholder product-large" />
-              </div>
-            </div>
-          </div>
+          <ProductPreview />
         </div>
       </section>
 
-      {/* System */}
+      {/* SYSTEM */}
       <section id="system" className="landing-system">
         <div className="system-heading">
           <span>THE EXECUTION LAYER</span>
@@ -131,7 +85,9 @@ export default function Home() {
         <div className="system-grid">
           <div className="system-card">
             <span>01</span>
+
             <h3>Your wallet</h3>
+
             <p>
               Connect your wallet and retain control of
               your funds and trading authority.
@@ -140,7 +96,9 @@ export default function Home() {
 
           <div className="system-card">
             <span>02</span>
+
             <h3>Your agent</h3>
+
             <p>
               Bring Claude, GPT, a self-hosted model,
               or your own trading logic.
@@ -149,7 +107,9 @@ export default function Home() {
 
           <div className="system-card">
             <span>03</span>
+
             <h3>Your execution</h3>
+
             <p>
               Your agent decides what to do.
               Alias handles the execution layer.
@@ -158,7 +118,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Closing */}
+      {/* CLOSING CTA */}
       <section className="landing-closing">
         <span>AGENT / MARKET / EXECUTION</span>
 
@@ -174,7 +134,7 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="landing-footer">
         <span>ALIAS</span>
         <span>Autonomous perpetual infrastructure</span>

@@ -11,7 +11,7 @@ export default function Home() {
         loop
         playsInline
         preload="metadata"
-        src="/animo-showcase-stream-720p.mp4"
+        src="/videos/hero-bg.mp4""
       />
 
       {/* Cinematic overlay */}

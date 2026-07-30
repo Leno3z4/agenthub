@@ -15,13 +15,13 @@ export default function ProductPreview() {
       </div>
 
       <div className="product-window-body">
-        <div className="product-sidebar">
+        <aside className="product-sidebar">
           <div className="sidebar-active" />
           <div />
           <div />
           <div />
           <div />
-        </div>
+        </aside>
 
         <div className="product-content">
           <div className="product-placeholder product-wide" />

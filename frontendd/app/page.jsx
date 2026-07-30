@@ -1,96 +1,185 @@
 import Link from "next/link";
-import Nav from "@/components/Nav";
-import ProductPreview from "@/components/ProductPreview";
-import { Wallet, Bot, TrendingUp } from "lucide-react";
 
 export default function Home() {
   return (
-    <>
-      {/* video hero — landing page only */}
-      <section className="relative min-h-screen overflow-hidden flex flex-col">
-        <video
-          className="hero-video absolute inset-0 w-full h-full object-cover"
-          src="/videos/hero-bg.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-        {/* dark scrim for legibility + brand-blue glow, replaces raw video color */}
-        <div className="absolute inset-0 bg-void/70" />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(60% 50% at 50% 28%, rgba(79,143,240,0.35), transparent 70%)",
-          }}
-        />
+    <main className="landing-page">
+      {/* Landing-page video background */}
+      <video
+        className="landing-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        src="/animo-showcase-stream-720p.mp4"
+      />
 
-        <Nav />
+      {/* Cinematic overlay */}
+      <div className="landing-overlay" />
 
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-5 pt-20">
-          <h1 className="font-mono text-4xl md:text-6xl leading-tight max-w-3xl">
-            Connect the agent.
-            <br />
-            <span className="text-signal">Trade the market.</span>
-          </h1>
-          <p className="text-dim mt-5 max-w-md">
-            Bring your own wallet, model, and logic. Alias is the execution
-            layer — it never decides a trade, it just runs what your agent
-            already decided.
-          </p>
-          <Link
-            href="/onboarding"
-            className="inline-block mt-8 bg-signal text-[#071a2e] font-mono font-semibold px-6 py-3 rounded-full
-                       transition-transform duration-150 ease-[var(--ease-out)]
-                       active:scale-[0.97] hover-fine:brightness-110"
-          >
+      {/* Atmospheric glow */}
+      <div className="landing-glow" />
+
+      {/* Navigation */}
+      <nav className="landing-nav">
+        <Link href="/" className="landing-logo">
+          ALIAS
+        </Link>
+
+        <div className="landing-nav-right">
+          <Link href="/login" className="landing-login">
+            Login
+          </Link>
+
+          <Link href="/onboarding" className="landing-launch">
             Launch app
           </Link>
         </div>
+      </nav>
 
-        <div className="relative z-10 px-5 pb-16 mt-16 w-full max-w-2xl mx-auto animate-fade-in-up">
-          <ProductPreview />
+      {/* Hero */}
+      <section className="landing-hero">
+        <div className="landing-hero-copy">
+          <div className="landing-eyebrow">
+            <span className="eyebrow-dot" />
+            AUTONOMOUS PERPETUAL INFRASTRUCTURE
+          </div>
+
+          <h1>
+            Connect your
+            <br />
+            <span>agent.</span>
+            <br />
+            Trade the market.
+          </h1>
+
+          <p>
+            Bring your own wallet, model, and logic.
+            Alias is the execution layer between your
+            agent and perpetual markets.
+          </p>
+
+          <div className="landing-actions">
+            <Link href="/onboarding" className="landing-primary">
+              Launch app
+              <span>↗</span>
+            </Link>
+
+            <a href="#system" className="landing-secondary">
+              Explore infrastructure
+              <span>↓</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Product visual — no fabricated data */}
+        <div className="hero-product">
+          <div className="product-window">
+            <div className="product-window-top">
+              <div className="product-brand">
+                <span className="product-dot" />
+                ALIAS
+              </div>
+
+              <div className="product-window-controls">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+
+            <div className="product-window-body">
+              <div className="product-sidebar">
+                <div className="sidebar-active" />
+                <div />
+                <div />
+                <div />
+                <div />
+              </div>
+
+              <div className="product-content">
+                <div className="product-placeholder product-wide" />
+                <div className="product-placeholder-row">
+                  <div className="product-placeholder" />
+                  <div className="product-placeholder" />
+                </div>
+                <div className="product-placeholder product-large" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* rest of the page — plain dark background, no video */}
-      <main className="max-w-5xl mx-auto px-5 py-20">
-        <div className="grid md:grid-cols-3 gap-4">
-          <FeatureCard
-            icon={Wallet}
-            title="Your wallet"
-            text="Connect your own burner wallet. We never touch your private key or hold your funds."
-            delay={0}
-          />
-          <FeatureCard
-            icon={Bot}
-            title="Your agent"
-            text="Claude, GPT, a self-hosted model, custom code — any agent can trade through our API."
-            delay={60}
-          />
-          <FeatureCard
-            icon={TrendingUp}
-            title="Your logic"
-            text="Every trade originates from your agent's decisions. We only execute what's authorized."
-            delay={120}
-          />
-        </div>
-      </main>
-    </>
-  );
-}
+      {/* System */}
+      <section id="system" className="landing-system">
+        <div className="system-heading">
+          <span>THE EXECUTION LAYER</span>
 
-function FeatureCard({ icon: Icon, title, text, delay = 0 }) {
-  return (
-    <div
-      className="animate-fade-in-up border border-line rounded-xl p-5 bg-surface
-                 transition-colors duration-200 ease hover-fine:border-signaldim"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <Icon size={18} className="text-signal mb-3" />
-      <div className="font-mono text-sm mb-2">{title}</div>
-      <p className="text-dim text-sm">{text}</p>
-    </div>
+          <h2>
+            Your agent makes
+            <br />
+            <em>the decision.</em>
+          </h2>
+
+          <p>
+            Alias does not make trading decisions for you.
+            It provides the infrastructure your agent needs
+            to execute its own strategy.
+          </p>
+        </div>
+
+        <div className="system-grid">
+          <div className="system-card">
+            <span>01</span>
+            <h3>Your wallet</h3>
+            <p>
+              Connect your wallet and retain control of
+              your funds and trading authority.
+            </p>
+          </div>
+
+          <div className="system-card">
+            <span>02</span>
+            <h3>Your agent</h3>
+            <p>
+              Bring Claude, GPT, a self-hosted model,
+              or your own trading logic.
+            </p>
+          </div>
+
+          <div className="system-card">
+            <span>03</span>
+            <h3>Your execution</h3>
+            <p>
+              Your agent decides what to do.
+              Alias handles the execution layer.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Closing */}
+      <section className="landing-closing">
+        <span>AGENT / MARKET / EXECUTION</span>
+
+        <h2>
+          Intelligence
+          <br />
+          <em>meets execution.</em>
+        </h2>
+
+        <Link href="/onboarding" className="landing-primary">
+          Enter Alias
+          <span>↗</span>
+        </Link>
+      </section>
+
+      {/* Footer */}
+      <footer className="landing-footer">
+        <span>ALIAS</span>
+        <span>Autonomous perpetual infrastructure</span>
+        <span>2026</span>
+      </footer>
+    </main>
   );
 }

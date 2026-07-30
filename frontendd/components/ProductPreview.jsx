@@ -24,14 +24,23 @@ export default function ProductPreview() {
         </aside>
 
         <div className="product-content">
-          <div className="product-placeholder product-wide" />
-
-          <div className="product-placeholder-row">
-            <div className="product-placeholder" />
-            <div className="product-placeholder" />
+          <div className="product-placeholder product-wide">
+            <div className="preview-label">OVERVIEW</div>
           </div>
 
-          <div className="product-placeholder product-large" />
+          <div className="product-placeholder-row">
+            <div className="product-placeholder">
+              <div className="preview-label">AGENT</div>
+            </div>
+
+            <div className="product-placeholder">
+              <div className="preview-label">EXECUTION</div>
+            </div>
+          </div>
+
+          <div className="product-placeholder product-large">
+            <div className="preview-label">ACTIVITY</div>
+          </div>
         </div>
       </div>
     </div>

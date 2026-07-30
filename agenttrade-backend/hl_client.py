@@ -28,34 +28,66 @@ def get_exchange_for_agent(agent_private_key: str) -> Exchange:
 
 
 def get_account_state(user_address: str) -> dict:
-    """Reads the MASTER account's state — same address on Arc and
-    Hyperliquid since both are EVM (secp256k1) chains."""
-    info = Info(HL_API_URL, skip_ws=True)
-    state = info.user_state(user_address)
+    """Read the master account's Hyperliquid perpetual state.
+
+    Uses the raw /info endpoint so read-only account queries do not
+    depend on the SDK's spot metadata initialization.
+    """
+    import requests
+
+    response = requests.post(
+        f"{HL_API_URL}/info",
+        json={
+            "type": "clearinghouseState",
+            "user": user_address,
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    state = response.json()
+    margin_summary = state.get("marginSummary", {})
+
     return {
-        "account_value": state["marginSummary"]["accountValue"],
-        "margin_used": state["marginSummary"]["totalMarginUsed"],
-        "positions": [p["position"] for p in state["assetPositions"]],
+        "account_value": margin_summary.get("accountValue"),
+        "margin_used": margin_summary.get("totalMarginUsed"),
+        "positions": [
+            p["position"]
+            for p in state.get("assetPositions", [])
+        ],
     }
 
 
 def get_markets() -> list[dict]:
-    """Full universe of tradable perp markets, live from Hyperliquid.
-    This is what an agent should call to discover what's tradable —
-    not something a human copy-pastes per token."""
-    info = Info(HL_API_URL, skip_ws=True)
-    meta, asset_ctxs = info.meta_and_asset_ctxs()
+    """Return all tradable Hyperliquid perpetual markets.
+
+    Uses the raw /info endpoint instead of constructing the SDK Info
+    client, because the SDK constructor can fail while loading spot
+    metadata even though perp metadata is available.
+    """
+    import requests
+
+    response = requests.post(
+        f"{HL_API_URL}/info",
+        json={"type": "metaAndAssetCtxs"},
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    meta, asset_ctxs = response.json()
     markets = []
-    for asset, ctx in zip(meta["universe"], asset_ctxs):
+
+    for asset, ctx in zip(meta.get("universe", []), asset_ctxs):
         markets.append({
             "coin": asset["name"],
-            "max_leverage": asset["maxLeverage"],
+            "max_leverage": asset.get("maxLeverage"),
             "mark_price": ctx.get("markPx"),
             "prev_day_price": ctx.get("prevDayPx"),
             "funding_rate": ctx.get("funding"),
             "open_interest": ctx.get("openInterest"),
             "day_volume": ctx.get("dayNtlVlm"),
         })
+
     return markets
 
 def execute_trade(

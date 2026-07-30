@@ -72,7 +72,7 @@ def execute_trade(
         exchange.update_leverage(leverage, coin)
 
     return exchange.market_open(
-        coin=coin,
+        name=coin,
         is_buy=is_buy,
         sz=size,
         slippage=slippage,

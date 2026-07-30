@@ -1,8 +1,9 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Alias",
-  description: "Infrastructure for autonomous AI agent perpetual futures trading",
+  title: "Alias — Autonomous Trading Infrastructure",
+  description:
+    "Alias is the execution layer between autonomous agents and perpetual markets.",
 };
 
 export default function RootLayout({ children }) {

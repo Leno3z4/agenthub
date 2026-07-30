@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "AgentTrade",
+  title: "Alias",
   description: "Infrastructure for autonomous AI agent perpetual futures trading",
 };
 

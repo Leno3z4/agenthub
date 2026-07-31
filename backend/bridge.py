@@ -37,7 +37,6 @@ from config import (
     CCTP_IRIS_API,
     HYPERLIQUID_CCTP_DOMAIN,
     CCTP_FORWARDER,
-    CORE_DEPOSIT_WALLET,
     require,
 )
 
@@ -79,11 +78,11 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 def wait_for_completion(
     source_domain: int,
     burn_tx_hash: str,
-    timeout=300,
-    poll_interval=5,
+    timeout: int = 300,
+    poll_interval: int = 5,
 ):
     """
-    Polls Iris until the bridge completes.
+    Polls Circle Iris until the bridge completes.
     """
 
     waited = 0
@@ -100,17 +99,14 @@ def wait_for_completion(
             status = transfer.get("status", "").lower()
 
             if status == "complete":
-
                 return transfer
 
             if status == "failed":
-
                 raise RuntimeError(
                     "Circle marked transfer as failed."
                 )
 
         time.sleep(poll_interval)
-
         waited += poll_interval
 
     raise TimeoutError(
@@ -119,7 +115,7 @@ def wait_for_completion(
 
 
 # ---------------------------------------------------------------------
-# HyperCore
+# HyperCore hook data
 # ---------------------------------------------------------------------
 
 
@@ -132,14 +128,14 @@ def create_hook_data(
     destination_dex: int = 0,
 ):
     """
-    Creates the payload expected by
-    Circle's HyperCore Forwarder.
+    Builds the hookData consumed by Hyperliquid's
+    CctpForwarder.
 
     destination_dex
 
-    0  -> Perps
+    0              -> Perps
 
-    max uint32 -> Spot
+    0xffffffff     -> Spot
     """
 
     return (
@@ -150,27 +146,24 @@ def create_hook_data(
 
 
 # ---------------------------------------------------------------------
-# Deposit Params
+# Frontend deposit parameters
 # ---------------------------------------------------------------------
 
 
 def deposit_parameters(amount: int):
     """
-    Returns everything the frontend
-    needs to build depositForBurn().
+    Returns everything the frontend needs for
+    depositForBurn().
     """
 
     return {
         "amount": amount,
-        "destinationDomain": require(
-            HYPERLIQUID_CCTP_DOMAIN,
-            "HYPERLIQUID_CCTP_DOMAIN",
-        ),
+        "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
         "mintRecipient": require(
             CCTP_FORWARDER,
             "CCTP_FORWARDER",
         ),
-        "hookData": create_hook_data().hex(),
+        "hookData": "0x" + create_hook_data().hex(),
     }
 
 
@@ -190,9 +183,7 @@ def validate_transfer(transfer: dict):
     ]
 
     for field in required:
-
         if field not in transfer:
-
             return False
 
     return True
@@ -208,7 +199,7 @@ def bridge_status(
     burn_tx_hash: str,
 ):
     """
-    Returns a simplified status
+    Returns a simplified transfer status
     for the frontend.
     """
 
@@ -218,19 +209,22 @@ def bridge_status(
     )
 
     if transfer is None:
-
         return {
             "status": "pending",
+            "complete": False,
         }
 
     if not validate_transfer(transfer):
-
         return {
             "status": "invalid",
+            "complete": False,
         }
 
+    status = transfer["status"]
+
     return {
-        "status": transfer["status"],
+        "status": status,
+        "complete": status.lower() == "complete",
         "messageHash": transfer["messageHash"],
         "txHash": burn_tx_hash,
     }

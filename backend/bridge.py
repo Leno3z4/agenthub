@@ -41,6 +41,13 @@ from config import (
 )
 
 
+
+
+
+def address_to_bytes32(address: str) -> str:
+    address = address.removeprefix("0x")
+    return "0x" + address.rjust(64, "0")
+
 # ---------------------------------------------------------------------
 # Circle
 # ---------------------------------------------------------------------
@@ -159,9 +166,11 @@ def deposit_parameters(amount: int):
     return {
         "amount": amount,
         "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
-        "mintRecipient": require(
-            CCTP_FORWARDER,
-            "CCTP_FORWARDER",
+        "mintRecipient": address_to_bytes32(
+            require(
+                CCTP_FORWARDER,
+                "CCTP_FORWARDER",
+            ),
         ),
         "hookData": "0x" + create_hook_data().hex(),
     }

@@ -12,6 +12,10 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "lucide-react": "0.383.0"
+    "@rainbow-me/rainbowkit": "^2.2.8",
+    "@tanstack/react-query": "^5.84.1",
+    "viem": "^2.37.5",
+    "wagmi": "^2.16.7"
   },
   "devDependencies": {
     "tailwindcss": "3.4.10",

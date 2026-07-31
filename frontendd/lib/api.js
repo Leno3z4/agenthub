@@ -226,3 +226,27 @@ export function fmtVolume(value) {
 
   return n.toFixed(0);
 }
+export async function confirmPermissions(
+  arcAddress,
+  apiKey,
+) {
+  const res = await fetch(
+    `${BACKEND_URL}/wallet/confirm-permissions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        arc_address: arcAddress,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}

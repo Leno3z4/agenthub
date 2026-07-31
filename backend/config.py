@@ -64,3 +64,26 @@ def require(value, name):
             f"{name} is not configured."
         )
     return value
+
+
+# ---------- Validate required configuration ----------
+
+CCTP_TOKEN_MESSENGER_ARC = require(
+    CCTP_TOKEN_MESSENGER_ARC,
+    "CCTP_TOKEN_MESSENGER_ARC",
+)
+
+CCTP_FORWARDER = require(
+    CCTP_FORWARDER,
+    "CCTP_FORWARDER",
+)
+
+CORE_DEPOSIT_WALLET = require(
+    CORE_DEPOSIT_WALLET,
+    "CORE_DEPOSIT_WALLET",
+)
+
+ENCRYPTION_KEY = require(
+    ENCRYPTION_KEY,
+    "ENCRYPTION_KEY",
+)

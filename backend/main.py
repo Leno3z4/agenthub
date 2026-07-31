@@ -27,6 +27,13 @@ from config import (
     HYPERLIQUID_CCTP_DOMAIN,
 )
 
+from agent_session import (
+    create_session,
+    validate_session,
+    touch_session,
+    destroy_session,
+)
+
 app = FastAPI(title="Alias Backend")
 
 app.add_middleware(
@@ -447,6 +454,23 @@ class CloseRequest(BaseModel):
     strategy: Optional[str] = None
 
 
+class AgentConnectRequest(BaseModel):
+    arc_address: str
+
+
+class AgentConnectResponse(BaseModel):
+    session_token: str
+    base_url: str
+
+
+class AgentHeartbeatRequest(BaseModel):
+    session_token: str
+
+
+class AgentDisconnectRequest(BaseModel):
+    session_token: str
+
+
 @app.post("/agents/{arc_address}/close")
 def agent_close(
     arc_address: str,
@@ -524,3 +548,54 @@ def dashboard(
     return get_account_state(
         arc_address,
     )
+
+@app.post("/agent/connect", response_model=AgentConnectResponse)
+def agent_connect(
+    request: Request,
+    req: AgentConnectRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Called once by the agent after the user pastes the skill.
+    Exchanges the API key for a long-lived session token.
+    """
+
+    _require_agent_auth(
+        req.arc_address,
+        authorization,
+    )
+
+    session_token = create_session(
+        authorization.removeprefix("Bearer ").strip()
+    )
+
+    return AgentConnectResponse(
+        session_token=session_token,
+        base_url=str(request.base_url).rstrip("/"),
+    )
+
+@app.post("/agent/heartbeat")
+def agent_heartbeat(
+    req: AgentHeartbeatRequest,
+):
+    if not validate_session(req.session_token):
+        raise HTTPException(
+            401,
+            "Session expired.",
+        )
+
+    touch_session(req.session_token)
+
+    return {
+        "alive": True,
+    }
+
+@app.post("/agent/disconnect")
+def agent_disconnect(
+    req: AgentDisconnectRequest,
+):
+    destroy_session(req.session_token)
+
+    return {
+        "success": True,
+    }

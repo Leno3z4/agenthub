@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
+import { linkWallet } from "../../lib/api";
+
 
 const STEPS = [
   { title: "Sign in", desc: "Continue with Google or X" },
@@ -15,14 +17,48 @@ const STEPS = [
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   
-  const { isConnected } = useAccount();
+  const [agentAddress, setAgentAddress] = useState("");
+  
+  const [apiKey, setApiKey] = useState("");
+  const { address, isConnected } = useAccount();
   
   useEffect(() => {
-    if (isConnected && step === 0) {
-      setStep(1);
+    if (!isConnected || !address || loading) {
+      return;
     }
-  }, [isConnected, step]);
+  
+    async function setupWallet() {
+      try {
+        setLoading(true);
+  
+        const data = await linkWallet(address);
+  
+        setAgentAddress(data.agent_address);
+  
+        setApiKey(data.api_key);
+  
+        localStorage.setItem(
+          "alias_agent_address",
+          data.agent_address,
+        );
+  
+        localStorage.setItem(
+          "alias_api_key",
+          data.api_key,
+        );
+  
+        setStep(2);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  
+    setupWallet();
+  }, [isConnected, address]);
 
   return (
     <main className="max-w-md mx-auto px-5 py-16">
@@ -65,9 +101,10 @@ export default function Onboarding() {
         </div>
       ) : (
         <button
-          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
+          disabled
+          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded opacity-60"
         >
-          Continue
+          {loading ? "Linking wallet..." : "Wallet linked"}
         </button>
       )}
       <p className="text-dim text-xs font-mono text-center mt-4">

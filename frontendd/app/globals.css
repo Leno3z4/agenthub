@@ -120,11 +120,13 @@ a {
 }
 
 .landing-page .landing-logo {
-  font-family: "DM Mono", monospace;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+  font-family: "Manrope", sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
   color: var(--alias-white);
+  text-transform: uppercase;
 }
 
 .landing-page .landing-nav-right {

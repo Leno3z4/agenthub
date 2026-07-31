@@ -28,7 +28,7 @@ export const USDC_ABI = [
 export const TOKEN_MESSENGER_ABI = [
   {
     type: "function",
-    name: "depositForBurn",
+    name: "depositForBurnWithHook",
     stateMutability: "nonpayable",
     inputs: [
       {
@@ -50,6 +50,18 @@ export const TOKEN_MESSENGER_ABI = [
       {
         name: "destinationCaller",
         type: "bytes32",
+      },
+      {
+        name: "maxFee",
+        type: "uint256",
+      },
+      {
+        name: "minFinalityThreshold",
+        type: "uint32",
+      },
+      {
+        name: "hookData",
+        type: "bytes",
       },
     ],
     outputs: [],

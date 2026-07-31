@@ -242,6 +242,7 @@ a {
 
 .landing-page .landing-hero h1 span {
   color: var(--alias-lime);
+  text-shadow: 0 0 28px rgba(200, 255, 53, 0.12);
 }
 
 .landing-page .landing-hero-copy > p {

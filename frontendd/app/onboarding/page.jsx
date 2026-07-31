@@ -46,45 +46,45 @@ export default function Onboarding() {
     ) {
       return;
     }
-  
-    async function setupWallet() {
-      try {
-        setLoading(true);
-  
-        const data = await linkWallet(address);
 
-        setAgentAddress(data.agent_address);
-        
-        setApiKey(data.api_key);
-        
-        await approveAgent({
-          walletClient,
-          agentAddress: data.agent_address,
-        });
-        
-        await confirmPermissions(
-          address,
-          data.api_key,
-        );
-  
-        localStorage.setItem(
-          "alias_agent_address",
-          data.agent_address,
-        );
-  
-        localStorage.setItem(
-          "alias_api_key",
-          data.api_key,
-        );
-  
-        setStep(3);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-  
+async function setupWallet() {
+  try {
+    setLoading(true);
+
+    const data = await linkWallet(address);
+
+    setAgentAddress(data.agent_address);
+    
+    setApiKey(data.api_key);
+    
+    await approveAgent({
+      walletClient,
+      agentAddress: data.agent_address,
+    });
+    
+    await confirmPermissions(
+      address,
+      data.api_key,
+    );
+
+    localStorage.setItem(
+      "alias_agent_address",
+      data.agent_address,
+    );
+
+    localStorage.setItem(
+      "alias_api_key",
+      data.api_key,
+    );
+
+    setStep(3);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
+
     setupWallet();
   }, [
     isConnected,
@@ -133,10 +133,13 @@ export default function Onboarding() {
         </div>
       ) : (
         <button
-          disabled
-          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded opacity-60"
+          disabled={!isConnected || loading}
+          onClick={setupWallet}
+          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
         >
-          {loading ? "Linking wallet..." : "Wallet linked"}
+          {loading
+            ? "Authorizing..."
+            : "Continue"}
         </button>
       )}
       <p className="text-dim text-xs font-mono text-center mt-4">

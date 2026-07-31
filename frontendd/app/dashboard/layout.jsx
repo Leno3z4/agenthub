@@ -2,9 +2,14 @@ import Sidebar from "@/components/Sidebar";
 
 export default function DashboardLayout({ children }) {
   return (
-    <div className="flex">
+    <div className="alias-dashboard">
       <Sidebar />
-      <div className="flex-1 px-8 py-8">{children}</div>
+
+      <main className="alias-main">
+        <div className="alias-main-inner">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

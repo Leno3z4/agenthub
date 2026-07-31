@@ -59,6 +59,39 @@ def get_markets() -> list[dict]:
     return markets
 
 
+
+def execute_trade(
+    agent_private_key: str,
+    coin: str,
+    is_buy: bool,
+    size: float,
+    leverage: int | None = None,
+    slippage: float = 0.01,
+) -> dict:
+    """
+    Opens a market position on Hyperliquid.
+
+    The AI agent decides:
+    - market
+    - direction
+    - size
+    - leverage (optional)
+
+    Alias only executes the order.
+    """
+
+    exchange = get_exchange_for_agent(agent_private_key)
+
+    if leverage is not None:
+        exchange.update_leverage(leverage, coin)
+
+    return exchange.market_open(
+        name=coin,
+        is_buy=is_buy,
+        sz=size,
+        slippage=slippage,
+    )
+
 def execute_close(
     agent_private_key: str,
     coin: str,

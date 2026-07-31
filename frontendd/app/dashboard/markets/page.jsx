@@ -1,9 +1,21 @@
 import Link from "next/link";
-import { getMarkets, pctChange, fmtPrice, fmtVolume } from "@/lib/api";
+import {
+  Search,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
+
+import {
+  getMarkets,
+  pctChange,
+  fmtPrice,
+  fmtVolume,
+} from "@/lib/api";
 
 export default async function MarketsPage() {
   let markets = [];
   let error = null;
+
   try {
     markets = await getMarkets();
   } catch (e) {
@@ -11,47 +23,104 @@ export default async function MarketsPage() {
   }
 
   return (
-    <div>
-      <h1 className="font-mono text-lg mb-6">Markets</h1>
+    <div className="alias-markets-page">
+
+      <div className="alias-page-header">
+        <div>
+          <p className="alias-page-label">
+            LIVE MARKETS
+          </p>
+
+          <h1>
+            Hyperliquid Perpetuals
+          </h1>
+
+          <p>
+            Browse supported perpetual markets available through
+            Hyperliquid execution.
+          </p>
+        </div>
+
+        <div className="alias-search">
+          <Search size={18} />
+          <input
+            placeholder="Search markets..."
+            disabled
+          />
+        </div>
+      </div>
 
       {error ? (
-        <div className="border border-warn rounded bg-surface p-5 text-warn text-sm font-mono">
-          Couldn't reach the backend ({error}). Make sure it's running locally
-          (uvicorn main:app --reload) or that NEXT_PUBLIC_BACKEND_URL points
-          at your deployed backend, then refresh.
+        <div className="alias-error-card">
+
+          <h3>Backend unavailable</h3>
+
+          <p>{error}</p>
+
+          <span>
+            Start the FastAPI server or configure
+            NEXT_PUBLIC_BACKEND_URL.
+          </span>
+
         </div>
       ) : (
-        <>
-          <div className="border border-line rounded bg-surface overflow-hidden">
-            <div className="grid grid-cols-4 px-5 py-3 text-dim text-xs font-mono border-b border-line">
-              <div>Market</div>
-              <div className="text-right">Price</div>
-              <div className="text-right">24h</div>
-              <div className="text-right">Volume</div>
-            </div>
-            {markets.map((m, i) => {
-              const change = pctChange(m);
-              return (
-                <Link
-                  key={m.coin}
-                  href={`/dashboard/markets/${m.coin}`}
-                  className="grid grid-cols-4 px-5 py-3 text-sm font-mono hover-fine:bg-surface2 transition-colors border-b border-line last:border-0 animate-fade-in-up"
-                  style={{ animationDelay: `${Math.min(i * 35, 280)}ms` }}
-                >
-                  <div>{m.coin}-PERP</div>
-                  <div className="text-right">${fmtPrice(m.mark_price)}</div>
-                  <div className={`text-right ${change >= 0 ? "text-signal" : "text-warn"}`}>
-                    {change >= 0 ? "+" : ""}
-                    {change.toFixed(2)}%
-                  </div>
-                  <div className="text-right text-dim">{fmtVolume(m.day_volume)}</div>
-                </Link>
-              );
-            })}
+        <div className="alias-market-table">
+
+          <div className="alias-market-head">
+            <span>Market</span>
+            <span>Price</span>
+            <span>24H</span>
+            <span>Volume</span>
           </div>
-          <p className="text-dim text-xs font-mono mt-3">live from Hyperliquid</p>
-        </>
+
+          {markets.map((market) => {
+            const change = pctChange(market);
+
+            return (
+              <Link
+                key={market.coin}
+                href={`/dashboard/markets/${market.coin}`}
+                className="alias-market-row"
+              >
+                <div>
+                  <strong>{market.coin}</strong>
+                  <small>PERPETUAL</small>
+                </div>
+
+                <div>
+                  ${fmtPrice(market.mark_price)}
+                </div>
+
+                <div
+                  className={
+                    change >= 0
+                      ? "market-positive"
+                      : "market-negative"
+                  }
+                >
+                  {change >= 0 ? (
+                    <ArrowUpRight size={16} />
+                  ) : (
+                    <ArrowDownRight size={16} />
+                  )}
+
+                  {change >= 0 ? "+" : ""}
+                  {change.toFixed(2)}%
+                </div>
+
+                <div>
+                  {fmtVolume(market.day_volume)}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       )}
+
+      <div className="alias-market-footer">
+        Live market metadata provided by Hyperliquid.
+      </div>
+
     </div>
   );
 }

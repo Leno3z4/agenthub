@@ -1,6 +1,9 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
 const STEPS = [
   { title: "Sign in", desc: "Continue with Google or X" },
@@ -12,6 +15,14 @@ const STEPS = [
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
+  
+  const { isConnected } = useAccount();
+  
+  useEffect(() => {
+    if (isConnected && step === 0) {
+      setStep(1);
+    }
+  }, [isConnected, step]);
 
   return (
     <main className="max-w-md mx-auto px-5 py-16">
@@ -48,14 +59,17 @@ export default function Onboarding() {
         ))}
       </ol>
 
-      <button
-        onClick={() => setStep((s) => Math.min(s + 1, STEPS.length))}
-        className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded
-                   transition-transform duration-150 ease-[var(--ease-out)]
-                   active:scale-[0.97] hover-fine:brightness-110"
-      >
-        {step < STEPS.length - 1 ? "Continue" : "Enter dashboard"}
-      </button>
+      {step === 0 ? (
+        <div className="flex justify-center">
+          <ConnectButton />
+        </div>
+      ) : (
+        <button
+          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
+        >
+          Continue
+        </button>
+      )}
       <p className="text-dim text-xs font-mono text-center mt-4">
         step logic is a placeholder — wallet connect / approve_agent / OAuth get wired in next
       </p>

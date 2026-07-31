@@ -6,16 +6,19 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   useAccount,
   useWalletClient,
+  usePublicClient,
 } from "wagmi";
 import {
   linkWallet,
   confirmPermissions,
 } from "../../lib/api";
-
+import {
+  depositUSDC,
+} from "../../lib/deposit";
 import {
   approveAgent,
 } from "../../lib/hyperliquid";
-
+import { useRouter } from "next/navigation";
 
 const STEPS = [
   { title: "Sign in", desc: "Continue with Google or X" },
@@ -36,7 +39,8 @@ export default function Onboarding() {
   
   const { data: walletClient } =
     useWalletClient();
-  
+  const publicClient =
+    usePublicClient();
   useEffect(() => {
     if (
       !isConnected ||
@@ -77,7 +81,7 @@ async function setupWallet() {
       data.api_key,
     );
 
-    setStep(3);
+    router.push("/dashboard");
   } catch (err) {
     console.error(err);
   } finally {
@@ -91,7 +95,25 @@ async function setupWallet() {
     address,
     walletClient,
   ]);
+async function fundWallet() {
+  try {
+    setLoading(true);
 
+    await depositUSDC({
+      walletClient,
+      publicClient,
+      arcAddress: address,
+      apiKey,
+      amount: 1000000, // 1 USDC
+    });
+
+    setStep(5);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
   return (
     <main className="max-w-md mx-auto px-5 py-16">
       <div className="font-mono tracking-widest text-sm mb-8">ALIAS — SETUP</div>
@@ -132,15 +154,23 @@ async function setupWallet() {
           <ConnectButton />
         </div>
       ) : (
-        <button
-          disabled={!isConnected || loading}
-          onClick={setupWallet}
-          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
-        >
-          {loading
-            ? "Authorizing..."
-            : "Continue"}
-        </button>
+        {step < 4 ? (
+          <button
+            disabled={!isConnected || loading}
+            onClick={setupWallet}
+            className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
+          >
+            {loading ? "Authorizing..." : "Continue"}
+          </button>
+        ) : (
+          <button
+            disabled={loading}
+            onClick={fundWallet}
+            className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
+          >
+            {loading ? "Bridging USDC..." : "Deposit USDC"}
+          </button>
+        )}
       )}
       <p className="text-dim text-xs font-mono text-center mt-4">
         step logic is a placeholder — wallet connect / approve_agent / OAuth get wired in next

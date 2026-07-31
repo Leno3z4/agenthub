@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import {
+  useAccount,
+  useWalletClient,
+} from "wagmi";
 import { linkWallet } from "../../lib/api";
 
 
@@ -24,8 +27,16 @@ export default function Onboarding() {
   const [apiKey, setApiKey] = useState("");
   const { address, isConnected } = useAccount();
   
+  const { data: walletClient } =
+    useWalletClient();
+  
   useEffect(() => {
-    if (!isConnected || !address || loading) {
+    if (
+      !isConnected ||
+      !address ||
+      !walletClient ||
+      loading
+    ) {
       return;
     }
   
@@ -58,7 +69,11 @@ export default function Onboarding() {
     }
   
     setupWallet();
-  }, [isConnected, address]);
+  }, [
+    isConnected,
+    address,
+    walletClient,
+  ]);
 
   return (
     <main className="max-w-md mx-auto px-5 py-16">

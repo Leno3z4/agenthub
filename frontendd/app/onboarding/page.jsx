@@ -7,7 +7,14 @@ import {
   useAccount,
   useWalletClient,
 } from "wagmi";
-import { linkWallet } from "../../lib/api";
+import {
+  linkWallet,
+  confirmPermissions,
+} from "../../lib/api";
+
+import {
+  approveAgent,
+} from "../../lib/hyperliquid";
 
 
 const STEPS = [
@@ -45,10 +52,20 @@ export default function Onboarding() {
         setLoading(true);
   
         const data = await linkWallet(address);
-  
+
         setAgentAddress(data.agent_address);
-  
+        
         setApiKey(data.api_key);
+        
+        await approveAgent({
+          walletClient,
+          agentAddress: data.agent_address,
+        });
+        
+        await confirmPermissions(
+          address,
+          data.api_key,
+        );
   
         localStorage.setItem(
           "alias_agent_address",
@@ -60,7 +77,7 @@ export default function Onboarding() {
           data.api_key,
         );
   
-        setStep(2);
+        setStep(3);
       } catch (err) {
         console.error(err);
       } finally {

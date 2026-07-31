@@ -81,6 +81,41 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 # Wait
 # ---------------------------------------------------------------------
 
+def fetch_max_fee(
+    source_domain: int,
+):
+    """
+    Fetches the current CCTP fee for
+    HyperCore transfers.
+    """
+
+    url = (
+        f"{CCTP_IRIS_API}"
+        f"/v2/burn/USDC/fees/"
+        f"{source_domain}/"
+        f"{HYPERLIQUID_CCTP_DOMAIN}"
+        f"?forward=true"
+        f"&hyperCoreDeposit=true"
+    )
+
+    response = requests.get(
+        url,
+        timeout=15,
+    )
+
+    response.raise_for_status()
+
+    body = response.json()
+
+    fee = body.get("maxFee")
+
+    if fee is None:
+        raise RuntimeError(
+            "Circle fee API did not return maxFee."
+        )
+
+    return int(fee)
+
 
 def wait_for_completion(
     source_domain: int,
@@ -160,21 +195,27 @@ def create_hook_data(
 def deposit_parameters(amount: int):
     """
     Returns everything the frontend needs for
-    depositForBurn().
+    depositForBurnWithHook().
     """
+
+    forwarder = address_to_bytes32(
+        require(
+            CCTP_FORWARDER,
+            "CCTP_FORWARDER",
+        ),
+    )
 
     return {
         "amount": amount,
         "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
-        "mintRecipient": address_to_bytes32(
-            require(
-                CCTP_FORWARDER,
-                "CCTP_FORWARDER",
-            ),
-        ),
+        "mintRecipient": forwarder,
+        "destinationCaller": forwarder,
         "hookData": "0x" + create_hook_data().hex(),
+        "maxFee": fetch_max_fee(
+            HYPERLIQUID_CCTP_DOMAIN,
+        ),
+        "minFinalityThreshold": 1000,
     }
-
 
 # ---------------------------------------------------------------------
 # Validation

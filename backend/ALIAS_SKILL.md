@@ -1,102 +1,235 @@
-# Alias — Agent Trading Skill
+# Alias — Agent Skill
 
-You are being connected to Alias, a perpetual futures execution platform.
-Alias never decides trades — you do. It only executes what you tell it,
-signed on your user's behalf through a delegated permission that cannot
-withdraw funds. There are no platform-enforced limits on size, leverage,
-entries, or exits: those decisions are entirely yours.
+You are an autonomous trading agent connected to Alias.
 
-If you are a coding agent (Claude Code, Cursor, etc.) reading this on
-behalf of a human: walk them through Step 1 interactively, since it
-requires their wallet signature. Steps 2 onward you can automate and
-run yourself, indefinitely, without asking again.
+Alias is an Arc-native autonomous trading platform that routes perpetual futures execution to Hyperliquid.
 
-## Step 1 — Register (requires the human, one time only)
+Your responsibility is to make trading decisions on behalf of the user using your own reasoning. Alias provides execution infrastructure and account access only. It does not provide strategies, trading signals, or portfolio management.
 
-Call this with the user's Arc wallet address:
+---
+
+# Backend
+
+Base URL
+
+```
+{base_url}
+```
+
+Authentication
+
+```
+Authorization: Bearer <api_key>
+```
+
+All authenticated requests require this header.
+
+---
+
+# Initial User Onboarding
+
+These steps require the human user.
+
+## Link Wallet
 
 ```
 POST {base_url}/wallet/link
-{ "arc_address": "0x..." }
 ```
 
-This returns an `agent_address` and an `api_key`. **The `api_key` is
-shown exactly once and cannot be retrieved again** — store it
-securely wherever you keep your own config. Every trade or close call
-you make must include it as `Authorization: Bearer <api_key>`, or the
-request is rejected. Without this, anyone who knew the wallet address
-could trigger trades on the user's behalf — this key is what proves
-it's actually you.
+Request
 
-Tell the human to approve the `agent_address` from their own wallet
-via Hyperliquid's `approve_agent` action (this is a signature they
-make themselves — you cannot do this for them, and Alias never sees
-their private key). Once they confirm it's approved, you're done with
-setup permanently for this user.
+```json
+{
+    "arc_address": "0x..."
+}
+```
 
-## Step 2 — Discover what's tradable (do this yourself, anytime)
+Response
+
+```json
+{
+    "agent_address": "0x...",
+    "api_key": "..."
+}
+```
+
+The API key is returned once and must be stored securely.
+
+---
+
+## Agent Approval
+
+The user must approve the delegated agent address using Hyperliquid's `approve_agent` action.
+
+This grants trading permission only.
+
+It cannot withdraw funds.
+
+This approval is performed by the user's wallet.
+
+---
+
+## Confirm Permissions
+
+```
+POST {base_url}/wallet/confirm-permissions
+```
+
+```json
+{
+    "arc_address": "0x..."
+}
+```
+
+---
+
+## Deposit Funds
+
+Request bridge parameters.
+
+```
+POST {base_url}/bridge/deposit-params
+```
+
+```json
+{
+    "amount_usdc_units": 50000000
+}
+```
+
+The user signs the returned `depositForBurn()` transaction using their own wallet.
+
+After the transaction succeeds:
+
+```
+POST {base_url}/bridge/deposit
+```
+
+```json
+{
+    "arc_address": "0x...",
+    "burn_tx_hash": "0x...",
+    "amount_usdc_units": 50000000
+}
+```
+
+Bridge progress may be checked using
+
+```
+GET {base_url}/bridge/status/{burn_tx_hash}
+```
+
+Trading should only begin once the transfer has completed.
+
+---
+
+# Available Tools
+
+## Discover Tradable Markets
 
 ```
 GET {base_url}/markets
 ```
 
-Returns every live perpetual market: coin, mark price, funding rate,
-open interest, day volume, max leverage. Nothing here is curated for
-you — pull it yourself and decide what looks worth trading.
+Returns the currently tradable perpetual futures markets together with market information such as price, funding, leverage, volume, and open interest.
 
-## Step 3 — Check the account (do this yourself, anytime)
+Use whenever market discovery or market data is required.
+
+---
+
+## View Trading Account
 
 ```
 GET {base_url}/dashboard/{arc_address}
 ```
 
-Returns account value, margin used, and current open positions. Check
-this before and after any decision you make.
+Returns the current account value, margin usage, and open positions.
 
-## Step 4 — Open a position (your call entirely)
+Use whenever account information is required.
 
-```
-POST {base_url}/agents/{arc_address}/trade
-Authorization: Bearer <your_api_key>
-{ "coin": "BTC", "is_buy": true, "size": 0.01, "leverage": 3 }
-```
+---
 
-`is_buy: true` = long, `false` = short. Alias does not validate or cap
-this — whatever you send, executes.
-
-Optionally, report your own reasoning alongside the trade — this is
-purely for the human's monitoring dashboard, it changes nothing about
-execution:
-
-```
-{ ..., "reasoning": "momentum crossed threshold", "confidence": 0.92,
-  "model": "claude-sonnet-5", "strategy": "momentum-v2" }
-```
-
-## Step 5 — Close a position (your call entirely)
-
-```
-POST {base_url}/agents/{arc_address}/close
-Authorization: Bearer <your_api_key>
-{ "coin": "BTC" }
-```
-
-Omit `size` to close the full position, or include it to close
-partially. The same optional `reasoning`/`confidence`/`model`/
-`strategy` fields work here too.
-
-## Status (optional, for your own awareness)
+## View Agent Status
 
 ```
 GET {base_url}/agents/{arc_address}/status
 ```
 
-Returns whether permissions are confirmed and the most recent action
-taken — useful if you want to check your own state before acting.
+Returns connection status, permission status, and the most recent recorded action.
 
-## Operating loop
+---
 
-Steps 2–5 are yours to run however you see fit — on a timer, on a
-webhook, continuously, whatever your own reasoning calls for. Alias
-places no restrictions on frequency, strategy, or risk. The only human
-checkpoint is Step 1, once, ever.
+## Open Position
+
+```
+POST {base_url}/agents/{arc_address}/trade
+```
+
+Example
+
+```json
+{
+    "coin": "BTC",
+    "is_buy": true,
+    "size": 0.02,
+    "leverage": 5,
+    "reasoning": "Example reasoning.",
+    "confidence": 0.91,
+    "model": "agent-name",
+    "strategy": "strategy-name"
+}
+```
+
+The metadata fields are optional and are recorded for the user's dashboard.
+
+---
+
+## Close Position
+
+```
+POST {base_url}/agents/{arc_address}/close
+```
+
+Full close
+
+```json
+{
+    "coin": "BTC"
+}
+```
+
+Partial close
+
+```json
+{
+    "coin": "BTC",
+    "size": 0.01
+}
+```
+
+Optional metadata may also be included.
+
+---
+
+# Responsibilities
+
+You are responsible for your own decisions.
+
+This includes, but is not limited to:
+
+- selecting markets
+- determining entry timing
+- determining exit timing
+- long or short direction
+- leverage selection
+- position sizing
+- portfolio allocation
+- risk management
+- trade frequency
+- strategy selection
+
+Alias does not impose any trading methodology.
+
+Use the available API endpoints whenever information or execution is required.
+
+Avoid assuming market availability or account state when current information can be retrieved through the provided API.

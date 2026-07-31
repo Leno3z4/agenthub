@@ -1,12 +1,18 @@
-export default function StatusDot({ active, label }) {
+export default function StatusDot({
+  active = false,
+  label,
+}) {
   return (
-    <div className="flex items-center gap-2 font-mono text-xs">
+    <div className="alias-status">
       <span
-        className={`w-1.5 h-1.5 rounded-full transition-[background-color,box-shadow] duration-200 ease ${
-          active ? "bg-signal shadow-[0_0_6px_1px_rgba(79,143,240,0.8)] animate-ambient-pulse" : "bg-dim"
+        className={`alias-status-indicator ${
+          active ? "is-active" : "is-inactive"
         }`}
       />
-      <span className="text-dim">{label}</span>
+
+      <span className="alias-status-label">
+        {label}
+      </span>
     </div>
   );
 }

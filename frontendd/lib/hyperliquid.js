@@ -1,60 +1,29 @@
-const HL_API =
+import { signUserSignedAction } from "@nktkas/hyperliquid";
+
+const EXCHANGE_URL =
   "https://api.hyperliquid-testnet.xyz/exchange";
 
 export async function approveAgent({
   walletClient,
   agentAddress,
-  agentName = "Alias",
 }) {
-  const account = walletClient.account;
-
-  if (!account) {
-    throw new Error("Wallet not connected.");
-  }
-
   const nonce = Date.now();
 
   const action = {
     type: "approveAgent",
-    hyperliquidChain: "Testnet",
-    signatureChainId: "0xa4b1",
     agentAddress,
-    agentName,
-    nonce,
+    agentName: "Alias",
   };
 
-  const signature = await walletClient.signTypedData({
-    account,
-    domain: {
-      name: "Exchange",
-      version: "1",
-      chainId: 42161,
-    },
-    primaryType: "Agent",
-    types: {
-      Agent: [
-        {
-          name: "agentAddress",
-          type: "address",
-        },
-        {
-          name: "agentName",
-          type: "string",
-        },
-        {
-          name: "nonce",
-          type: "uint64",
-        },
-      ],
-    },
-    message: {
-      agentAddress,
-      agentName,
+  const signature =
+    await signUserSignedAction({
+      wallet: walletClient,
+      action,
       nonce,
-    },
-  });
+      isTestnet: true,
+    });
 
-  const response = await fetch(HL_API, {
+  const response = await fetch(EXCHANGE_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

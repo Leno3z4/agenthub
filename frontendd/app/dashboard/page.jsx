@@ -1,42 +1,105 @@
 import StatusDot from "@/components/StatusDot";
+import Link from "next/link";
+import {
+  ArrowUpRight,
+  Wallet,
+  Bot,
+  ShieldCheck,
+  Activity,
+} from "lucide-react";
 
-const stats = [
-  { label: "Account value", value: "$0.00" },
-  { label: "Available margin", value: "$0.00" },
-  { label: "Used margin", value: "$0.00" },
-  { label: "Unrealized P&L", value: "$0.00" },
+const cards = [
+  {
+    icon: Wallet,
+    title: "Wallet",
+    description:
+      "Connect the wallet that will authorize your trading activity.",
+  },
+  {
+    icon: Bot,
+    title: "Agent",
+    description:
+      "Attach your AI model or custom execution logic to Alias.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Permissions",
+    description:
+      "Approve the delegated signing key required for execution.",
+  },
+  {
+    icon: Activity,
+    title: "Execution",
+    description:
+      "Once configured, your agent can execute trades on your behalf.",
+  },
 ];
 
 export default function DashboardOverview() {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="font-mono text-lg">Overview</h1>
-        <div className="flex gap-4">
-          <StatusDot active label="wallet connected" />
-          <StatusDot active={false} label="agent" />
-        </div>
-      </div>
+    <div className="alias-overview">
+      <header className="alias-overview-header">
+        <div>
+          <p className="alias-overview-label">
+            DASHBOARD
+          </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
-        {stats.map((s, i) => (
-          <div
-            key={s.label}
-            className="border border-line rounded p-4 bg-surface animate-fade-in-up"
-            style={{ animationDelay: `${i * 40}ms` }}
-          >
-            <div className="text-dim text-xs font-mono mb-1">{s.label}</div>
-            <div className="font-mono text-lg">{s.value}</div>
+          <h1 className="alias-overview-title">
+            Welcome to Alias.
+          </h1>
+
+          <p className="alias-overview-description">
+            Connect your wallet, authorize your execution key,
+            and bring your own AI. Alias never decides trades—
+            it simply executes the strategy your agent produces.
+          </p>
+        </div>
+
+        <div className="alias-status-group">
+          <StatusDot active label="Wallet" />
+          <StatusDot active={false} label="Agent" />
+        </div>
+      </header>
+
+      <section className="alias-setup-grid">
+        {cards.map(({ icon: Icon, title, description }) => (
+          <div key={title} className="alias-card">
+            <div className="alias-card-icon">
+              <Icon size={20} />
+            </div>
+
+            <h3>{title}</h3>
+
+            <p>{description}</p>
           </div>
         ))}
-      </div>
+      </section>
 
-      <div className="border border-line rounded p-5 bg-surface">
-        <div className="font-mono text-sm text-dim mb-3">Open positions</div>
-        <div className="text-dim text-sm font-mono py-8 text-center">
-          no open positions — placeholder, wire to Hyperliquid info endpoint next
+      <section className="alias-next-step">
+        <div>
+          <span className="alias-next-label">
+            NEXT STEP
+          </span>
+
+          <h2>
+            Finish configuring your trading infrastructure.
+          </h2>
+
+          <p>
+            Once your wallet, execution key, and AI provider are
+            connected, you'll be able to execute trades through
+            Hyperliquid using your own autonomous strategy.
+          </p>
         </div>
-      </div>
+
+        <Link
+          href="/onboarding"
+          className="landing-primary"
+        >
+          Continue setup
+          <ArrowUpRight size={18} />
+        </Link>
+      </section>
     </div>
   );
 }

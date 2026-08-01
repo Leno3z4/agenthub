@@ -3,13 +3,19 @@
 import "@rainbow-me/rainbowkit/styles.css";
 
 import { ReactNode } from "react";
-
 import {
-  getDefaultConfig,
   RainbowKitProvider,
+  connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
 
 import {
+  metaMaskWallet,
+  rabbyWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
+
+import {
+  createConfig,
   WagmiProvider,
   http,
 } from "wagmi";
@@ -27,7 +33,9 @@ const arc = {
   },
   rpcUrls: {
     default: {
-      http: [process.env.NEXT_PUBLIC_ARC_RPC_URL!],
+      http: [
+        process.env.NEXT_PUBLIC_ARC_RPC_URL!,
+      ],
     },
   },
   blockExplorers: {
@@ -38,12 +46,32 @@ const arc = {
   },
 } as const;
 
-const config = getDefaultConfig({
-  appName: "Alias",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: "Wallets",
+      wallets: [
+        metaMaskWallet,
+        rabbyWallet,
+        walletConnectWallet,
+      ],
+    },
+  ],
+  {
+    appName: "Alias",
+    projectId:
+      process.env
+        .NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+  },
+);
+
+const config = createConfig({
+  connectors,
   chains: [arc],
   transports: {
-    [arc.id]: http(process.env.NEXT_PUBLIC_ARC_RPC_URL),
+    [arc.id]: http(
+      process.env.NEXT_PUBLIC_ARC_RPC_URL,
+    ),
   },
 });
 

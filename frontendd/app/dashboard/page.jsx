@@ -1,5 +1,12 @@
+"use client";
+
 import StatusDot from "@/components/StatusDot";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  getDashboard,
+  getAgentStatus,
+} from "@/lib/api";
 import {
   ArrowUpRight,
   Wallet,
@@ -8,32 +15,7 @@ import {
   Activity,
 } from "lucide-react";
 
-const cards = [
-  {
-    icon: Wallet,
-    title: "Wallet",
-    description:
-      "Connect the wallet that will authorize your trading activity.",
-  },
-  {
-    icon: Bot,
-    title: "Agent",
-    description:
-      "Attach your AI model or custom execution logic to Alias.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Permissions",
-    description:
-      "Approve the delegated signing key required for execution.",
-  },
-  {
-    icon: Activity,
-    title: "Execution",
-    description:
-      "Once configured, your agent can execute trades on your behalf.",
-  },
-];
+
 
 export default function DashboardOverview() {
   return (
@@ -103,3 +85,51 @@ export default function DashboardOverview() {
     </div>
   );
 }
+
+const [dashboard, setDashboard] = useState(null);
+
+const [agent, setAgent] = useState(null);
+
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  async function load() {
+    try {
+      const arcAddress =
+        localStorage.getItem(
+          "alias_arc_address",
+        );
+
+      const apiKey =
+        localStorage.getItem(
+          "alias_api_key",
+        );
+
+      if (!arcAddress || !apiKey) return;
+
+      const [dashboardData, agentData] =
+        await Promise.all([
+          getDashboard(
+            arcAddress,
+            apiKey,
+          ),
+          getAgentStatus(
+            arcAddress,
+            apiKey,
+          ),
+        ]);
+
+      setDashboard(
+        dashboardData,
+      );
+
+      setAgent(
+        agentData,
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  load();
+}, []);

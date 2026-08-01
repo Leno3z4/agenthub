@@ -250,3 +250,42 @@ export async function confirmPermissions(
 
   return res.json();
 }
+export async function getDashboard(
+  arcAddress,
+  apiKey,
+) {
+  const res = await fetch(
+    `${BACKEND_URL}/dashboard/${arcAddress}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok)
+    throw new Error("Dashboard failed");
+
+  return res.json();
+}
+
+export async function getAgentStatus(
+  arcAddress,
+  apiKey,
+) {
+  const res = await fetch(
+    `${BACKEND_URL}/agents/${arcAddress}/status`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok)
+    throw new Error("Status failed");
+
+  return res.json();
+}

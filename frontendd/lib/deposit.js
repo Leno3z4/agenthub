@@ -51,7 +51,7 @@ export async function depositUSDC({
     ]);
 
   await publicClient.waitForTransactionReceipt({
-    hash: approveHash,
+    hash: burnHash,
   });
 
   await deposit(

@@ -72,13 +72,13 @@ async function setupWallet() {
     );
 
     localStorage.setItem(
-      "alias_agent_address",
-      data.agent_address,
+      "alias_arc_address",
+      address,
     );
 
     localStorage.setItem(
-      "alias_api_key",
-      data.api_key,
+      "alias_arc_address",
+      address,
     );
 
     router.push("/dashboard");

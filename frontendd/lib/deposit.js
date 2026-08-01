@@ -33,10 +33,9 @@ export async function depositUSDC({
       BigInt(params.amount),
     ]);
 
-  await waitForTransactionReceipt(publicClient, {
+  await publicClient.waitForTransactionReceipt({
     hash: approveHash,
   });
-
   // Circle burn
 
   const burnHash =
@@ -51,8 +50,8 @@ export async function depositUSDC({
       params.hookData,
     ]);
 
-  await waitForTransactionReceipt(publicClient, {
-    hash: burnHash,
+  await publicClient.waitForTransactionReceipt({
+    hash: approveHash,
   });
 
   await deposit(

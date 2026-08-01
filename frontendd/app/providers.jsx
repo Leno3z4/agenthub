@@ -2,7 +2,6 @@
 
 import "@rainbow-me/rainbowkit/styles.css";
 
-import { ReactNode } from "react";
 import {
   RainbowKitProvider,
   connectorsForWallets,
@@ -20,7 +19,10 @@ import {
   http,
 } from "wagmi";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 
 const arc = {
   id: Number(process.env.NEXT_PUBLIC_ARC_CHAIN_ID),
@@ -34,17 +36,17 @@ const arc = {
   rpcUrls: {
     default: {
       http: [
-        process.env.NEXT_PUBLIC_ARC_RPC_URL!,
+        process.env.NEXT_PUBLIC_ARC_RPC_URL,
       ],
     },
   },
   blockExplorers: {
     default: {
       name: "Arc Explorer",
-      url: process.env.NEXT_PUBLIC_ARC_EXPLORER!,
+      url: process.env.NEXT_PUBLIC_ARC_EXPLORER,
     },
   },
-} as const;
+};
 
 const connectors = connectorsForWallets(
   [
@@ -60,8 +62,7 @@ const connectors = connectorsForWallets(
   {
     appName: "Alias",
     projectId:
-      process.env
-        .NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
   },
 );
 
@@ -77,11 +78,7 @@ const config = createConfig({
 
 const queryClient = new QueryClient();
 
-export default function Providers({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function Providers({ children }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>

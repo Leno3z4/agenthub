@@ -68,12 +68,29 @@ export default function Onboarding() {
   const publicClient =
     usePublicClient();
 
-  useEffect(() => {
-    if (isConnected) {
-      setStep(1);
-    }
-  }, [isConnected]);
+  const [initialized, setInitialized] = useState(false);
 
+  useEffect(() => {
+    if (
+      !isConnected ||
+      !walletClient ||
+      !address ||
+      initialized
+    ) {
+      return;
+    }
+
+    setInitialized(true);
+    setStep(1);
+
+    setupWallet();
+  }, [
+    isConnected,
+    walletClient,
+    address,
+    initialized,
+  ]);
+  
   async function setupWallet() {
     if (
       !walletClient ||
@@ -156,6 +173,16 @@ export default function Onboarding() {
     }
   }
 
+  function handleGoogleLogin() {
+    // Placeholder until OAuth is wired
+    setStep(1);
+  }
+
+  function handleXLogin() {
+    // Placeholder until OAuth is wired
+    setStep(1);
+  }
+
   return (
     <main className="max-w-md mx-auto px-5 py-16">
       <div className="font-mono tracking-widest text-sm mb-8">
@@ -206,6 +233,22 @@ export default function Onboarding() {
       </ol>
 
       {step === 0 ? (
+        <div className="space-y-3">
+          <button
+            onClick={handleGoogleLogin}
+            className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
+          >
+            Continue with Google
+          </button>
+
+          <button
+            onClick={handleXLogin}
+            className="w-full border border-line text-white font-mono font-semibold py-2.5 rounded"
+          >
+            Continue with X
+          </button>
+        </div>
+      ) : step === 1 ? (
         <div className="flex justify-center">
           <ConnectButton />
         </div>

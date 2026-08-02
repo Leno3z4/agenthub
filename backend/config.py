@@ -27,7 +27,12 @@ HYPERLIQUID_CCTP_DOMAIN = int(
         "0",
     )
 )
-
+ARC_CCTP_DOMAIN = int(
+        os.getenv(
+            "ARC_CCTP_DOMAIN",
+            "7",   # confirmed Arc testnet CCTP domain
+        )
+)
 # ---------- HyperCore ----------
 
 CCTP_FORWARDER = os.getenv(

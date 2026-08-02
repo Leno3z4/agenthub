@@ -249,7 +249,8 @@ export default function Onboarding() {
           </button>
         </div>
       ) : step === 1 ? (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <p> Wallet step reached </p>
           <ConnectButton />
         </div>
       ) : step < 4 ? (

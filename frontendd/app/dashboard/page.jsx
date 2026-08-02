@@ -5,150 +5,161 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   Wallet,
-  Bot,
   ShieldCheck,
   Activity,
 } from "lucide-react";
 
 import StatusDot from "@/components/StatusDot";
-import {
-  getDashboard,
-  getAgentStatus,
-} from "@/lib/api";
-
-const cards = [
-  {
-    icon: Wallet,
-    title: "Connect Wallet",
-    description:
-      "Connect your Arc wallet to begin using Alias.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Authorize Execution Key",
-    description:
-      "Approve your delegated execution key for trading.",
-  },
-  {
-    icon: Bot,
-    title: "Attach AI Agent",
-    description:
-      "Bring your preferred AI model and trading strategy.",
-  },
-  {
-    icon: Activity,
-    title: "Start Trading",
-    description:
-      "Monitor activity and execute autonomous trades.",
-  },
-];
+import { getDashboard, getAgentStatus } from "@/lib/api";
 
 export default function DashboardOverview() {
   const [dashboard, setDashboard] = useState(null);
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notSetUp, setNotSetUp] = useState(false);
 
   useEffect(() => {
     async function load() {
+      const arcAddress = localStorage.getItem("alias_arc_address");
+      const apiKey = localStorage.getItem("alias_api_key");
+
+      // Was silently doing nothing before — now it's an explicit,
+      // visible state instead of an empty dashboard that looks broken.
+      if (!arcAddress || !apiKey) {
+        setNotSetUp(true);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const arcAddress = localStorage.getItem("alias_arc_address");
-        const apiKey = localStorage.getItem("alias_api_key");
-
-        if (!arcAddress || !apiKey) return;
-
         const [dashboardData, agentData] = await Promise.all([
           getDashboard(arcAddress, apiKey),
           getAgentStatus(arcAddress, apiKey),
         ]);
-
         setDashboard(dashboardData);
         setAgent(agentData);
       } catch (err) {
         console.error(err);
+        setError(err.message || "Couldn't load your dashboard.");
       } finally {
         setLoading(false);
       }
     }
-
     load();
   }, []);
+
+  if (notSetUp) {
+    return (
+      <div className="alias-overview">
+        <p className="alias-overview-label">DASHBOARD</p>
+        <h1 className="alias-overview-title">Not set up yet.</h1>
+        <p className="alias-overview-description">
+          No wallet linked yet — there's nothing to show here until
+          onboarding is complete.
+        </p>
+        <Link href="/onboarding" className="landing-primary">
+          Start setup <ArrowUpRight size={18} />
+        </Link>
+      </div>
+    );
+  }
+
+  const latest = agent?.latest_action;
 
   return (
     <div className="alias-overview">
       <header className="alias-overview-header">
         <div>
-          <p className="alias-overview-label">
-            DASHBOARD
-          </p>
-
-          <h1 className="alias-overview-title">
-            Welcome to Alias.
-          </h1>
-
+          <p className="alias-overview-label">DASHBOARD</p>
+          <h1 className="alias-overview-title">Welcome to Alias.</h1>
           <p className="alias-overview-description">
-            Connect your wallet, authorize your execution key,
-            and bring your own AI. Alias never decides trades—it
-            simply executes the strategy your agent produces.
+            Alias never decides trades — it executes whatever your agent
+            decides. This page shows what's actually happening, not a
+            trading terminal.
           </p>
         </div>
 
         <div className="alias-status-group">
-          <StatusDot active label="Wallet" />
-          <StatusDot
-            active={!!agent}
-            label="Agent"
-          />
+          <StatusDot active={!!agent?.wallet_connected} label="Wallet" />
+          <StatusDot active={!!agent?.permissions_approved} label="Approved" />
+          <StatusDot active={!!agent?.agent_connected} label="Agent" />
         </div>
       </header>
 
-      <section className="alias-setup-grid">
-        {cards.map(({ icon: Icon, title, description }) => (
-          <div
-            key={title}
-            className="alias-card"
-          >
-            <div className="alias-card-icon">
-              <Icon size={20} />
+      {error && (
+        <p style={{ color: "#ff6b6b", fontSize: "13px", marginBottom: "24px" }}>
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="alias-overview-description">Loading...</p>
+      ) : (
+        <>
+          <section className="alias-setup-grid">
+            <div className="alias-card">
+              <div className="alias-card-icon">
+                <Wallet size={20} />
+              </div>
+              <h3>
+                ${Number(dashboard?.account_value ?? 0).toLocaleString()}
+              </h3>
+              <p>Account value</p>
             </div>
 
-            <h3>{title}</h3>
+            <div className="alias-card">
+              <div className="alias-card-icon">
+                <ShieldCheck size={20} />
+              </div>
+              <h3>
+                ${Number(dashboard?.margin_used ?? 0).toLocaleString()}
+              </h3>
+              <p>Margin used</p>
+            </div>
 
-            <p>{description}</p>
-          </div>
-        ))}
-      </section>
+            <div className="alias-card">
+              <div className="alias-card-icon">
+                <Activity size={20} />
+              </div>
+              <h3>{dashboard?.positions?.length ?? 0}</h3>
+              <p>Open positions</p>
+            </div>
+          </section>
 
-      <section className="alias-next-step">
-        <div>
-          <span className="alias-next-label">
-            NEXT STEP
-          </span>
+          <section className="alias-next-step">
+            <div>
+              <span className="alias-next-label">LATEST AGENT ACTION</span>
 
-          <h2>
-            Finish configuring your trading infrastructure.
-          </h2>
+              {latest ? (
+                <>
+                  <h2>
+                    {latest.is_buy ? "Bought" : "Sold / closed"}{" "}
+                    {latest.size} {latest.coin}
+                  </h2>
+                  <p>
+                    {latest.reasoning || "No reasoning reported by the agent."}
+                    {latest.confidence != null &&
+                      ` — confidence ${Math.round(latest.confidence * 100)}%`}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2>No actions yet.</h2>
+                  <p>
+                    Once your agent makes its first trade, it'll show up
+                    here.
+                  </p>
+                </>
+              )}
+            </div>
 
-          <p>
-            Once your wallet, execution key, and AI provider are
-            connected, you'll be able to execute trades through
-            Hyperliquid using your own autonomous strategy.
-          </p>
-
-          {!loading && dashboard && (
-            <p className="alias-dashboard-status">
-              Dashboard connected.
-            </p>
-          )}
-        </div>
-
-        <Link
-          href="/onboarding"
-          className="landing-primary"
-        >
-          Continue setup
-          <ArrowUpRight size={18} />
-        </Link>
-      </section>
+            <Link href="/dashboard/agent" className="landing-primary">
+              View agent <ArrowUpRight size={18} />
+            </Link>
+          </section>
+        </>
+      )}
     </div>
   );
 }

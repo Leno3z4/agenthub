@@ -1,3 +1,4 @@
+"use client";
 import Nav from "../components/Nav";
 import ProductPreview from "../components/ProductPreview";
 import Link from "next/link";

@@ -25,6 +25,7 @@ from bridge import (
 
 from config import (
     HYPERLIQUID_CCTP_DOMAIN,
+    ARC_CCTP_DOMAIN,
 )
 
 from agent_session import (
@@ -358,7 +359,7 @@ def bridge_transfer_status(
     burn_tx_hash: str,
 ):
     return bridge_status(
-        HYPERLIQUID_CCTP_DOMAIN,
+        ARC_CCTP_DOMAIN,
         burn_tx_hash,
     )
 # ---------------------------------------------------------------------

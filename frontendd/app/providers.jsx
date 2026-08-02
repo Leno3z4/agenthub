@@ -13,6 +13,8 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 
+import { arcTestnet } from "viem/chains";
+
 import {
   createConfig,
   WagmiProvider,
@@ -24,30 +26,13 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-const arc = {
-  id: Number(process.env.NEXT_PUBLIC_ARC_CHAIN_ID),
-  name: "Arc",
-  network: "arc",
-  nativeCurrency: {
-    name: "ARC",
-    symbol: "ARC",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: {
-      http: [
-        process.env.NEXT_PUBLIC_ARC_RPC_URL,
-      ],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "Arc Explorer",
-      url: process.env.NEXT_PUBLIC_ARC_EXPLORER,
-    },
-  },
-};
-
+// Arc's real testnet chain, shipped directly by viem — no need to
+// hand-build this. The old version constructed it from
+// NEXT_PUBLIC_ARC_CHAIN_ID / NEXT_PUBLIC_ARC_RPC_URL, which were never
+// actually set anywhere (no .env.example entry, no fallback), so
+// Number(undefined) silently became NaN and broke the whole wagmi
+// config. Confirmed against docs.arc.io/arc/references/connect-to-arc,
+// which uses this exact import.
 const connectors = connectorsForWallets(
   [
     {
@@ -68,11 +53,9 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   connectors,
-  chains: [arc],
+  chains: [arcTestnet],
   transports: {
-    [arc.id]: http(
-      process.env.NEXT_PUBLIC_ARC_RPC_URL,
-    ),
+    [arcTestnet.id]: http("https://rpc.testnet.arc.io"),
   },
 });
 

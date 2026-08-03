@@ -17,6 +17,7 @@ import {
 } from "wagmi";
 
 import {
+  registerUser,
   linkWallet,
   confirmPermissions,
 } from "../../lib/api";
@@ -54,12 +55,16 @@ const STEPS = [
 
 export default function Onboarding() {
   const router = useRouter();
-  const { status } = useSession();
+  const {
+    data: session,
+    status,
+  } = useSession();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const [apiKey, setApiKey] = useState("");
   const [agentAddress, setAgentAddress] = useState("");
+  const [userId, setUserId] = useState("");
 
   const {
     address,
@@ -112,7 +117,18 @@ export default function Onboarding() {
 
     try {
       setLoading(true);
+      const user = session.user;
+      
+      const registration = await registerUser({
+        google_id: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.image,
+      });
 
+setUserId(registration.user_id);
+      
+      setUserId(registration.user_id);
       const data =
         await linkWallet(address);
 

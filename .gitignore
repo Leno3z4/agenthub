@@ -18,3 +18,16 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/*.db
+
+# Node
+node_modules/
+.next/
+
+# Environment
+.env
+.env.*
+!.env.example

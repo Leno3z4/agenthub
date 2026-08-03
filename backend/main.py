@@ -273,7 +273,7 @@ def confirm_permissions(
     authorization: Optional[str] = Header(None),
 ):
     _require_agent_auth(
-        req.arc_address,
+        req.user_id,
         authorization,
     )
 
@@ -282,7 +282,7 @@ def confirm_permissions(
             """
             UPDATE users
             SET permissions_confirmed = 1
-            WHERE arc_address = ?
+            WHERE user_id = ?
             """,
             (req.user_id,),
         )
@@ -459,7 +459,7 @@ def bridge_deposit(
     """
 
     user = _require_agent_auth(
-        req.arc_address,
+        req.user_id,
         authorization,
     )
 

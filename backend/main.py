@@ -82,7 +82,7 @@ class LinkWalletRequest(BaseModel):
     wallet_address: str
     picture: str | None = None
 
-    wallet_address: str
+   
 
 
 class LinkWalletResponse(BaseModel):
@@ -192,7 +192,7 @@ def link_wallet(req: LinkWalletRequest):
 
 
 class ConfirmPermissionsRequest(BaseModel):
-    arc_address: str
+    user_id: str
 
 import uuid
 
@@ -294,15 +294,15 @@ def confirm_permissions(
 # Internal helpers
 # ---------------------------------------------------------------------
 
-def _get_user(arc_address: str):
+def _get_user(user_id: str):
     with get_conn() as conn:
         user = conn.execute(
             """
             SELECT *
             FROM users
-            WHERE arc_address = ?
+            WHERE id = ?
             """,
-            (arc_address,),
+            (user_id,),
         ).fetchone()
 
     if user is None:
@@ -315,10 +315,10 @@ def _get_user(arc_address: str):
 
 
 def _require_agent_auth(
-    arc_address: str,
+    user_id: str,
     authorization: Optional[str],
 ):
-    user = _get_user(arc_address)
+    user = _get_user(user_id)
 
     if authorization is None:
         raise HTTPException(
@@ -347,7 +347,7 @@ def _require_agent_auth(
 
 
 def _mark_agent_active(
-    arc_address: str,
+    user_id: str,
 ):
     with get_conn() as conn:
         conn.execute(
@@ -356,9 +356,9 @@ def _mark_agent_active(
             SET
                 last_seen = CURRENT_TIMESTAMP,
                 permissions_confirmed = 1
-            WHERE arc_address = ?
+            WHERE id = ?
             """,
-            (arc_address,),
+            (user_id,),
         )
 # ---------------------------------------------------------------------
 # Agent status

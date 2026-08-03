@@ -79,6 +79,7 @@ class LinkWalletRequest(BaseModel):
     google_id: str
     email: str
     name: str
+    wallet_address: str
     picture: str | None = None
 
     wallet_address: str
@@ -193,6 +194,78 @@ def link_wallet(req: LinkWalletRequest):
 class ConfirmPermissionsRequest(BaseModel):
     arc_address: str
 
+import uuid
+
+class RegisterUserRequest(BaseModel):
+    google_id: str
+    email: str
+    name: str
+    picture: str | None = None
+
+
+@app.post("/users/register")
+def register_user(req: RegisterUserRequest):
+    with get_conn() as conn:
+        existing = conn.execute(
+            """
+            SELECT id
+            FROM users
+            WHERE google_id = ?
+            """,
+            (req.google_id,),
+        ).fetchone()
+
+        if existing:
+            conn.execute(
+                """
+                UPDATE users
+                SET
+                    email = ?,
+                    name = ?,
+                    picture = ?
+                WHERE google_id = ?
+                """,
+                (
+                    req.email,
+                    req.name,
+                    req.picture,
+                    req.google_id,
+                ),
+            )
+
+            return {
+                "user_id": existing["id"],
+                "new_user": False,
+            }
+
+        user_id = str(uuid.uuid4())
+
+        conn.execute(
+            """
+            INSERT INTO users
+            (
+                id,
+                google_id,
+                email,
+                name,
+                picture,
+                wallet_address
+            )
+            VALUES (?, ?, ?, ?, ?, '')
+            """,
+            (
+                user_id,
+                req.google_id,
+                req.email,
+                req.name,
+                req.picture,
+            ),
+        )
+
+        return {
+            "user_id": user_id,
+            "new_user": True,
+        }
 
 @app.post("/wallet/confirm-permissions")
 def confirm_permissions(
@@ -211,7 +284,7 @@ def confirm_permissions(
             SET permissions_confirmed = 1
             WHERE arc_address = ?
             """,
-            (req.arc_address,),
+            (req.user_id,),
         )
 
     return {

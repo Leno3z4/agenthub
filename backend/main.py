@@ -364,13 +364,13 @@ def _mark_agent_active(
 # Agent status
 # ---------------------------------------------------------------------
 
-@app.get("/agents/{arc_address}/status")
+@app.get("/users/{user_id}/agent/status")
 def agent_status(
-    arc_address: str,
+    user_id: str,
     authorization: Optional[str] = Header(None),
 ):
     user = _require_agent_auth(
-        arc_address,
+        user_id,
         authorization,
     )
 
@@ -521,16 +521,16 @@ class TradeRequest(BaseModel):
     strategy: Optional[str] = None
 
 
-@app.post("/agents/{arc_address}/trade")
+@app.post("/users/{user_id}/trade")
 def agent_trade(
-    arc_address: str,
+    user_id: str,
     req: TradeRequest,
     authorization: Optional[str] = Header(None),
 ):
-    user = _require_agent_auth(
-        arc_address,
-        authorization,
-    )
+   user = _require_agent_auth(
+       user_id,
+       authorization,
+   )
 
     agent_private_key = decrypt(
         user["agent_key_encrypted"],
@@ -545,7 +545,7 @@ def agent_trade(
     )
 
     _mark_agent_active(
-        arc_address,
+        user_id,
     )
 
     with get_conn() as conn:
@@ -591,7 +591,7 @@ class CloseRequest(BaseModel):
 
 
 class AgentConnectRequest(BaseModel):
-    arc_address: str
+    user_id: str
 
 
 class AgentConnectResponse(BaseModel):
@@ -607,14 +607,14 @@ class AgentDisconnectRequest(BaseModel):
     session_token: str
 
 
-@app.post("/agents/{arc_address}/close")
+@app.post("/users/{user_id}/close")
 def agent_close(
-    arc_address: str,
+    user_id: str,
     req: CloseRequest,
     authorization: Optional[str] = Header(None),
 ):
     user = _require_agent_auth(
-        arc_address,
+        user_id,
         authorization,
     )
 
@@ -629,7 +629,7 @@ def agent_close(
     )
 
     _mark_agent_active(
-        arc_address,
+        user_id,
     )
 
     with get_conn() as conn:
@@ -667,22 +667,22 @@ def agent_close(
 # Dashboard
 # ---------------------------------------------------------------------
 
-@app.get("/dashboard/{arc_address}")
+@app.get("/users/{user_id}/dashboard")
 def dashboard(
-    arc_address: str,
+    user_id: str,
     authorization: Optional[str] = Header(None),
 ):
     """
     Returns the user's current HyperCore / Hyperliquid account state.
     """
 
-    _require_agent_auth(
-        arc_address,
+    user = _require_agent_auth(
+        user_id,
         authorization,
     )
-
+    
     return get_account_state(
-        arc_address,
+        user["wallet_address"],
     )
 
 @app.post("/agent/connect", response_model=AgentConnectResponse)
@@ -697,7 +697,7 @@ def agent_connect(
     """
 
     _require_agent_auth(
-        req.arc_address,
+        req.user_id,
         authorization,
     )
 

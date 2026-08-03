@@ -1,6 +1,7 @@
 "use client";
 
 import "@rainbow-me/rainbowkit/styles.css";
+import { SessionProvider } from "next-auth/react";
 
 import {
   RainbowKitProvider,
@@ -63,12 +64,14 @@ const queryClient = new QueryClient();
 
 export default function Providers({ children }) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <SessionProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>
+            {children}
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </SessionProvider>
   );
 }

@@ -1,8 +1,9 @@
-import os
+import os 
 from dotenv import load_dotenv
 
 load_dotenv()
-
+print("ENV KEY:", os.getenv("ENCRYPTION_KEY"))
+print("CWD:", os.getcwd())
 # ---------- Arc ----------
 
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")
@@ -73,20 +74,20 @@ def require(value, name):
 
 # ---------- Validate required configuration ----------
 
-CCTP_TOKEN_MESSENGER_ARC = require(
-    CCTP_TOKEN_MESSENGER_ARC,
-    "CCTP_TOKEN_MESSENGER_ARC",
-)
+#CCTP_TOKEN_MESSENGER_ARC = require(
+#    CCTP_TOKEN_MESSENGER_ARC,
+#    "CCTP_TOKEN_MESSENGER_ARC",
+#)
 
-CCTP_FORWARDER = require(
-    CCTP_FORWARDER,
-    "CCTP_FORWARDER",
-)
+#CCTP_FORWARDER = require(
+#    CCTP_FORWARDER,
+#    "CCTP_FORWARDER",
+#)
 
-CORE_DEPOSIT_WALLET = require(
-    CORE_DEPOSIT_WALLET,
-    "CORE_DEPOSIT_WALLET",
-)
+#CORE_DEPOSIT_WALLET = require(
+#    CORE_DEPOSIT_WALLET,
+#    "CORE_DEPOSIT_WALLET",
+#)
 
 ENCRYPTION_KEY = require(
     ENCRYPTION_KEY,

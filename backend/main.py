@@ -37,6 +37,11 @@ from agent_session import (
 
 app = FastAPI(title="Alias Backend")
 
+from database import Base, engine
+import models
+
+Base.metadata.create_all(bind=engine)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

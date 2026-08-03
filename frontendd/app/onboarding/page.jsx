@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  signIn,
+  useSession,
+} from "next-auth/react";
 import { Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+
 
 import {
   useAccount,
@@ -49,7 +54,7 @@ const STEPS = [
 
 export default function Onboarding() {
   const router = useRouter();
-
+  const { status } = useSession();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -69,6 +74,12 @@ export default function Onboarding() {
     usePublicClient();
 
   const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      setStep(1);
+    }
+  }, [status]);
 
   useEffect(() => {
     if (
@@ -172,15 +183,16 @@ export default function Onboarding() {
       setLoading(false);
     }
   }
-
   function handleGoogleLogin() {
-    // Placeholder until OAuth is wired
-    setStep(1);
+    signIn("google", {
+      callbackUrl: "/onboarding",
+    });
   }
 
   function handleXLogin() {
-    // Placeholder until OAuth is wired
-    setStep(1);
+    signIn("twitter", {
+      callbackUrl: "/onboarding",
+    });
   }
 
   return (
@@ -250,7 +262,7 @@ export default function Onboarding() {
         </div>
       ) : step === 1 ? (
         <div className="flex flex-col items-center gap-4">
-          <p> Wallet step reached </p>
+          
           <ConnectButton />
         </div>
       ) : step < 4 ? (

@@ -16,12 +16,14 @@ export async function approveAgent({ walletClient, agentAddress }) {
     agentName: "Alias",
     nonce,
   };
-
+  console.log(walletClient);
+  console.log(walletClient.chain);
   // signUserSignedAction needs the exact EIP-712 field layout for
   // THIS action type — there's no default, it must be passed explicitly.
   const signature = await signUserSignedAction({
     wallet: walletClient,
     action,
+    chainId: 5042002,
     types: {
       "HyperliquidTransaction:ApproveAgent": [
         { name: "hyperliquidChain", type: "string" },
@@ -34,13 +36,24 @@ export async function approveAgent({ walletClient, agentAddress }) {
 
   const response = await fetch(EXCHANGE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, nonce, signature }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action,
+      nonce,
+      signature,
+    }),
   });
 
+  console.log("STATUS", response.status);
+
+  const body = await response.text();
+
+  console.log(body);
+
   if (!response.ok) {
-    throw new Error(await response.text());
+    throw new Error(body);
   }
 
-  return response.json();
-}
+  return JSON.parse(body);}

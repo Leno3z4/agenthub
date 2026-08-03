@@ -109,7 +109,7 @@ export async function depositParams(
 }
 
 export async function deposit(
-  arcAddress,
+  userId,
   apiKey,
   burnTxHash,
   amount,
@@ -160,11 +160,11 @@ export async function bridgeStatus(
 // ----------------------------------------------------
 
 export async function agentStatus(
-  arcAddress,
+  userId,
   apiKey,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/agents/${arcAddress}/status`,
+    `${BACKEND_URL}/agents/${userId}/status`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -181,10 +181,10 @@ export async function agentStatus(
 }
 
 export async function dashboard(
-  arcAddress,
+  userId,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/dashboard/${arcAddress}`,
+    `${BACKEND_URL}/dashboard/${userId}`,
     {
       cache: "no-store",
     }
@@ -261,11 +261,11 @@ export function fmtVolume(value) {
 }
 
 export async function getDashboard(
-  arcAddress,
+  userId,
   apiKey,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/dashboard/${arcAddress}`,
+    `${BACKEND_URL}/dashboard/${userId}`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -282,11 +282,11 @@ export async function getDashboard(
 }
 
 export async function getAgentStatus(
-  arcAddress,
+  userId,
   apiKey,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/agents/${arcAddress}/status`,
+    `${BACKEND_URL}/agents/${userId}/status`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,

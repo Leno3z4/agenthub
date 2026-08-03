@@ -527,10 +527,10 @@ def agent_trade(
     req: TradeRequest,
     authorization: Optional[str] = Header(None),
 ):
-   user = _require_agent_auth(
-       user_id,
-       authorization,
-   )
+    user = _require_agent_auth(
+        user_id,
+        authorization,
+    )
 
     agent_private_key = decrypt(
         user["agent_key_encrypted"],

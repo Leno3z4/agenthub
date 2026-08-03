@@ -75,7 +75,13 @@ def root():
 # ---------------------------------------------------------------------
 
 class LinkWalletRequest(BaseModel):
-    arc_address: str
+    user_id: str
+    google_id: str
+    email: str
+    name: str
+    picture: str | None = None
+
+    wallet_address: str
 
 
 class LinkWalletResponse(BaseModel):
@@ -85,42 +91,93 @@ class LinkWalletResponse(BaseModel):
 
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(req: LinkWalletRequest):
+
     with get_conn() as conn:
         existing = conn.execute(
             """
-            SELECT permissions_confirmed
+            SELECT *
             FROM users
-            WHERE arc_address = ?
+            WHERE google_id = ?
             """,
-            (req.arc_address,),
+            (req.google_id,),
         ).fetchone()
 
-    if existing and existing["permissions_confirmed"]:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "this wallet is already linked and approved. "
-                "unlink it before creating a new agent."
-            ),
-        )
+        if existing:
 
-    agent_address, agent_private_key = generate_agent_wallet()
-    api_key, api_key_hash = generate_api_key()
+            if (
+                existing["wallet_address"]
+                and existing["wallet_address"] != req.wallet_address
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="This Google account already has a wallet linked."
+                )
 
-    with get_conn() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET
+                    wallet_address=?,
+                    email=?,
+                    name=?,
+                    picture=?
+                WHERE google_id=?
+                """,
+                (
+                    req.wallet_address,
+                    req.email,
+                    req.name,
+                    req.picture,
+                    req.google_id,
+                ),
+            )
+
+            api_key, api_key_hash = generate_api_key()
+
+            if existing["agent_address"]:
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET api_key_hash=?
+                    WHERE google_id=?
+                    """,
+                    (
+                        api_key_hash,
+                        req.google_id,
+                    ),
+                )
+
+                return LinkWalletResponse(
+                    agent_address=existing["agent_address"],
+                    api_key=api_key,
+                )
+
+        agent_address, agent_private_key = generate_agent_wallet()
+
+        api_key, api_key_hash = generate_api_key()
+
         conn.execute(
             """
-            INSERT OR REPLACE INTO users
-            (
-                arc_address,
+            INSERT INTO users (
+                id,
+                google_id,
+                email,
+                name,
+                picture,
+                wallet_address,
                 agent_address,
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                req.arc_address,
+                req.user_id,
+                req.google_id,
+                req.email,
+                req.name,
+                req.picture,
+                req.wallet_address,
                 agent_address,
                 encrypt(agent_private_key),
                 api_key_hash,

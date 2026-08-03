@@ -57,7 +57,7 @@ export async function linkWallet({
 }
 
 export async function confirmPermissions(
-  arcAddress,
+  userId,
   apiKey,
 ) {
   const res = await fetch(
@@ -69,7 +69,7 @@ export async function confirmPermissions(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        arc_address: arcAddress,
+        user_id: userId,
       }),
     }
   );
@@ -123,7 +123,7 @@ export async function deposit(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        arc_address: arcAddress,
+        user_id: userId,
         burn_tx_hash: burnTxHash,
         amount_usdc_units: amount,
       }),

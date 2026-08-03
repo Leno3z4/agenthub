@@ -3,17 +3,49 @@ export const BACKEND_URL =
   "https://agenthub-wine.vercel.app/";
 
 // ----------------------------------------------------
+// User
+// ----------------------------------------------------
+
+export async function registerUser(data) {
+  const res = await fetch(`${BACKEND_URL}/users/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+// ----------------------------------------------------
 // Wallet
 // ----------------------------------------------------
 
-export async function linkWallet(arcAddress) {
+export async function linkWallet({
+  user_id,
+  google_id,
+  email,
+  name,
+  picture,
+  wallet_address,
+}) {
   const res = await fetch(`${BACKEND_URL}/wallet/link`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      arc_address: arcAddress,
+      user_id,
+      google_id,
+      email,
+      name,
+      picture,
+      wallet_address,
     }),
   });
 
@@ -121,6 +153,7 @@ export async function bridgeStatus(
 
   return res.json();
 }
+
 
 // ----------------------------------------------------
 // Agent

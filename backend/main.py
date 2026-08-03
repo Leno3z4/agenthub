@@ -242,15 +242,13 @@ def register_user(req: RegisterUserRequest):
 
         conn.execute(
             """
-            INSERT INTO users
-            (
-                id,
-                google_id,
-                email,
-                name,
-                picture,
-                wallet_address
-            )
+            UPDATE users
+            SET
+            wallet_address=?,
+            agent_address=?,
+            agent_key_encrypted=?,
+            api_key_hash=?
+            WHERE id=?
             VALUES (?, ?, ?, ?, ?, '')
             """,
             (
@@ -282,7 +280,7 @@ def confirm_permissions(
             """
             UPDATE users
             SET permissions_confirmed = 1
-            WHERE user_id = ?
+            WHERE id = ?
             """,
             (req.user_id,),
         )
@@ -428,7 +426,7 @@ class DepositParamsRequest(BaseModel):
 
 
 class DepositCompleteRequest(BaseModel):
-    arc_address: str
+    user_id: str
     burn_tx_hash: str
     amount_usdc_units: int
 

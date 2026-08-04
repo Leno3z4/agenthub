@@ -196,7 +196,7 @@ export default function Onboarding() {
       await depositUSDC({
         walletClient,
         publicClient,
-        userId: user_id,
+        userId,
         apiKey,
         amount: 1_000_000,
       });

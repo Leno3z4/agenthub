@@ -56,7 +56,7 @@ const config = createConfig({
   connectors,
   chains: [arcTestnet],
   transports: {
-    [arcTestnet.id]: http("https://rpc.testnet.arc.io"),
+    [arcTestnet.id]: http("/api/rpc"),
   },
 });
 

@@ -125,8 +125,9 @@ export default function Onboarding() {
         name: user.name,
         picture: user.image,
       });
-
-
+      console.log("REGISTERING USER", user);
+      console.log("REGISTER RESPONSE", registration);
+      
       
       setUserId(registration.user_id);
       const data = await linkWallet({

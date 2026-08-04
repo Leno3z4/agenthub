@@ -1,5 +1,3 @@
-import { waitForTransactionReceipt } from "viem";
-
 import {
   depositParams,
   deposit,
@@ -14,7 +12,7 @@ import {
 export async function depositUSDC({
   walletClient,
   publicClient,
-  arcAddress,
+  userId,
   apiKey,
   amount,
 }) {
@@ -36,6 +34,7 @@ export async function depositUSDC({
   await publicClient.waitForTransactionReceipt({
     hash: approveHash,
   });
+
   // Circle burn
 
   const burnHash =
@@ -55,7 +54,7 @@ export async function depositUSDC({
   });
 
   await deposit(
-    arcAddress,
+    userId,
     apiKey,
     burnHash,
     amount,

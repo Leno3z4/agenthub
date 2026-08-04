@@ -16,8 +16,12 @@ export async function approveAgent({ walletClient, agentAddress }) {
     agentName: "Alias",
     nonce,
   };
-  console.log(walletClient);
-  console.log(walletClient.chain);
+  console.log("approveAgent called");
+  console.log("walletClient", walletClient);
+  console.log("account", walletClient.account);
+  console.log("chain", walletClient.chain);
+  console.log("agentAddress", agentAddress);
+  console.log("about to sign");
   // signUserSignedAction needs the exact EIP-712 field layout for
   // THIS action type — there's no default, it must be passed explicitly.
   const signature = await signUserSignedAction({
@@ -33,7 +37,7 @@ export async function approveAgent({ walletClient, agentAddress }) {
       ],
     },
   });
-
+  console.log("signature", signature);
   const response = await fetch(EXCHANGE_URL, {
     method: "POST",
     headers: {

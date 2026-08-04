@@ -184,7 +184,7 @@ export async function dashboard(
   userId,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/dashboard/${userId}`,
+    `${BACKEND_URL}/users/${userId}/dashboard`,
     {
       cache: "no-store",
     }
@@ -286,7 +286,7 @@ export async function getAgentStatus(
   apiKey,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/agents/${userId}/status`,
+    `${BACKEND_URL}/users/${userId}/agent/status`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,

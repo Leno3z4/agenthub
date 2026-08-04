@@ -46,7 +46,9 @@ export const {
         );
 
         if (!res.ok) {
-          throw new Error("Failed to register backend user");
+          const text = await res.text();
+          console.error("Backend register failed:", res.status, text);
+          throw new Error(text);
         }
 
         const data = await res.json();

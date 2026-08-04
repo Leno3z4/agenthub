@@ -81,13 +81,8 @@ export default function Onboarding() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated") {
-      setStep(1);
-    }
-  }, [status]);
-
-  useEffect(() => {
     if (
+      status !== "authenticated" ||
       !isConnected ||
       !walletClient ||
       !address ||
@@ -95,12 +90,12 @@ export default function Onboarding() {
     ) {
       return;
     }
-
+  
     setInitialized(true);
     setStep(1);
-
     setupWallet();
   }, [
+    status,
     isConnected,
     walletClient,
     address,

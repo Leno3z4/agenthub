@@ -27,6 +27,7 @@ export const {
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account?.provider === "google") {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://agenthub-wine.vercel.app/";
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`,
           {

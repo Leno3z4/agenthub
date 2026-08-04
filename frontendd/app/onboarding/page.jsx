@@ -137,7 +137,10 @@ export default function Onboarding() {
           picture: user.image,
           wallet_address: address,
       });
-
+      localStorage.setItem(
+          "alias_user_id",
+           registration.user_id,
+      );
       setApiKey(data.api_key);
 
       setAgentAddress(

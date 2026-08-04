@@ -7,7 +7,7 @@ export const BACKEND_URL =
 // ----------------------------------------------------
 
 export async function registerUser(data) {
-  console.log("Sending registration", data);
+  console.log("POST", `${BACKEND_URL}/users/register`);
 
   const res = await fetch(`${BACKEND_URL}/users/register`, {
     method: "POST",
@@ -20,6 +20,7 @@ export async function registerUser(data) {
   console.log("Status:", res.status);
 
   const text = await res.text();
+
   console.log("Body:", text);
 
   if (!res.ok) {

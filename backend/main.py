@@ -218,25 +218,18 @@ def register_user(req: RegisterUserRequest):
         if existing:
             conn.execute(
                 """
-                INSERT INTO users (
-                    id,
-                    google_id,
-                    email,
-                    name,
-                    picture,
-                    wallet_address,
-                    agent_address,
-                    agent_key_encrypted,
-                    api_key_hash
-                )
-                VALUES (?, ?, ?, ?, ?, '', '', '', '')
+                UPDATE users
+                SET
+                    email = ?,
+                    name = ?,
+                    picture = ?
+                WHERE google_id = ?
                 """,
                 (
-                    user_id,
-                    req.google_id,
                     req.email,
                     req.name,
                     req.picture,
+                    req.google_id,
                 ),
             )
 
@@ -249,14 +242,18 @@ def register_user(req: RegisterUserRequest):
 
         conn.execute(
             """
-            UPDATE users
-            SET
-            wallet_address=?,
-            agent_address=?,
-            agent_key_encrypted=?,
-            api_key_hash=?
-            WHERE id=?
-            VALUES (?, ?, ?, ?, ?, '')
+            INSERT INTO users (
+                id,
+                google_id,
+                email,
+                name,
+                picture,
+                wallet_address,
+                agent_address,
+                agent_key_encrypted,
+                api_key_hash
+            )
+            VALUES (?, ?, ?, ?, ?, '', '', '', '')
             """,
             (
                 user_id,

@@ -147,12 +147,14 @@ export default function Onboarding() {
         data.agent_address,
       );
 
+      console.log("calling approveAgent");
+      
       await approveAgent({
         walletClient,
-        agentAddress:
-          data.agent_address,
+        agentAddress: data.agent_address,
       });
-
+      
+      console.log("approveAgent finished");
       await confirmPermissions(
         registration.user_id,
         data.api_key,

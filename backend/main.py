@@ -92,7 +92,6 @@ class LinkWalletResponse(BaseModel):
 
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(req: LinkWalletRequest):
-
     with get_conn() as conn:
         existing = conn.execute(
             """
@@ -103,92 +102,83 @@ def link_wallet(req: LinkWalletRequest):
             (req.google_id,),
         ).fetchone()
 
-        if existing:
+        if existing is None:
+            raise HTTPException(
+                status_code=404,
+                detail="User must register first.",
+            )
 
-            if (
-                existing["wallet_address"]
-                and existing["wallet_address"] != req.wallet_address
-            ):
-                raise HTTPException(
-                    status_code=409,
-                    detail="This Google account already has a wallet linked."
-                )
+        if (
+            existing["wallet_address"] is not None
+            and existing["wallet_address"] != req.wallet_address
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="This Google account already has a different wallet linked.",
+            )
 
+        api_key, api_key_hash = generate_api_key()
+
+        # Agent already exists — just update wallet/profile/api key.
+        if existing["agent_address"]:
             conn.execute(
                 """
                 UPDATE users
                 SET
-                    wallet_address=?,
-                    email=?,
-                    name=?,
-                    picture=?
-                WHERE google_id=?
+                    wallet_address = ?,
+                    email = ?,
+                    name = ?,
+                    picture = ?,
+                    api_key_hash = ?
+                WHERE google_id = ?
                 """,
                 (
                     req.wallet_address,
                     req.email,
                     req.name,
                     req.picture,
+                    api_key_hash,
                     req.google_id,
                 ),
             )
 
-            api_key, api_key_hash = generate_api_key()
+            return LinkWalletResponse(
+                agent_address=existing["agent_address"],
+                api_key=api_key,
+            )
 
-            if existing["agent_address"]:
-                conn.execute(
-                    """
-                    UPDATE users
-                    SET api_key_hash=?
-                    WHERE google_id=?
-                    """,
-                    (
-                        api_key_hash,
-                        req.google_id,
-                    ),
-                )
-
-                return LinkWalletResponse(
-                    agent_address=existing["agent_address"],
-                    api_key=api_key,
-                )
-
+        # First wallet link — create the delegated agent.
         agent_address, agent_private_key = generate_agent_wallet()
-
-        api_key, api_key_hash = generate_api_key()
 
         conn.execute(
             """
-            INSERT INTO users (
-                id,
-                google_id,
-                email,
-                name,
-                picture,
-                wallet_address,
-                agent_address,
-                agent_key_encrypted,
-                api_key_hash
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            UPDATE users
+            SET
+                wallet_address = ?,
+                email = ?,
+                name = ?,
+                picture = ?,
+                agent_address = ?,
+                agent_key_encrypted = ?,
+                api_key_hash = ?
+            WHERE google_id = ?
             """,
             (
-                req.user_id,
-                req.google_id,
+                req.wallet_address,
                 req.email,
                 req.name,
                 req.picture,
-                req.wallet_address,
                 agent_address,
                 encrypt(agent_private_key),
                 api_key_hash,
+                req.google_id,
             ),
         )
 
-    return LinkWalletResponse(
-        agent_address=agent_address,
-        api_key=api_key,
-    )
+        return LinkWalletResponse(
+            agent_address=agent_address,
+            api_key=api_key,
+        )
 
 
 class ConfirmPermissionsRequest(BaseModel):

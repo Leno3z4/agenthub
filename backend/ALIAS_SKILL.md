@@ -157,7 +157,7 @@ Use whenever account information is required.
 ## View Agent Status
 
 ```
-GET {base_url}/agents/{user_id}/status
+GET {base_url}/users/{user_id}/agent/status
 ```
 
 Returns connection status, permission status, and the most recent recorded action.
@@ -167,7 +167,7 @@ Returns connection status, permission status, and the most recent recorded actio
 ## Open Position
 
 ```
-POST {base_url}/agents/{user_id}/trade
+POST {base_url}/users/{user_id}/trade
 ```
 
 Example
@@ -192,7 +192,7 @@ The metadata fields are optional and are recorded for the user's dashboard.
 ## Close Position
 
 ```
-POST {base_url}/agents/{user_id}/close
+POST {base_url}/users/{user_id}/close
 ```
 
 Full close

@@ -129,8 +129,14 @@ export default function Onboarding() {
 
       
       setUserId(registration.user_id);
-      const data =
-        await linkWallet(address);
+      const data = await linkWallet({
+          user_id: registration.user_id,
+          google_id: user.id,
+          email: user.email,
+          name: user.name,
+          picture: user.image,
+          wallet_address: address,
+      });
 
       setApiKey(data.api_key);
 

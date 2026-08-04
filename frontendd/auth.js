@@ -29,9 +29,14 @@ export const {
     async jwt({ token, account, profile }) {
       if (account?.provider === "google") {
        
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`,
-          {
+        console.log("BACKEND:", process.env.NEXT_PUBLIC_BACKEND_URL);
+        console.log("PROFILE:", profile);
+        
+        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
+        
+        console.log("REGISTER URL:", url);
+        
+        const res = await fetch(url, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -51,7 +56,17 @@ export const {
           throw new Error(text);
         }
 
-        const data = await res.json();
+        console.log("STATUS:", res.status);
+        
+        const body = await res.text();
+        
+        console.log("BODY:", body);
+        
+        if (!res.ok) {
+          throw new Error(body);
+        }
+        
+        const data = JSON.parse(body);
 
         token.userId = data.user_id;
       }

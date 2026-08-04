@@ -119,12 +119,20 @@ export default function Onboarding() {
       setLoading(true);
       const user = session.user;
       
-      const registration = await registerUser({
+      console.log("Google user:", user);
+      
+      const payload = {
         google_id: user.id,
         email: user.email,
         name: user.name,
-        picture: user.image,
-      });
+        picture: user.image ?? null,
+      };
+      
+      console.log("Register payload:", payload);
+      
+      const registration = await registerUser(payload);
+      
+      console.log("Registration response:", registration);
       console.log("REGISTERING USER", user);
       console.log("REGISTER RESPONSE", registration);
       

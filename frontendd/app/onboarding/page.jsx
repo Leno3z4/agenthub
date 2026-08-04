@@ -126,7 +126,7 @@ export default function Onboarding() {
         picture: user.image,
       });
 
-setUserId(registration.user_id);
+
       
       setUserId(registration.user_id);
       const data =

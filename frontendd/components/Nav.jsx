@@ -12,7 +12,7 @@ export default function Nav() {
           Infrastructure
         </a>
 
-        <Link href="/login" className="landing-login">
+        <Link href="/onboarding" className="landing-login">
           Login
         </Link>
 

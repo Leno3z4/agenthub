@@ -253,7 +253,7 @@ def register_user(req: RegisterUserRequest):
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (?, ?, ?, ?, ?, '', '', '', '')
+            VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)
             """,
             (
                 user_id,

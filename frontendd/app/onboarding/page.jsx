@@ -151,7 +151,7 @@ export default function Onboarding() {
       });
 
       await confirmPermissions(
-        address,
+        registration.user_id,
         data.api_key,
       );
 

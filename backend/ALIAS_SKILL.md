@@ -40,7 +40,12 @@ Request
 
 ```json
 {
-    "arc_address": "0x..."
+  "user_id": "<user_id>",
+  "google_id": "<google_id>",
+  "email": "<email>",
+  "name": "<name>",
+  "picture": "<picture_url>",
+  "wallet_address": "0x..."
 }
 ```
 
@@ -77,7 +82,7 @@ POST {base_url}/wallet/confirm-permissions
 
 ```json
 {
-    "arc_address": "0x..."
+  "user_id": "<user_id>"
 }
 ```
 
@@ -140,7 +145,7 @@ Use whenever market discovery or market data is required.
 ## View Trading Account
 
 ```
-GET {base_url}/dashboard/{arc_address}
+GET {base_url}/users/{user_id}/dashboard
 ```
 
 Returns the current account value, margin usage, and open positions.
@@ -152,7 +157,7 @@ Use whenever account information is required.
 ## View Agent Status
 
 ```
-GET {base_url}/agents/{arc_address}/status
+GET {base_url}/agents/{user_id}/status
 ```
 
 Returns connection status, permission status, and the most recent recorded action.
@@ -162,7 +167,7 @@ Returns connection status, permission status, and the most recent recorded actio
 ## Open Position
 
 ```
-POST {base_url}/agents/{arc_address}/trade
+POST {base_url}/agents/{user_id}/trade
 ```
 
 Example
@@ -187,7 +192,7 @@ The metadata fields are optional and are recorded for the user's dashboard.
 ## Close Position
 
 ```
-POST {base_url}/agents/{arc_address}/close
+POST {base_url}/agents/{user_id}/close
 ```
 
 Full close

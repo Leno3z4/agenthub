@@ -57,7 +57,10 @@ export const {
     },
 
     async session({ session, token }) {
+      session.user ??= {};
+    
       session.user.id = token.userId;
+    
       return session;
     },
   },

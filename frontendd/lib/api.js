@@ -7,7 +7,7 @@ export const BACKEND_URL =
 // ----------------------------------------------------
 
 export async function registerUser(data) {
-  console.log("REGISTER PAYLOAD:", data);
+  console.log("Sending registration", data);
 
   const res = await fetch(`${BACKEND_URL}/users/register`, {
     method: "POST",
@@ -17,12 +17,16 @@ export async function registerUser(data) {
     body: JSON.stringify(data),
   });
 
+  console.log("Status:", res.status);
+
+  const text = await res.text();
+  console.log("Body:", text);
+
   if (!res.ok) {
-    console.log(await res.text());
-    throw new Error("Register failed");
+    throw new Error(text);
   }
 
-  return res.json();
+  return JSON.parse(text);
 }
 // ----------------------------------------------------
 // Wallet

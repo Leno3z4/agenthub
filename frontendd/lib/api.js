@@ -1,6 +1,6 @@
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "https://agenthub-wine.vercel.app/";
+  "https://agenthub-g0m8.onrender.com/";
 
 // ----------------------------------------------------
 // User

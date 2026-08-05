@@ -53,15 +53,35 @@ def address_to_bytes32(address: str) -> str:
 # Circle
 # ---------------------------------------------------------------------
 
-
-response = requests.get(url, timeout=15)
-response.raise_for_status()
-
-body = response.json()
-
-print("IRIS RESPONSE:", body)
-
-return body
+def fetch_transfer(source_domain: int, burn_tx_hash: str):
+        url = (
+            f"{CCTP_IRIS_API}"
+            f"/v2/messages/{source_domain}"
+            f"?transactionHash={burn_tx_hash}"
+        )
+    
+        response = requests.get(url, timeout=15)
+        body = response.json()
+        print(body)
+        return body
+        if response.status_code == 404:
+            return None
+    
+        response.raise_for_status()
+    
+        body = response.json()
+    response = requests.get(url, timeout=15)
+    response.raise_for_status()
+    
+        messages = body.get("messages", [])
+    body = response.json()
+    
+        if not messages:
+            return None
+    print("IRIS RESPONSE:", body)
+    
+        return messages[0]
+    return body
 
 
 # ---------------------------------------------------------------------

@@ -1,8 +1,9 @@
-import os
+import os 
 from dotenv import load_dotenv
 
 load_dotenv()
-
+print("ENV KEY:", os.getenv("ENCRYPTION_KEY"))
+print("CWD:", os.getcwd())
 # ---------- Arc ----------
 
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")
@@ -28,12 +29,11 @@ HYPERLIQUID_CCTP_DOMAIN = int(
     )
 )
 ARC_CCTP_DOMAIN = int(
-    os.getenv(
-        "ARC_CCTP_DOMAIN",
-        "7",
-    )
+        os.getenv(
+            "ARC_CCTP_DOMAIN",
+            "7",   # confirmed Arc testnet CCTP domain
+        )
 )
-
 # ---------- HyperCore ----------
 
 CCTP_FORWARDER = os.getenv(
@@ -53,27 +53,15 @@ HL_API_URL = os.getenv(
 
 # ---------- Storage ----------
 
-# Docker mounts ./data to /app/data, so the default database now survives
-# container rebuilds. Override this for local or managed database deployments.
 DB_PATH = os.getenv(
     "DB_PATH",
-    "data/agenttrade.db",
+    "agenttrade.db",
 )
 
 ENCRYPTION_KEY = os.getenv(
     "ENCRYPTION_KEY",
     "",
 )
-
-# Comma-separated, explicit browser origins. Never use '*' with credentials.
-CORS_ORIGINS = [
-    origin.strip().rstrip("/")
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "https://agenthub-wine.vercel.app,http://localhost:3000",
-    ).split(",")
-    if origin.strip()
-]
 
 
 def require(value, name):
@@ -83,6 +71,23 @@ def require(value, name):
         )
     return value
 
+
+# ---------- Validate required configuration ----------
+
+#CCTP_TOKEN_MESSENGER_ARC = require(
+#    CCTP_TOKEN_MESSENGER_ARC,
+#    "CCTP_TOKEN_MESSENGER_ARC",
+#)
+
+#CCTP_FORWARDER = require(
+#    CCTP_FORWARDER,
+#    "CCTP_FORWARDER",
+#)
+
+#CORE_DEPOSIT_WALLET = require(
+#    CORE_DEPOSIT_WALLET,
+#    "CORE_DEPOSIT_WALLET",
+#)
 
 ENCRYPTION_KEY = require(
     ENCRYPTION_KEY,

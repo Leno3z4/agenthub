@@ -157,7 +157,12 @@ export async function bridgeStatus(
   if (!res.ok) {
     throw new Error(await res.text());
   }
-
+  transfer = fetch_transfer(source_domain, burn_tx_hash)
+  
+  print("===================")
+  print(type(transfer))
+  print(transfer)
+  print("===================")
   return res.json();
 }
 

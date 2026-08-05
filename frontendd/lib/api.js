@@ -144,25 +144,16 @@ export async function deposit(
   return res.json();
 }
 
-export async function bridgeStatus(
-  burnTxHash,
-) {
+export async function bridgeStatus(burnTxHash) {
   const res = await fetch(
     `${BACKEND_URL}/bridge/status/${burnTxHash}`,
-    {
-      cache: "no-store",
-    }
+    { cache: "no-store" },
   );
 
   if (!res.ok) {
     throw new Error(await res.text());
   }
-  transfer = fetch_transfer(source_domain, burn_tx_hash)
-  
-  print("===================")
-  print(type(transfer))
-  print(transfer)
-  print("===================")
+
   return res.json();
 }
 

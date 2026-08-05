@@ -54,35 +54,58 @@ def address_to_bytes32(address: str) -> str:
 # ---------------------------------------------------------------------
 
 def fetch_transfer(source_domain: int, burn_tx_hash: str):
-        url = (
-            f"{CCTP_IRIS_API}"
-            f"/v2/messages/{source_domain}"
-            f"?transactionHash={burn_tx_hash}"
-        )
-    
-        response = requests.get(url, timeout=15)
-        body = response.json()
-        print(body)
-        return body
-        if response.status_code == 404:
-            return None
-    
-        response.raise_for_status()
-    
-        body = response.json()
-    response = requests.get(url, timeout=15)
-    response.raise_for_status()
-    
-        messages = body.get("messages", [])
-    body = response.json()
-    
-        if not messages:
-            return None
-    print("IRIS RESPONSE:", body)
-    
-        return messages[0]
-    return body
+    """
+    Fetch a CCTP transfer from Circle Iris.
 
+    Returns:
+        - dict representing the transfer if found
+        - None if Circle hasn't indexed it yet
+    """
+
+    url = (
+        f"{CCTP_IRIS_API}"
+        f"/v2/messages/{source_domain}"
+        f"?transactionHash={burn_tx_hash}"
+    )
+
+    response = requests.get(url, timeout=15)
+
+    # Circle hasn't indexed it yet.
+    if response.status_code == 404:
+        print("IRIS: transfer not found yet")
+        return None
+
+    response.raise_for_status()
+
+    body = response.json()
+
+    print("IRIS RESPONSE:", body)
+
+    # Iris may return either a list or an object depending on endpoint/version.
+
+    if isinstance(body, list):
+        if not body:
+            return None
+
+        return body[0]
+
+    if isinstance(body, dict):
+        # Most common format
+        if "messages" in body:
+            messages = body.get("messages") or []
+
+            if not messages:
+                return None
+
+            return messages[0]
+
+        # Already a transfer object
+        if "status" in body:
+            return body
+
+    raise RuntimeError(
+        f"Unexpected Iris response: {body}"
+    )
 
 # ---------------------------------------------------------------------
 # Wait

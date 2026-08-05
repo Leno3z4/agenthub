@@ -1,9 +1,8 @@
-import os 
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
-print("ENV KEY:", os.getenv("ENCRYPTION_KEY"))
-print("CWD:", os.getcwd())
+
 # ---------- Arc ----------
 
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")
@@ -12,84 +11,36 @@ ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "")
 
 # ---------- Circle CCTP ----------
 
-CCTP_TOKEN_MESSENGER_ARC = os.getenv(
-    "CCTP_TOKEN_MESSENGER_ARC",
-    "",
-)
+CCTP_TOKEN_MESSENGER_ARC = os.getenv("CCTP_TOKEN_MESSENGER_ARC", "")
+CCTP_IRIS_API = os.getenv("CCTP_IRIS_API", "https://iris-api-sandbox.circle.com")
+HYPERLIQUID_CCTP_DOMAIN = int(os.getenv("HYPERLIQUID_CCTP_DOMAIN", "0"))
+ARC_CCTP_DOMAIN = int(os.getenv("ARC_CCTP_DOMAIN", "7"))
 
-CCTP_IRIS_API = os.getenv(
-    "CCTP_IRIS_API",
-    "https://iris-api-sandbox.circle.com",
-)
-
-HYPERLIQUID_CCTP_DOMAIN = int(
-    os.getenv(
-        "HYPERLIQUID_CCTP_DOMAIN",
-        "0",
-    )
-)
-ARC_CCTP_DOMAIN = int(
-        os.getenv(
-            "ARC_CCTP_DOMAIN",
-            "7",   # confirmed Arc testnet CCTP domain
-        )
-)
 # ---------- HyperCore ----------
 
-CCTP_FORWARDER = os.getenv(
-    "CCTP_FORWARDER",
-    "",
-)
-
-CORE_DEPOSIT_WALLET = os.getenv(
-    "CORE_DEPOSIT_WALLET",
-    "",
-)
-
-HL_API_URL = os.getenv(
-    "HL_API_URL",
-    "https://api.hyperliquid-testnet.xyz",
-)
+CCTP_FORWARDER = os.getenv("CCTP_FORWARDER", "")
+CORE_DEPOSIT_WALLET = os.getenv("CORE_DEPOSIT_WALLET", "")
+HL_API_URL = os.getenv("HL_API_URL", "https://api.hyperliquid-testnet.xyz")
 
 # ---------- Storage ----------
 
-DB_PATH = os.getenv(
-    "DB_PATH",
-    "agenttrade.db",
-)
+DB_PATH = os.getenv("DB_PATH", "data/agenttrade.db")
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
-ENCRYPTION_KEY = os.getenv(
-    "ENCRYPTION_KEY",
-    "",
-)
+CORS_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://agenthub-wine.vercel.app,http://localhost:3000",
+    ).split(",")
+    if origin.strip()
+]
 
 
 def require(value, name):
     if value in ("", None, 0):
-        raise RuntimeError(
-            f"{name} is not configured."
-        )
+        raise RuntimeError(f"{name} is not configured.")
     return value
 
 
-# ---------- Validate required configuration ----------
-
-#CCTP_TOKEN_MESSENGER_ARC = require(
-#    CCTP_TOKEN_MESSENGER_ARC,
-#    "CCTP_TOKEN_MESSENGER_ARC",
-#)
-
-#CCTP_FORWARDER = require(
-#    CCTP_FORWARDER,
-#    "CCTP_FORWARDER",
-#)
-
-#CORE_DEPOSIT_WALLET = require(
-#    CORE_DEPOSIT_WALLET,
-#    "CORE_DEPOSIT_WALLET",
-#)
-
-ENCRYPTION_KEY = require(
-    ENCRYPTION_KEY,
-    "ENCRYPTION_KEY",
-)
+ENCRYPTION_KEY = require(ENCRYPTION_KEY, "ENCRYPTION_KEY")

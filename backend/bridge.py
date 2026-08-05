@@ -82,14 +82,13 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 # Wait
 # ---------------------------------------------------------------------
 
-def fetch_max_fee(
-    source_domain: int,
-):
-    """
-    Fetches the current CCTP fee for
-    HyperCore transfers.
-    """
+import json
+import logging
+import requests
 
+logger = logging.getLogger(__name__)
+
+def fetch_max_fee(source_domain: int):
     url = (
         f"{CCTP_IRIS_API}"
         f"/v2/burn/USDC/fees/"
@@ -99,19 +98,15 @@ def fetch_max_fee(
         f"&hyperCoreDeposit=true"
     )
 
-    response = requests.get(
-        url,
-        timeout=15,
-    )
-
+    response = requests.get(url, timeout=15)
     response.raise_for_status()
 
     body = response.json()
 
-    print("Circle fee response:", body)
+    logger.error("CIRCLE FEE RESPONSE: %s", json.dumps(body, indent=2))
 
-    raise RuntimeError("Inspect the Render logs.")
-
+    raise RuntimeError("stop")
+    
 def wait_for_completion(
     source_domain: int,
     burn_tx_hash: str,

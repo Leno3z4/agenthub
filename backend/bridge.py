@@ -37,6 +37,7 @@ from config import (
     CCTP_IRIS_API,
     HYPERLIQUID_CCTP_DOMAIN,
     CCTP_FORWARDER,
+    ARC_CCTP_DOMAIN,
     require,
 )
 
@@ -212,7 +213,8 @@ def deposit_parameters(amount: int):
         "destinationCaller": forwarder,
         "hookData": "0x" + create_hook_data().hex(),
         "maxFee": fetch_max_fee(
-            HYPERLIQUID_CCTP_DOMAIN,
+            ARC_CCTP_DOMAIN,
+        ),
         ),
         "minFinalityThreshold": 1000,
     }

@@ -215,7 +215,6 @@ def deposit_parameters(amount: int):
         "maxFee": fetch_max_fee(
             ARC_CCTP_DOMAIN,
         ),
-        ),
         "minFinalityThreshold": 1000,
     }
 

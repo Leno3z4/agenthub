@@ -81,7 +81,12 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 
     print("=" * 80)
     print("IRIS STATUS:", response.status_code)
-    print("IRIS BODY:")
+    import json
+    
+    print(
+        "IRIS RESPONSE:",
+        json.dumps(body, indent=2)
+    )
     print(body)
     print("=" * 80)
     print(url)

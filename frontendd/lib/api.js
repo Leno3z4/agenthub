@@ -167,7 +167,7 @@ export async function agentStatus(
   apiKey,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/agents/${userId}/status`,
+    `${BACKEND_URL}/users/${userId}/agent/status`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -268,7 +268,7 @@ export async function getDashboard(
   apiKey,
 ) {
   const res = await fetch(
-    `${BACKEND_URL}/dashboard/${userId}`,
+    `${BACKEND_URL}/users/${userId}/dashboard`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,

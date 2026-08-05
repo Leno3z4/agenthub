@@ -55,10 +55,6 @@ def address_to_bytes32(address: str) -> str:
 
 
 def fetch_transfer(source_domain: int, burn_tx_hash: str):
-    """
-    Returns Circle's transfer object.
-    """
-
     url = (
         f"{CCTP_IRIS_API}"
         f"/v2/messages/{source_domain}"
@@ -66,6 +62,10 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
     )
 
     response = requests.get(url, timeout=15)
+
+    if response.status_code == 404:
+        return None
+
     response.raise_for_status()
 
     body = response.json()

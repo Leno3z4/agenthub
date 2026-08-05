@@ -60,16 +60,17 @@ export async function depositUSDC({
     amount,
   );
 
-  while (true) {
-    const status =
-      await bridgeStatus(burnHash);
-
-    if (status.complete) {
-      return status;
-    }
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, 5000),
-    );
+  const started = Date.now();
+  
+  while (Date.now() - started < 10 * 60 * 1000) {
+      const status = await bridgeStatus(burnHash);
+  
+      if (status.complete) {
+          return status;
+      }
+  
+      await new Promise(resolve => setTimeout(resolve, 5000));
   }
+  
+  throw new Error("Bridge timed out.");
 }

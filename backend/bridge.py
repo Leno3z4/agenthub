@@ -79,7 +79,11 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 
     body = response.json()
 
-    print("IRIS RESPONSE:", body)
+    print("=" * 80)
+    print("IRIS STATUS:", response.status_code)
+    print("IRIS BODY:")
+    print(body)
+    print("=" * 80)
 
     # Iris may return either a list or an object depending on endpoint/version.
 

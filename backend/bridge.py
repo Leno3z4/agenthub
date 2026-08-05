@@ -108,15 +108,9 @@ def fetch_max_fee(
 
     body = response.json()
 
-    fee = body.get("maxFee")
+    print("Circle fee response:", body)
 
-    if fee is None:
-        raise RuntimeError(
-            "Circle fee API did not return maxFee."
-        )
-
-    return int(fee)
-
+    raise RuntimeError("Inspect the Render logs.")
 
 def wait_for_completion(
     source_domain: int,

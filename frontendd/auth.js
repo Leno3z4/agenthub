@@ -2,6 +2,10 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Twitter from "next-auth/providers/twitter";
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://agenthub-wine.vercel.app";
+
 export const {
   handlers,
   signIn,
@@ -29,20 +33,17 @@ export const {
         const providerId = profile.sub ?? profile.id ?? profile.data?.id;
         if (!providerId) throw new Error("Provider did not return a user id");
 
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              provider: account.provider,
-              provider_id: providerId,
-              email: profile.email ?? null,
-              name: profile.name ?? profile.username ?? null,
-              picture: profile.picture ?? profile.image ?? null,
-            }),
-          },
-        );
+        const res = await fetch(`${BACKEND_URL}/users/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: account.provider,
+            provider_id: providerId,
+            email: profile.email ?? null,
+            name: profile.name ?? profile.username ?? null,
+            picture: profile.picture ?? profile.image ?? null,
+          }),
+        });
 
         if (!res.ok) {
           throw new Error(`Backend register failed: ${res.status} ${await res.text()}`);

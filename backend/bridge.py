@@ -82,13 +82,11 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 # Wait
 # ---------------------------------------------------------------------
 
-import json
-import logging
-import requests
-
-logger = logging.getLogger(__name__)
-
 def fetch_max_fee(source_domain: int):
+    """
+    Fetches the recommended forward fee from Circle.
+    """
+
     url = (
         f"{CCTP_IRIS_API}"
         f"/v2/burn/USDC/fees/"
@@ -103,9 +101,19 @@ def fetch_max_fee(source_domain: int):
 
     body = response.json()
 
-    logger.error("CIRCLE FEE RESPONSE: %s", json.dumps(body, indent=2))
+    if not isinstance(body, list) or not body:
+        raise RuntimeError("Unexpected Circle fee response.")
 
-    raise RuntimeError("stop")
+    fee_info = next(
+        (
+            item
+            for item in body
+            if item["finalityThreshold"] == 1000
+        ),
+        body[0],
+    )
+
+    return fee_info["forwardFee"]["high"]
     
 def wait_for_completion(
     source_domain: int,

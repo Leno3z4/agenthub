@@ -62,7 +62,9 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
     )
 
     response = requests.get(url, timeout=15)
-
+    body = response.json()
+    print(body)
+    return body
     if response.status_code == 404:
         return None
 

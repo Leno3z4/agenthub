@@ -2,11 +2,13 @@ services:
   backend:
     build: .
     env_file: .env
+    environment:
+      DB_PATH: /app/data/agenttrade.db
     volumes:
-      - ./data:/app/data      # sqlite db lives here, survives rebuilds
+      - ./data:/app/data
     restart: unless-stopped
     expose:
-      - "8000"                # not published directly — caddy fronts it
+      - "8000"
 
   caddy:
     image: caddy:2-alpine

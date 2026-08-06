@@ -152,7 +152,8 @@ def fetch_max_fee(source_domain: int):
         body[0],
     )
 
-    return fee_info["forwardFee"]["high"]
+    return int(float(fee_info["forwardFee"]["high"]) * 1_000_000)
+
     
 def wait_for_completion(
     source_domain: int,

@@ -152,7 +152,12 @@ def fetch_max_fee(source_domain: int):
         ),
         body[0],
     )
-
+    print("Circle fee response:")
+    print(body)
+    
+    print("Selected fee:")
+    print(fee_info)
+    print("High fee:", fee_info["forwardFee"]["high"])
     return int(float(fee_info["forwardFee"]["high"]) * 1_000_000)
 
     
@@ -266,6 +271,7 @@ def deposit_parameters(amount: int):
     print("AMOUNT:", amount)
     print("MAX FEE:", fee)
     print("==========================")
+
 
     return {
         "amount": amount,

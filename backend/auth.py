@@ -9,6 +9,11 @@ from config import GOOGLE_CLIENT_ID
 
 logger = logging.getLogger("alias.auth")
 
+GOOGLE_ISSUERS = {
+    "accounts.google.com",
+    "https://accounts.google.com",
+}
+
 
 def generate_api_key() -> tuple[str, str]:
     """Return a one-time plaintext API key and its stored hash."""
@@ -35,15 +40,14 @@ def hash_nonce(nonce: str) -> str:
     return hashlib.sha256(nonce.encode()).hexdigest()
 
 
-def verify_google_id_token(id_token_value: str) -> dict:
-    """Verify a Google ID token and return only trusted Google claims.
+def verify_google_id_token(id_token_value: str) -> dict[str, str | None]:
+    """Verify a Google ID token and return only trusted identity claims.
 
-    google-auth verifies the token signature, expiry, issuer, and audience.
-    The explicit issuer, subject, email, and email_verified checks below
-    keep registration fail-closed and ensure frontend profile fields are
-    never used as an identity source.
+    google-auth verifies the token signature, expiry, and configured audience.
+    The explicit issuer and email checks below keep authentication fail-closed.
+    Frontend profile fields are never used as an identity source.
     """
-    if not id_token_value:
+    if not isinstance(id_token_value, str) or not id_token_value:
         logger.warning("google_token_rejected reason=missing_token")
         raise ValueError("Authentication failed.")
 
@@ -52,7 +56,7 @@ def verify_google_id_token(id_token_value: str) -> dict:
         raise RuntimeError("Authentication service is not configured.")
 
     try:
-        claims = google_id_token.verify_oauth2_token(
+        verified_claims = google_id_token.verify_oauth2_token(
             id_token_value,
             google_requests.Request(),
             GOOGLE_CLIENT_ID,
@@ -63,17 +67,31 @@ def verify_google_id_token(id_token_value: str) -> dict:
         logger.warning("google_token_rejected reason=verification_failed")
         raise ValueError("Authentication failed.") from exc
 
-    if claims.get("iss") not in {
-        "accounts.google.com",
-        "https://accounts.google.com",
-    }:
+    if verified_claims.get("iss") not in GOOGLE_ISSUERS:
         logger.warning("google_token_rejected reason=invalid_issuer")
         raise ValueError("Authentication failed.")
 
-    subject = claims.get("sub")
-    email = claims.get("email")
-    if not subject or not email or claims.get("email_verified") is not True:
+    subject = verified_claims.get("sub")
+    email = verified_claims.get("email")
+    if (
+        not isinstance(subject, str)
+        or not subject
+        or not isinstance(email, str)
+        or not email
+        or verified_claims.get("email_verified") is not True
+    ):
         logger.warning("google_token_rejected reason=missing_verified_identity")
         raise ValueError("Authentication failed.")
 
-    return claims
+    # Return only the fields the application is allowed to use. These values
+    # are read after signature, expiry, issuer, and audience verification.
+    return {
+        "sub": subject,
+        "email": email,
+        "name": verified_claims.get("name")
+        if isinstance(verified_claims.get("name"), str)
+        else None,
+        "picture": verified_claims.get("picture")
+        if isinstance(verified_claims.get("picture"), str)
+        else None,
+    }

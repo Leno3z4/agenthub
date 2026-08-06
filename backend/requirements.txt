@@ -7,4 +7,5 @@ web3==7.2.0
 eth-account==0.13.4
 cryptography==43.0.1
 requests==2.32.3
+google-auth==2.35.0
 hyperliquid-python-sdk==0.24.0

@@ -1,6 +1,11 @@
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+import secrets
+import time
+import uuid
 
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
@@ -8,7 +13,13 @@ from pydantic import BaseModel
 
 from db import init_db, get_conn
 from crypto_utils import encrypt, decrypt
-from auth import generate_api_key, verify_api_key
+from auth import (
+    generate_api_key,
+    verify_api_key,
+    generate_nonce,
+    hash_nonce,
+    verify_google_id_token,
+)
 
 from hl_client import (
     generate_agent_wallet,
@@ -37,7 +48,6 @@ from agent_session import (
 )
 
 app = FastAPI(title="Alias Backend")
-
 
 
 app.add_middleware(
@@ -74,13 +84,20 @@ def root():
 
 class LinkWalletRequest(BaseModel):
     user_id: str
-    google_id: str
-    email: str
-    name: str
     wallet_address: str
+    nonce: str
+    signature: str
+    # Retained as optional compatibility fields; identity comes from the
+    # verified Google token used to obtain the nonce.
+    google_id: str | None = None
+    email: str | None = None
+    name: str | None = None
     picture: str | None = None
 
-   
+
+class WalletNonceRequest(BaseModel):
+    user_id: str
+    wallet_address: str
 
 
 class LinkWalletResponse(BaseModel):
@@ -88,88 +105,165 @@ class LinkWalletResponse(BaseModel):
     api_key: str
 
 
+def wallet_link_message(user_id: str, wallet_address: str, nonce: str) -> str:
+    return "\n".join(
+        [
+            "Alias wallet link",
+            f"User: {user_id}",
+            f"Wallet: {wallet_address}",
+            f"Nonce: {nonce}",
+        ]
+    )
+
+
+def _bearer_token(authorization: Optional[str]) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="invalid Authorization header")
+    token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="invalid Authorization header")
+    return token
+
+
+def _verified_google_user(user_id: str, authorization: Optional[str]):
+    try:
+        claims = verify_google_id_token(_bearer_token(authorization))
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    user = _get_user(user_id)
+    if user["google_id"] != claims["sub"]:
+        raise HTTPException(status_code=403, detail="identity does not match user")
+    return user, claims
+
+
+@app.post("/wallet/nonce")
+def wallet_nonce(
+    req: WalletNonceRequest,
+    authorization: Optional[str] = Header(None),
+):
+    _verified_google_user(req.user_id, authorization)
+
+    nonce = generate_nonce()
+    expires_at = int(time.time()) + 600
+    message = wallet_link_message(req.user_id, req.wallet_address, nonce)
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO wallet_nonces
+            (user_id, wallet_address, nonce_hash, expires_at, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                req.user_id,
+                req.wallet_address.lower(),
+                hash_nonce(nonce),
+                expires_at,
+                int(time.time()),
+            ),
+        )
+
+    return {
+        "nonce": nonce,
+        "message": message,
+        "expires_at": expires_at,
+    }
+
+
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(req: LinkWalletRequest):
+    message = wallet_link_message(req.user_id, req.wallet_address, req.nonce)
+
+    try:
+        recovered = Account.recover_message(
+            encode_defunct(text=message),
+            signature=req.signature,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="invalid wallet signature") from exc
+
+    if recovered.lower() != req.wallet_address.lower():
+        raise HTTPException(status_code=401, detail="wallet signature does not match address")
+
+    now = int(time.time())
     with get_conn() as conn:
-        existing = conn.execute(
+        nonce_row = conn.execute(
             """
-            SELECT *
-            FROM users
-            WHERE google_id = ?
+            SELECT id
+            FROM wallet_nonces
+            WHERE user_id = ?
+              AND wallet_address = ?
+              AND nonce_hash = ?
+              AND used_at IS NULL
+              AND expires_at > ?
             """,
-            (req.google_id,),
+            (
+                req.user_id,
+                req.wallet_address.lower(),
+                hash_nonce(req.nonce),
+                now,
+            ),
+        ).fetchone()
+
+        if nonce_row is None:
+            raise HTTPException(status_code=401, detail="invalid, expired, or reused nonce")
+
+        consumed = conn.execute(
+            """
+            UPDATE wallet_nonces
+            SET used_at = ?
+            WHERE id = ? AND used_at IS NULL AND expires_at > ?
+            """,
+            (now, nonce_row["id"], now),
+        ).rowcount
+
+        if consumed != 1:
+            raise HTTPException(status_code=401, detail="invalid, expired, or reused nonce")
+
+        existing = conn.execute(
+            "SELECT * FROM users WHERE id = ?",
+            (req.user_id,),
         ).fetchone()
 
         if existing is None:
-            raise HTTPException(
-                status_code=404,
-                detail="User must register first.",
-            )
+            raise HTTPException(status_code=404, detail="User must register first.")
 
         if (
             existing["wallet_address"] is not None
-            and existing["wallet_address"] != req.wallet_address
+            and existing["wallet_address"].lower() != req.wallet_address.lower()
         ):
             raise HTTPException(
                 status_code=409,
-                detail="This Google account already has a different wallet linked.",
+                detail="This account already has a different wallet linked.",
             )
 
         api_key, api_key_hash = generate_api_key()
 
-        # Agent already exists — just update wallet/profile/api key.
         if existing["agent_address"]:
             conn.execute(
-                """
-                UPDATE users
-                SET
-                    wallet_address = ?,
-                    email = ?,
-                    name = ?,
-                    picture = ?,
-                    api_key_hash = ?
-                WHERE google_id = ?
-                """,
-                (
-                    req.wallet_address,
-                    req.email,
-                    req.name,
-                    req.picture,
-                    api_key_hash,
-                    req.google_id,
-                ),
+                "UPDATE users SET wallet_address = ?, api_key_hash = ? WHERE id = ?",
+                (req.wallet_address, api_key_hash, req.user_id),
             )
-
             return LinkWalletResponse(
                 agent_address=existing["agent_address"],
                 api_key=api_key,
             )
 
-        # First wallet link — create the delegated agent.
         agent_address, agent_private_key = generate_agent_wallet()
-
         conn.execute(
             """
             UPDATE users
-            SET
-                wallet_address = ?,
-                email = ?,
-                name = ?,
-                picture = ?,
-                agent_address = ?,
-                agent_key_encrypted = ?,
-                api_key_hash = ?
-            WHERE google_id = ?
+            SET wallet_address = ?, agent_address = ?,
+                agent_key_encrypted = ?, api_key_hash = ?
+            WHERE id = ?
             """,
             (
                 req.wallet_address,
-                req.email,
-                req.name,
-                req.picture,
                 agent_address,
                 encrypt(agent_private_key),
                 api_key_hash,
-                req.google_id,
+                req.user_id,
             ),
         )
 
@@ -182,104 +276,77 @@ def link_wallet(req: LinkWalletRequest):
 class ConfirmPermissionsRequest(BaseModel):
     user_id: str
 
-import uuid
 
 class RegisterUserRequest(BaseModel):
-    google_id: str
-    email: str
-    name: str
+    id_token: str | None = None
+    provider: str = "google"
+    # Retained for request compatibility, but never trusted for identity.
+    google_id: str | None = None
+    email: str | None = None
+    name: str | None = None
     picture: str | None = None
 
 
 @app.post("/users/register")
 def register_user(req: RegisterUserRequest):
+    if req.provider != "google":
+        raise HTTPException(status_code=400, detail="Google authentication is required")
+
+    try:
+        claims = verify_google_id_token(req.id_token or "")
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    google_id = claims["sub"]
+    email = claims.get("email")
+    name = claims.get("name")
+    picture = claims.get("picture")
+
     with get_conn() as conn:
         existing = conn.execute(
-            """
-            SELECT id
-            FROM users
-            WHERE google_id = ?
-            """,
-            (req.google_id,),
+            "SELECT id FROM users WHERE google_id = ?",
+            (google_id,),
         ).fetchone()
 
         if existing:
             conn.execute(
                 """
                 UPDATE users
-                SET
-                    email = ?,
-                    name = ?,
-                    picture = ?
+                SET email = ?, name = ?, picture = ?
                 WHERE google_id = ?
                 """,
-                (
-                    req.email,
-                    req.name,
-                    req.picture,
-                    req.google_id,
-                ),
+                (email, name, picture, google_id),
             )
-
-            return {
-                "user_id": existing["id"],
-                "new_user": False,
-            }
+            return {"user_id": existing["id"], "new_user": False}
 
         user_id = str(uuid.uuid4())
-
         conn.execute(
             """
             INSERT INTO users (
-                id,
-                google_id,
-                email,
-                name,
-                picture,
-                wallet_address,
-                agent_address,
-                agent_key_encrypted,
-                api_key_hash
+                id, google_id, email, name, picture,
+                wallet_address, agent_address, agent_key_encrypted, api_key_hash
             )
             VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)
             """,
-            (
-                user_id,
-                req.google_id,
-                req.email,
-                req.name,
-                req.picture,
-            ),
+            (user_id, google_id, email, name, picture),
         )
+        return {"user_id": user_id, "new_user": True}
 
-        return {
-            "user_id": user_id,
-            "new_user": True,
-        }
 
 @app.post("/wallet/confirm-permissions")
 def confirm_permissions(
     req: ConfirmPermissionsRequest,
     authorization: Optional[str] = Header(None),
 ):
-    _require_agent_auth(
-        req.user_id,
-        authorization,
-    )
+    _require_agent_auth(req.user_id, authorization)
 
     with get_conn() as conn:
         conn.execute(
-            """
-            UPDATE users
-            SET permissions_confirmed = 1
-            WHERE id = ?
-            """,
+            "UPDATE users SET permissions_confirmed = 1 WHERE id = ?",
             (req.user_id,),
         )
 
-    return {
-        "confirmed": True,
-    }
+    return {"confirmed": True}
 # ---------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------
@@ -287,19 +354,12 @@ def confirm_permissions(
 def _get_user(user_id: str):
     with get_conn() as conn:
         user = conn.execute(
-            """
-            SELECT *
-            FROM users
-            WHERE id = ?
-            """,
+            "SELECT * FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
 
     if user is None:
-        raise HTTPException(
-            status_code=404,
-            detail="wallet not linked",
-        )
+        raise HTTPException(status_code=404, detail="wallet not linked")
 
     return user
 
@@ -311,27 +371,15 @@ def _require_agent_auth(
     user = _get_user(user_id)
 
     if authorization is None:
-        raise HTTPException(
-            status_code=401,
-            detail="missing Authorization header",
-        )
+        raise HTTPException(status_code=401, detail="missing Authorization header")
 
     if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401,
-            detail="invalid Authorization header",
-        )
+        raise HTTPException(status_code=401, detail="invalid Authorization header")
 
     api_key = authorization.removeprefix("Bearer ").strip()
 
-    if not verify_api_key(
-        api_key,
-        user["api_key_hash"],
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="invalid API key",
-        )
+    if not verify_api_key(api_key, user["api_key_hash"]):
+        raise HTTPException(status_code=401, detail="invalid API key")
 
     return user
 
@@ -343,9 +391,7 @@ def _mark_agent_active(
         conn.execute(
             """
             UPDATE users
-            SET
-                last_seen = CURRENT_TIMESTAMP,
-                permissions_confirmed = 1
+            SET last_seen = CURRENT_TIMESTAMP, permissions_confirmed = 1
             WHERE id = ?
             """,
             (user_id,),
@@ -359,10 +405,7 @@ def agent_status(
     user_id: str,
     authorization: Optional[str] = Header(None),
 ):
-    user = _require_agent_auth(
-        user_id,
-        authorization,
-    )
+    user = _require_agent_auth(user_id, authorization)
 
     with get_conn() as conn:
         last_trade = conn.execute(
@@ -391,23 +434,14 @@ def agent_status(
                 (user["last_seen"],),
             ).fetchone()
 
-        connected = (
-            row["minutes_ago"] is not None
-            and row["minutes_ago"] < 10
-        )
+        connected = row["minutes_ago"] is not None and row["minutes_ago"] < 10
 
     return {
         "wallet_connected": True,
-        "permissions_approved": bool(
-            user["permissions_confirmed"]
-        ),
+        "permissions_approved": bool(user["permissions_confirmed"]),
         "agent_connected": connected,
         "last_seen": user["last_seen"],
-        "latest_action": (
-            dict(last_trade)
-            if last_trade
-            else None
-        ),
+        "latest_action": dict(last_trade) if last_trade else None,
     }
 # ---------------------------------------------------------------------
 # Bridge
@@ -424,17 +458,8 @@ class DepositCompleteRequest(BaseModel):
 
 
 @app.post("/bridge/deposit-params")
-def bridge_deposit_params(
-    req: DepositParamsRequest,
-):
-    """
-    Returns everything the frontend needs before calling
-    depositForBurn() from the user's wallet.
-    """
-
-    return deposit_parameters(
-        req.amount_usdc_units,
-    )
+def bridge_deposit_params(req: DepositParamsRequest):
+    return deposit_parameters(req.amount_usdc_units)
 
 
 @app.post("/bridge/deposit")
@@ -442,27 +467,13 @@ def bridge_deposit(
     req: DepositCompleteRequest,
     authorization: Optional[str] = Header(None),
 ):
-    """
-    Called after the user's wallet successfully broadcasts
-    depositForBurn(). The backend simply records the bridge
-    request; Circle and HyperCore handle the rest.
-    """
-
-    user = _require_agent_auth(
-        req.user_id,
-        authorization,
-    )
+    user = _require_agent_auth(req.user_id, authorization)
 
     with get_conn() as conn:
         conn.execute(
             """
             INSERT INTO bridge_transfers
-            (
-                user_id,
-                amount_usdc,
-                burn_tx_hash,
-                status
-            )
+            (user_id, amount_usdc, burn_tx_hash, status)
             VALUES (?, ?, ?, ?)
             """,
             (
@@ -473,20 +484,12 @@ def bridge_deposit(
             ),
         )
 
-    return {
-        "accepted": True,
-        "burn_tx_hash": req.burn_tx_hash,
-    }
+    return {"accepted": True, "burn_tx_hash": req.burn_tx_hash}
 
 
 @app.get("/bridge/status/{burn_tx_hash}")
-def bridge_transfer_status(
-    burn_tx_hash: str,
-):
-    return bridge_status(
-        ARC_CCTP_DOMAIN,
-        burn_tx_hash,
-    )
+def bridge_transfer_status(burn_tx_hash: str):
+    return bridge_status(ARC_CCTP_DOMAIN, burn_tx_hash)
 # ---------------------------------------------------------------------
 # Markets
 # ---------------------------------------------------------------------
@@ -517,14 +520,8 @@ def agent_trade(
     req: TradeRequest,
     authorization: Optional[str] = Header(None),
 ):
-    user = _require_agent_auth(
-        user_id,
-        authorization,
-    )
-
-    agent_private_key = decrypt(
-        user["agent_key_encrypted"],
-    )
+    user = _require_agent_auth(user_id, authorization)
+    agent_private_key = decrypt(user["agent_key_encrypted"])
 
     result = execute_trade(
         agent_private_key=agent_private_key,
@@ -534,37 +531,18 @@ def agent_trade(
         leverage=req.leverage,
     )
 
-    _mark_agent_active(
-        user_id,
-    )
+    _mark_agent_active(user_id)
 
     with get_conn() as conn:
         conn.execute(
             """
             INSERT INTO trades
-            (
-                user_id,
-                coin,
-                is_buy,
-                size,
-                result,
-                reasoning,
-                confidence,
-                model,
-                strategy
-            )
+            (user_id, coin, is_buy, size, result, reasoning, confidence, model, strategy)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                user["id"],
-                req.coin,
-                int(req.is_buy),
-                req.size,
-                str(result),
-                req.reasoning,
-                req.confidence,
-                req.model,
-                req.strategy,
+                user["id"], req.coin, int(req.is_buy), req.size, str(result),
+                req.reasoning, req.confidence, req.model, req.strategy,
             ),
         )
 
@@ -603,14 +581,8 @@ def agent_close(
     req: CloseRequest,
     authorization: Optional[str] = Header(None),
 ):
-    user = _require_agent_auth(
-        user_id,
-        authorization,
-    )
-
-    agent_private_key = decrypt(
-        user["agent_key_encrypted"],
-    )
+    user = _require_agent_auth(user_id, authorization)
+    agent_private_key = decrypt(user["agent_key_encrypted"])
 
     result = execute_close(
         agent_private_key=agent_private_key,
@@ -618,37 +590,18 @@ def agent_close(
         size=req.size,
     )
 
-    _mark_agent_active(
-        user_id,
-    )
+    _mark_agent_active(user_id)
 
     with get_conn() as conn:
         conn.execute(
             """
             INSERT INTO trades
-            (
-                user_id,
-                coin,
-                is_buy,
-                size,
-                result,
-                reasoning,
-                confidence,
-                model,
-                strategy
-            )
+            (user_id, coin, is_buy, size, result, reasoning, confidence, model, strategy)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                user["id"],
-                req.coin,
-                0,
-                req.size or 0,
-                str(result),
-                req.reasoning,
-                req.confidence,
-                req.model,
-                req.strategy,
+                user["id"], req.coin, 0, req.size or 0, str(result),
+                req.reasoning, req.confidence, req.model, req.strategy,
             ),
         )
 
@@ -662,18 +615,9 @@ def dashboard(
     user_id: str,
     authorization: Optional[str] = Header(None),
 ):
-    """
-    Returns the user's current HyperCore / Hyperliquid account state.
-    """
+    user = _require_agent_auth(user_id, authorization)
+    return get_account_state(user["wallet_address"])
 
-    user = _require_agent_auth(
-        user_id,
-        authorization,
-    )
-    
-    return get_account_state(
-        user["wallet_address"],
-    )
 
 @app.post("/agent/connect", response_model=AgentConnectResponse)
 def agent_connect(
@@ -681,48 +625,23 @@ def agent_connect(
     req: AgentConnectRequest,
     authorization: Optional[str] = Header(None),
 ):
-    """
-    Called once by the agent after the user pastes the skill.
-    Exchanges the API key for a long-lived session token.
-    """
-
-    _require_agent_auth(
-        req.user_id,
-        authorization,
-    )
-
-    session_token = create_session(
-        authorization.removeprefix("Bearer ").strip()
-    )
-
+    _require_agent_auth(req.user_id, authorization)
+    session_token = create_session(authorization.removeprefix("Bearer ").strip())
     return AgentConnectResponse(
         session_token=session_token,
         base_url=str(request.base_url).rstrip("/"),
     )
 
+
 @app.post("/agent/heartbeat")
-def agent_heartbeat(
-    req: AgentHeartbeatRequest,
-):
+def agent_heartbeat(req: AgentHeartbeatRequest):
     if not validate_session(req.session_token):
-        raise HTTPException(
-            401,
-            "Session expired.",
-        )
-
+        raise HTTPException(401, "Session expired.")
     touch_session(req.session_token)
+    return {"alive": True}
 
-    return {
-        "alive": True,
-    }
 
 @app.post("/agent/disconnect")
-def agent_disconnect(
-    req: AgentDisconnectRequest,
-):
+def agent_disconnect(req: AgentDisconnectRequest):
     destroy_session(req.session_token)
-
-    return {
-        "success": True,
-    }
-
+    return {"success": True}

@@ -45,6 +45,16 @@ CREATE TABLE IF NOT EXISTS bridge_transfers (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS wallet_nonces (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    wallet_address TEXT NOT NULL,
+    nonce_hash TEXT NOT NULL UNIQUE,
+    expires_at INTEGER NOT NULL,
+    used_at INTEGER,
+    created_at INTEGER NOT NULL
+);
 """
 
 # Your DB is already deployed on Render without these columns, so

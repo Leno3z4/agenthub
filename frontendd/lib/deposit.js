@@ -16,15 +16,18 @@ export async function depositUSDC({
   apiKey,
   amount,
 }) {
-  const amountUnits = BigInt(
-    Math.floor(Number(amount) * 1_000_000)
+  const transferAmount = BigInt(
+      Math.floor(Number(amount) * 1_000_000)
   );
   
-  console.log("INPUT:", amount);
-  console.log("MICRO USDC:", amountUnits.toString());
   const params = await depositParams(
-    amountUnits.toString()
+      transferAmount.toString()
   );
+
+  const totalAmount =
+      transferAmount +
+      BigInt(params.maxFee);
+  
   console.log({
     frontendAmount: amount,
     backendAmount: params.amount,

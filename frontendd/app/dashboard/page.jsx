@@ -21,12 +21,13 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     async function load() {
-      const arcAddress = localStorage.getItem("alias_arc_address");
+      const userId = localStorage.getItem("alias_user_id");
       const apiKey = localStorage.getItem("alias_api_key");
 
-      // Was silently doing nothing before — now it's an explicit,
-      // visible state instead of an empty dashboard that looks broken.
-      if (!arcAddress || !apiKey) {
+      // The backend's protected routes are keyed by Alias user ID, not by
+      // wallet address. If onboarding hasn't stored both values yet, show a
+      // clear setup state instead of firing broken requests.
+      if (!userId || !apiKey) {
         setNotSetUp(true);
         setLoading(false);
         return;
@@ -34,8 +35,8 @@ export default function DashboardOverview() {
 
       try {
         const [dashboardData, agentData] = await Promise.all([
-          getDashboard(arcAddress, apiKey),
-          getAgentStatus(arcAddress, apiKey),
+          getDashboard(userId, apiKey),
+          getAgentStatus(userId, apiKey),
         ]);
         setDashboard(dashboardData);
         setAgent(agentData);
@@ -55,7 +56,7 @@ export default function DashboardOverview() {
         <p className="alias-overview-label">DASHBOARD</p>
         <h1 className="alias-overview-title">Not set up yet.</h1>
         <p className="alias-overview-description">
-          No wallet linked yet — there's nothing to show here until
+          No Alias account linked yet — there's nothing to show here until
           onboarding is complete.
         </p>
         <Link href="/onboarding" className="landing-primary">

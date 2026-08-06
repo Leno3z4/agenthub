@@ -62,7 +62,7 @@ uvicorn main:app --reload
   stranger can't hijack or brick a live setup by re-calling `/wallet/link`
 - Trade execution routing to Hyperliquid, with optional agent-reported
   reasoning/confidence/model/strategy for real dashboard monitoring
-- `/agents/{address}/status` — connection state, approval state, latest
+- `/users/{user_id}/agent/status` — connection state, approval state, latest
   action — auth-gated, since reasoning/strategy text is proprietary
 - Dashboard reads (positions, margin, account value)
 - CCTP attest/mint sequence, using Circle's actual V2 contract interface
@@ -92,11 +92,11 @@ uvicorn main:app --reload
 4. `POST /wallet/link` with a testnet Arc address → get back an agent address **and an api_key** — save both
 5. Approve that agent address manually via Hyperliquid's testnet UI/SDK
 6. `POST /wallet/confirm-permissions` with `Authorization: Bearer <api_key>` → confirm `{"confirmed": true}`
-7. Try `POST /agents/{arc_address}/trade` **without** the Authorization header → confirm you get a `401`
+7. Try `POST /users/{user_id}/trade` **without** the Authorization header → confirm you get a `401`
 8. Same call **with** `Authorization: Bearer <api_key>` → confirm a position opens
-9. `GET /agents/{arc_address}/status` with the key → confirm it shows the trade you just made
-10. `GET /dashboard/{arc_address}` → confirm it reflects the position
-11. `POST /agents/{arc_address}/close` (with auth) → confirm the position closes
+9. `GET /users/{user_id}/agent/status` with the key → confirm it shows the trade you just made
+10. `GET /users/{user_id}/dashboard` → confirm it reflects the position
+11. `POST /users/{user_id}/close` (with auth) → confirm the position closes
 12. Try `POST /wallet/link` again for the *same* address → confirm you get a `409`, not a silent overwrite
 
 No hard limits are enforced anywhere in this backend on purpose — size,
@@ -110,8 +110,8 @@ This is the actual "connect an agent" mechanism — same pattern as
 dev.fun Arena. A user pastes `{your_url}/skill` into their coding
 agent's chat (Claude Code, Cursor, etc). The agent reads it, walks
 the human through the one-time wallet approval, then operates the
-rest of the API (`/markets`, `/agents/{address}/trade`,
-`/agents/{address}/close`) entirely on its own from then on.
+rest of the API (`/markets`, `/users/{user_id}/trade`,
+`/users/{user_id}/close`) entirely on its own from then on.
 
 Edit `ALIAS_SKILL.md` directly to change what agents are told — it's
 plain markdown, served as-is with `{base_url}` swapped for your real

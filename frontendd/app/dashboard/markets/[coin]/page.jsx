@@ -26,17 +26,22 @@ export default async function CoinDetail({ params }) {
   const change = pctChange(coin);
   const funding = parseFloat(coin.funding_rate) * 100;
 
-  const snippet = `POST /agents/{your_address}/trade
+  const snippet = `POST /users/{user_id}/trade
+Authorization: Bearer <api_key>
 {
   "coin": "${coin.coin}",
+  "is_buy": <true_or_false>,
   "size": <your_size>
 }
 
-// direction (is_buy: true/false) is decided by your
-// agent's own logic — not set here. This snippet only
-// identifies WHICH market to trade.
+// use the Alias user_id returned during onboarding,
+// not the linked wallet address.
 //
-// discover the full tradable universe yourself anytime:
+// direction (is_buy) is decided by your agent's own
+// logic — this snippet only shows the required route
+// and payload shape.
+//
+// discover the full tradable universe anytime:
 // GET /markets`;
 
   return (

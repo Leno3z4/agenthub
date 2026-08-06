@@ -11,7 +11,7 @@ from crypto_utils import encrypt, decrypt
 from auth import generate_api_key, verify_api_key
 from agent import router as agent_router
 
-app.include_router(agent_router)
+
 from hl_client import (
     generate_agent_wallet,
     get_account_state,
@@ -38,7 +38,7 @@ from agent_session import (
 )
 
 app = FastAPI(title="Alias Backend")
-
+app.include_router(agent_router)
 
 
 app.add_middleware(

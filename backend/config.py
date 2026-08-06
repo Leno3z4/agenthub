@@ -6,7 +6,7 @@ print("CWD:", os.getcwd())
 # ---------- Arc ----------
 
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")
-ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", "0"))
+ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", ""))
 ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "")
 
 # ---------- Circle CCTP ----------
@@ -24,13 +24,13 @@ CCTP_IRIS_API = os.getenv(
 HYPERLIQUID_CCTP_DOMAIN = int(
     os.getenv(
         "HYPERLIQUID_CCTP_DOMAIN",
-        "0",
+        "19",
     )
 )
 ARC_CCTP_DOMAIN = int(
         os.getenv(
             "ARC_CCTP_DOMAIN",
-            "7",   # confirmed Arc testnet CCTP domain
+            "26",   # confirmed Arc testnet CCTP domain
         )
 )
 # ---------- HyperCore ----------

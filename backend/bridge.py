@@ -230,7 +230,8 @@ def create_hook_data(
 
     0xffffffff     -> Spot
     """
-
+    print("HOOK DATA:", hook_data)
+    print("HOOK DATA LEN:", len(bytes.fromhex(hook_data[2:])))
     return (
         FORWARDER_PREFIX
         + PROTOCOL_VERSION

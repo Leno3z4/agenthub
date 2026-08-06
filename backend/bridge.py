@@ -281,7 +281,7 @@ def deposit_parameters(amount: int):
 
     return {
         "amount": amount,
-        "destinationDomain": ARC_CCTP_DOMAIN,
+        "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
         "mintRecipient": mint_recipient,
         "burnToken": burn_token,
         "destinationCaller": forwarder,

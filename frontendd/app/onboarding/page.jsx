@@ -40,16 +40,16 @@ const STEPS = [
     desc: "Import your burner wallet",
   },
   {
-    title: "Authorize",
-    desc: "Grant delegated trading permission",
+    title: "Fund wallet",
+    desc: "Bridge USDC into HyperCore",
   },
   {
     title: "Connect your agent",
-    desc: "Generate your Alias agent",
+    desc: "Paste your agent link",
   },
   {
-    title: "Fund wallet",
-    desc: "Bridge USDC into HyperCore",
+    title: "Authorize",
+    desc: "Grant delegated trading permission",
   },
 ];
 
@@ -61,7 +61,8 @@ export default function Onboarding() {
   } = useSession();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-
+  const [amount, setAmount] = useState("");
+  const [agentLink, setAgentLink] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [agentAddress, setAgentAddress] = useState("");
   const [userId, setUserId] = useState("");
@@ -153,17 +154,10 @@ export default function Onboarding() {
 
       console.log("calling approveAgent");
       
-      await approveAgent({
-        walletClient,
-        agentAddress: data.agent_address,
-      });
+      
       
       console.log("approveAgent finished");
-      await confirmPermissions(
-        registration.user_id,
-        data.api_key,
-      );
-
+      
       localStorage.setItem(
         "alias_arc_address",
         address,
@@ -179,7 +173,7 @@ export default function Onboarding() {
         data.agent_address,
       );
 
-      setStep(4);
+      setStep(2);
     } catch (err) {
       console.error(err);
     } finally {
@@ -204,15 +198,39 @@ export default function Onboarding() {
         publicClient,
         userId,
         apiKey,
-        amount: 1_000_000,
+        amount,
       });
 
-      router.push("/dashboard");
+      setStep(3);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  }
+  async function authorizeAgent() {
+      if (!walletClient) return;
+  
+      try {
+          setLoading(true);
+  
+          await approveAgent({
+              walletClient,
+              agentAddress,
+          });
+  
+          await confirmPermissions(
+              userId,
+              apiKey,
+          );
+  
+          router.push("/dashboard");
+  
+      } catch (err) {
+          console.error(err);
+      } finally {
+          setLoading(false);
+      }
   }
   function handleGoogleLogin() {
     signIn("google", {
@@ -296,29 +314,57 @@ export default function Onboarding() {
           
           <ConnectButton />
         </div>
-      ) : step < 4 ? (
-        <button
-          onClick={setupWallet}
-          disabled={
-            loading ||
-            !isConnected
-          }
-          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
-        >
-          {loading
-            ? "Authorizing..."
-            : "Continue"}
-        </button>
-      ) : (
-        <button
-          onClick={fundWallet}
-          disabled={loading}
-          className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded"
-        >
-          {loading
-            ? "Bridging USDC..."
-            : "Deposit 1 USDC"}
-        </button>
+      ) : step === 2 ? (
+      
+      <div className="space-y-4">
+      
+          <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e)=>setAmount(e.target.value)}
+              placeholder="Amount (USDC)"
+              className="w-full border border-line rounded bg-transparent px-3 py-2"
+          />
+      
+          <button
+              onClick={fundWallet}
+              disabled={loading || !amount}
+              className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+          >
+              {loading ? "Depositing..." : "Deposit"}
+          </button>
+      
+      </div>
+      ) : step === 3 ? (
+      
+      <div className="space-y-4">
+      
+          <input
+              value={agentLink}
+              onChange={(e)=>setAgentLink(e.target.value)}
+              placeholder="Paste Agent URL"
+              className="w-full border border-line rounded bg-transparent px-3 py-2"
+          />
+      
+          <button
+              onClick={()=>{
+                  // we'll build this next
+                  setStep(4);
+              }}
+              className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+          >
+              Connect Agent
+          </button>
+          <button
+              onClick={authorizeAgent}
+              disabled={loading}
+          >
+              {loading ? "Authorizing..." : "Approve Trading"}
+          </button>
+      </div>
+      
       )}
 
       <p className="text-dim text-xs text-center mt-4 font-mono">

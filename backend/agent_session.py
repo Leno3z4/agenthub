@@ -5,6 +5,7 @@ from typing import Any
 
 import redis
 
+from auth import hash_api_key
 from config import SESSION_REDIS_URL, SESSION_TTL_SECONDS
 
 
@@ -47,10 +48,12 @@ class RedisSessionStore(SessionStore):
         last_seen = session["last_seen"]
         ttl_seconds = max(1, int(ttl.total_seconds()))
 
+        # Store only a one-way API-key hash. The plaintext key is never written
+        # to Redis and is not needed to validate the session token.
         self._redis.hset(
             self._key(token),
             mapping={
-                "api_key": session["api_key"],
+                "api_key_hash": hash_api_key(session["api_key"]),
                 "expires": expires.isoformat(),
                 "last_seen": last_seen.isoformat(),
             },
@@ -63,7 +66,7 @@ class RedisSessionStore(SessionStore):
             return None
 
         return {
-            "api_key": values["api_key"],
+            "api_key_hash": values["api_key_hash"],
             "expires": datetime.fromisoformat(values["expires"]),
             "last_seen": datetime.fromisoformat(values["last_seen"]),
         }

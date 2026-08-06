@@ -34,7 +34,6 @@ export default function Onboarding() {
     if (!session?.user?.id || status !== "authenticated" || !isConnected || !walletClient || !address || initialized) {
       return;
     }
-    setInitialized(true);
     setStep(1);
     setupWallet();
   }, [status, session?.user?.id, isConnected, walletClient, address, initialized]);
@@ -103,6 +102,9 @@ export default function Onboarding() {
       localStorage.setItem("alias_api_key", data.api_key);
       localStorage.setItem("alias_agent_address", data.agent_address);
       setStep(4);
+      // Only mark setup complete after every authentication/authorization
+      // step succeeds. Failed setup remains retryable.
+      setInitialized(true);
     } catch (err) {
       console.error(err);
     } finally {
@@ -155,7 +157,7 @@ export default function Onboarding() {
             Continue with Google
           </button>
         </div>
-      ) : step === 1 ? (
+      ) : step === 1 && !isConnected ? (
         <div className="flex flex-col items-center gap-4"><ConnectButton /></div>
       ) : step < 4 ? (
         <button onClick={setupWallet} disabled={loading || !isConnected} className="w-full bg-signal text-[#071a2e] font-mono font-semibold py-2.5 rounded">

@@ -408,7 +408,8 @@ def register_user(req: RegisterUserRequest):
                 UPDATE users
                 SET email = ?, name = ?, picture = ?
                 WHERE google_id = ?
-                """,
+                """
+                ,
                 (email, name, picture, google_id),
             )
             return {"user_id": existing["id"], "new_user": False}
@@ -455,32 +456,24 @@ def confirm_permissions(
 
 def _get_user(user_id: str):
     with get_conn() as conn:
-        user = conn.execute(
+        return conn.execute(
             "SELECT * FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
-
-    if user is None:
-        raise HTTPException(status_code=404, detail="Wallet not linked.")
-
-    return user
 
 
 def _require_agent_auth(
     user_id: str,
     authorization: Optional[str],
 ):
+    # Parse the credential before looking up the account and use the same
+    # response for missing, invalid, and unknown credentials. This prevents
+    # protected endpoints from leaking whether a user ID exists.
+    api_key = _bearer_token(authorization)
     user = _get_user(user_id)
 
-    if authorization is None:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authentication required.")
-
-    api_key = authorization.removeprefix("Bearer ").strip()
-
-    if not verify_api_key(api_key, user["api_key_hash"]):
+    if user is None or not verify_api_key(api_key, user["api_key_hash"]):
+        logger.warning("authentication_failed method=api_key")
         raise HTTPException(status_code=401, detail="Authentication failed.")
 
     return user

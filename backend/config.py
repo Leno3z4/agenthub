@@ -5,9 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-print("ENV KEY:", os.getenv("ENCRYPTION_KEY"))
-print("CWD:", os.getcwd())
 # ---------- Arc ----------
 
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")

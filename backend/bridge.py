@@ -257,7 +257,7 @@ def deposit_parameters(amount: int):
         "mintRecipient": ...,
         "maxFee": fee,
         ...
-    }
+    }:
     
 
 # ---------------------------------------------------------------------

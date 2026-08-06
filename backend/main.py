@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional
+import logging
 import secrets
 import time
 import uuid
@@ -10,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
+from web3 import Web3
 
 from db import init_db, get_conn
 from crypto_utils import encrypt, decrypt
@@ -46,6 +48,8 @@ from agent_session import (
     touch_session,
     destroy_session,
 )
+
+logger = logging.getLogger("alias.auth")
 
 app = FastAPI(title="Alias Backend")
 
@@ -87,8 +91,8 @@ class LinkWalletRequest(BaseModel):
     wallet_address: str
     nonce: str
     signature: str
-    # Retained as optional compatibility fields; identity comes from the
-    # verified Google token used to obtain the nonce.
+    # Retained for request compatibility only. These fields are never used
+    # for identity; the verified Google token is the sole identity source.
     google_id: str | None = None
     email: str | None = None
     name: str | None = None
@@ -118,22 +122,40 @@ def wallet_link_message(user_id: str, wallet_address: str, nonce: str) -> str:
 
 def _bearer_token(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="invalid Authorization header")
+        raise HTTPException(status_code=401, detail="Authentication required.")
     token = authorization.removeprefix("Bearer ").strip()
     if not token:
-        raise HTTPException(status_code=401, detail="invalid Authorization header")
+        raise HTTPException(status_code=401, detail="Authentication required.")
     return token
 
 
-def _verified_google_user(user_id: str, authorization: Optional[str]):
+def _verified_google_user(user_id: str | None, authorization: Optional[str]):
+    """Authenticate Google, then resolve the account from the verified sub.
+
+    The client may send a legacy user_id for API compatibility, but it is
+    checked against the account selected by the verified Google subject and
+    is never used as the identity source.
+    """
     try:
         claims = verify_google_id_token(_bearer_token(authorization))
     except (ValueError, RuntimeError) as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        logger.warning("authentication_failed method=google")
+        raise HTTPException(status_code=401, detail="Authentication failed.") from exc
 
-    user = _get_user(user_id)
-    if user["google_id"] != claims["sub"]:
-        raise HTTPException(status_code=403, detail="identity does not match user")
+    with get_conn() as conn:
+        user = conn.execute(
+            "SELECT * FROM users WHERE google_id = ?",
+            (claims["sub"],),
+        ).fetchone()
+
+    if user is None:
+        logger.warning("authentication_failed method=google reason=account_not_found")
+        raise HTTPException(status_code=404, detail="Account not found.")
+
+    if user_id is not None and user["id"] != user_id:
+        logger.warning("authentication_failed method=google reason=account_mismatch")
+        raise HTTPException(status_code=403, detail="Account access denied.")
+
     return user, claims
 
 
@@ -142,13 +164,30 @@ def wallet_nonce(
     req: WalletNonceRequest,
     authorization: Optional[str] = Header(None),
 ):
-    _verified_google_user(req.user_id, authorization)
+    # A nonce is issued only after the Google token has selected the account.
+    user, _ = _verified_google_user(req.user_id, authorization)
+
+    if not Web3.is_address(req.wallet_address):
+        logger.warning("authentication_failed method=wallet reason=invalid_address")
+        raise HTTPException(status_code=400, detail="Invalid wallet address.")
 
     nonce = generate_nonce()
-    expires_at = int(time.time()) + 600
-    message = wallet_link_message(req.user_id, req.wallet_address, nonce)
+    now = int(time.time())
+    expires_at = now + 600
+    wallet_address = req.wallet_address.lower()
+    message = wallet_link_message(user["id"], wallet_address, nonce)
 
     with get_conn() as conn:
+        # A newer attempt invalidates older unused attempts for this account
+        # and wallet, limiting the number of valid authentication challenges.
+        conn.execute(
+            """
+            UPDATE wallet_nonces
+            SET used_at = ?
+            WHERE user_id = ? AND wallet_address = ? AND used_at IS NULL
+            """,
+            (now, user["id"], wallet_address),
+        )
         conn.execute(
             """
             INSERT INTO wallet_nonces
@@ -156,11 +195,11 @@ def wallet_nonce(
             VALUES (?, ?, ?, ?, ?)
             """,
             (
-                req.user_id,
-                req.wallet_address.lower(),
+                user["id"],
+                wallet_address,
                 hash_nonce(nonce),
                 expires_at,
-                int(time.time()),
+                now,
             ),
         )
 
@@ -172,8 +211,20 @@ def wallet_nonce(
 
 
 @app.post("/wallet/link", response_model=LinkWalletResponse)
-def link_wallet(req: LinkWalletRequest):
-    message = wallet_link_message(req.user_id, req.wallet_address, req.nonce)
+def link_wallet(
+    req: LinkWalletRequest,
+    authorization: Optional[str] = Header(None),
+):
+    # Both factors are mandatory: the verified Google identity selects the
+    # account, while the signed nonce proves control of the wallet.
+    user, _ = _verified_google_user(req.user_id, authorization)
+
+    if not Web3.is_address(req.wallet_address):
+        logger.warning("authentication_failed method=wallet reason=invalid_address")
+        raise HTTPException(status_code=401, detail="Wallet authentication failed.")
+
+    wallet_address = req.wallet_address.lower()
+    message = wallet_link_message(user["id"], wallet_address, req.nonce)
 
     try:
         recovered = Account.recover_message(
@@ -181,13 +232,20 @@ def link_wallet(req: LinkWalletRequest):
             signature=req.signature,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="invalid wallet signature") from exc
+        logger.warning("authentication_failed method=wallet reason=invalid_signature")
+        raise HTTPException(
+            status_code=401,
+            detail="Wallet authentication failed.",
+        ) from exc
 
-    if recovered.lower() != req.wallet_address.lower():
-        raise HTTPException(status_code=401, detail="wallet signature does not match address")
+    if recovered.lower() != wallet_address:
+        logger.warning("authentication_failed method=wallet reason=signer_mismatch")
+        raise HTTPException(status_code=401, detail="Wallet authentication failed.")
 
     now = int(time.time())
     with get_conn() as conn:
+        # The nonce is hashed at rest and consumed atomically immediately
+        # after signature verification, preventing replay.
         nonce_row = conn.execute(
             """
             SELECT id
@@ -199,15 +257,19 @@ def link_wallet(req: LinkWalletRequest):
               AND expires_at > ?
             """,
             (
-                req.user_id,
-                req.wallet_address.lower(),
+                user["id"],
+                wallet_address,
                 hash_nonce(req.nonce),
                 now,
             ),
         ).fetchone()
 
         if nonce_row is None:
-            raise HTTPException(status_code=401, detail="invalid, expired, or reused nonce")
+            logger.warning("authentication_failed method=wallet reason=invalid_nonce")
+            raise HTTPException(
+                status_code=401,
+                detail="Wallet authentication failed.",
+            )
 
         consumed = conn.execute(
             """
@@ -219,23 +281,28 @@ def link_wallet(req: LinkWalletRequest):
         ).rowcount
 
         if consumed != 1:
-            raise HTTPException(status_code=401, detail="invalid, expired, or reused nonce")
+            logger.warning("authentication_failed method=wallet reason=nonce_replay")
+            raise HTTPException(
+                status_code=401,
+                detail="Wallet authentication failed.",
+            )
 
         existing = conn.execute(
             "SELECT * FROM users WHERE id = ?",
-            (req.user_id,),
+            (user["id"],),
         ).fetchone()
 
         if existing is None:
-            raise HTTPException(status_code=404, detail="User must register first.")
+            logger.warning("authentication_failed method=wallet reason=account_not_found")
+            raise HTTPException(status_code=404, detail="Account not found.")
 
         if (
             existing["wallet_address"] is not None
-            and existing["wallet_address"].lower() != req.wallet_address.lower()
+            and existing["wallet_address"].lower() != wallet_address
         ):
             raise HTTPException(
                 status_code=409,
-                detail="This account already has a different wallet linked.",
+                detail="A different wallet is already linked.",
             )
 
         api_key, api_key_hash = generate_api_key()
@@ -243,7 +310,7 @@ def link_wallet(req: LinkWalletRequest):
         if existing["agent_address"]:
             conn.execute(
                 "UPDATE users SET wallet_address = ?, api_key_hash = ? WHERE id = ?",
-                (req.wallet_address, api_key_hash, req.user_id),
+                (wallet_address, api_key_hash, user["id"]),
             )
             return LinkWalletResponse(
                 agent_address=existing["agent_address"],
@@ -259,11 +326,11 @@ def link_wallet(req: LinkWalletRequest):
             WHERE id = ?
             """,
             (
-                req.wallet_address,
+                wallet_address,
                 agent_address,
                 encrypt(agent_private_key),
                 api_key_hash,
-                req.user_id,
+                user["id"],
             ),
         )
 
@@ -289,16 +356,20 @@ class RegisterUserRequest(BaseModel):
 
 @app.post("/users/register")
 def register_user(req: RegisterUserRequest):
+    """Register or refresh an account from a verified Google ID token only."""
     if req.provider != "google":
-        raise HTTPException(status_code=400, detail="Google authentication is required")
+        raise HTTPException(status_code=400, detail="Google authentication is required.")
 
     try:
         claims = verify_google_id_token(req.id_token or "")
     except (ValueError, RuntimeError) as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        logger.warning("authentication_failed method=google reason=registration")
+        raise HTTPException(status_code=401, detail="Authentication failed.") from exc
 
+    # These values are read only after google-auth has verified signature,
+    # issuer, audience, expiry, subject, and email verification.
     google_id = claims["sub"]
-    email = claims.get("email")
+    email = claims["email"]
     name = claims.get("name")
     picture = claims.get("picture")
 
@@ -318,6 +389,14 @@ def register_user(req: RegisterUserRequest):
                 (email, name, picture, google_id),
             )
             return {"user_id": existing["id"], "new_user": False}
+
+        email_owner = conn.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+        if email_owner:
+            logger.warning("authentication_failed method=google reason=email_conflict")
+            raise HTTPException(status_code=409, detail="Account already exists.")
 
         user_id = str(uuid.uuid4())
         conn.execute(
@@ -359,7 +438,7 @@ def _get_user(user_id: str):
         ).fetchone()
 
     if user is None:
-        raise HTTPException(status_code=404, detail="wallet not linked")
+        raise HTTPException(status_code=404, detail="Wallet not linked.")
 
     return user
 
@@ -371,15 +450,15 @@ def _require_agent_auth(
     user = _get_user(user_id)
 
     if authorization is None:
-        raise HTTPException(status_code=401, detail="missing Authorization header")
+        raise HTTPException(status_code=401, detail="Authentication required.")
 
     if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="invalid Authorization header")
+        raise HTTPException(status_code=401, detail="Authentication required.")
 
     api_key = authorization.removeprefix("Bearer ").strip()
 
     if not verify_api_key(api_key, user["api_key_hash"]):
-        raise HTTPException(status_code=401, detail="invalid API key")
+        raise HTTPException(status_code=401, detail="Authentication failed.")
 
     return user
 

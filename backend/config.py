@@ -14,6 +14,12 @@ ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")
 ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", "0"))
 ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "")
 
+# ---------- Authentication ----------
+
+# This is the OAuth client ID accepted by the backend. It is never taken from
+# a request body, profile object, or other frontend-provided field.
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+
 # ---------- Circle CCTP ----------
 
 CCTP_TOKEN_MESSENGER_ARC = os.getenv(

@@ -71,10 +71,13 @@ export default function Onboarding() {
         message: nonceData.message,
       });
 
+      // Wallet linking is a two-factor operation: send the verified Google
+      // token and the wallet's signature over the server-issued nonce.
       const linkResponse = await fetch(`${BACKEND_URL}/wallet/link`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${googleIdToken}`,
         },
         body: JSON.stringify({
           user_id: currentUserId,

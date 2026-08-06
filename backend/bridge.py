@@ -250,8 +250,8 @@ def deposit_parameters(amount: int):
 
     mint_recipient = address_to_bytes32(
         require(
-            CORE_DEPOSIT_WALLET,
-            "CORE_DEPOSIT_WALLET",
+            CTTP_FORWARDER,
+            "CCTP_FORWARDER",
         )
     )
 

@@ -35,7 +35,16 @@ CREATE TABLE IF NOT EXISTS trades (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
+CREATE TABLE IF NOT EXISTS agent_connections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    connected INTEGER DEFAULT 0,
+    agent_name TEXT,
+    provider TEXT,
+    created_at TEXT,
+    connected_at TEXT
+);
 CREATE TABLE IF NOT EXISTS bridge_transfers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,

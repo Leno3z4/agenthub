@@ -22,7 +22,9 @@ export async function depositUSDC({
   
   console.log("INPUT:", amount);
   console.log("MICRO USDC:", amountUnits.toString());
-  const params = await depositParams(amount);
+  const params = await depositParams(
+    amountUnits.toString()
+  );
   console.log({
     frontendAmount: amount,
     backendAmount: params.amount,
@@ -67,7 +69,7 @@ export async function depositUSDC({
     userId,
     apiKey,
     burnHash,
-    amount,
+    amountUnits.toString(),
   );
 
   const started = Date.now();

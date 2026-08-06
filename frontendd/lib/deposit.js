@@ -17,7 +17,11 @@ export async function depositUSDC({
   amount,
 }) {
   const params = await depositParams(amount);
-
+  console.log({
+    frontendAmount: amount,
+    backendAmount: params.amount,
+    backendMaxFee: params.maxFee,
+  });
   const usdc = getUsdcContract(walletClient);
 
   const messenger =

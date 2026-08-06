@@ -152,11 +152,11 @@ export default function Onboarding() {
         data.agent_address,
       );
 
-      console.log("calling approveAgent");
       
       
       
-      console.log("approveAgent finished");
+      
+      
       
       localStorage.setItem(
         "alias_arc_address",
@@ -198,7 +198,7 @@ export default function Onboarding() {
         publicClient,
         userId,
         apiKey,
-        amount,
+        amount: Number(amount),
       });
 
       setStep(3);
@@ -349,18 +349,28 @@ export default function Onboarding() {
           />
       
           <button
-              onClick={()=>{
-                  // we'll build this next
+              onClick={() => {
+                  // we'll implement this next
                   setStep(4);
               }}
               className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
           >
               Connect Agent
           </button>
-          
+      
       </div>
       
-      )}
+      ) : (
+      
+      <button
+          onClick={authorizeAgent}
+          disabled={loading}
+          className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+      >
+          {loading ? "Authorizing..." : "Approve Trading"}
+      </button>
+      
+      ):
 
       <p className="text-dim text-xs text-center mt-4 font-mono">
         Connect → Authorize → Bridge → Dashboard

@@ -41,11 +41,14 @@ def verify_google_id_token(id_token_value: str) -> dict:
     if not audience:
         raise RuntimeError("GOOGLE_CLIENT_ID is not configured.")
 
-    claims = google_id_token.verify_oauth2_token(
-        id_token_value,
-        google_requests.Request(),
-        audience,
-    )
+    try:
+        claims = google_id_token.verify_oauth2_token(
+            id_token_value,
+            google_requests.Request(),
+            audience,
+        )
+    except Exception as exc:
+        raise ValueError("Invalid Google ID token.") from exc
 
     if claims.get("iss") not in {
         "accounts.google.com",

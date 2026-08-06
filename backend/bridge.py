@@ -253,10 +253,13 @@ def deposit_parameters(amount: int):
     
     return {
         "amount": amount,
-        "destinationDomain": ...,
-        "mintRecipient": ...,
+        "destinationDomain": ARC_CCTP_DOMAIN,
+        "mintRecipient": mint_recipient,
+        "burnToken": burn_token,
+        "destinationCaller": forwarder,
         "maxFee": fee,
-        ...
+        "minFinalityThreshold": 1000,
+        "hookData": hook_data,
     }
     
 

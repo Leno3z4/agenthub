@@ -370,7 +370,7 @@ export default function Onboarding() {
           {loading ? "Authorizing..." : "Approve Trading"}
       </button>
       
-      ):
+      )}
 
       <p className="text-dim text-xs text-center mt-4 font-mono">
         Connect → Authorize → Bridge → Dashboard

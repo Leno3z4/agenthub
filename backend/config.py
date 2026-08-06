@@ -5,15 +5,15 @@ load_dotenv()
 print("CWD:", os.getcwd())
 # ---------- Arc ----------
 
-ARC_RPC_URL = os.getenv("ARC_RPC_URL", "")
-ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", ""))
-ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "")
+ARC_RPC_URL = os.getenv("ARC_RPC_URL", "https://rpc.testnet.arc.io")
+ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", "5042002"))
+ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "0x3600000000000000000000000000000000000000")
 
 # ---------- Circle CCTP ----------
 
 CCTP_TOKEN_MESSENGER_ARC = os.getenv(
     "CCTP_TOKEN_MESSENGER_ARC",
-    "",
+    "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA",
 )
 
 CCTP_IRIS_API = os.getenv(
@@ -37,12 +37,12 @@ ARC_CCTP_DOMAIN = int(
 
 CCTP_FORWARDER = os.getenv(
     "CCTP_FORWARDER",
-    "",
+    "0x02e39ECb8368b41bF68FF99ff351aC9864e5E2a2",
 )
 
 CORE_DEPOSIT_WALLET = os.getenv(
     "CORE_DEPOSIT_WALLET",
-    "",
+    "0x0B80659a4076E9E93C7DbE0f10675A16a3e5C206",
 )
 
 HL_API_URL = os.getenv(

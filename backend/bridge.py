@@ -242,16 +242,23 @@ def deposit_parameters(amount: int):
             "CCTP_FORWARDER",
         ),
     )
+    fee = fetch_max_fee(
+        ARC_CCTP_DOMAIN,
+    )
+    
+    print("========== CCTP ==========")
+    print("AMOUNT:", amount)
+    print("MAX FEE:", fee)
+    print("==========================")
+    
     return {
         "amount": amount,
-        "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
-        "mintRecipient": forwarder,
-        "destinationCaller": forwarder,
-        "hookData": "0x" + create_hook_data().hex(),
-        "maxFee": fetch_max_fee(
-            ARC_CCTP_DOMAIN,
-        ),
-        "minFinalityThreshold": 1000,
+        "destinationDomain": ...,
+        "mintRecipient": ...,
+        "maxFee": fee,
+        ...
+    }
+            "minFinalityThreshold": 1000,
     }
 
 # ---------------------------------------------------------------------

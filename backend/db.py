@@ -73,8 +73,11 @@ def init_db():
         for stmt in MIGRATIONS:
             try:
                 conn.execute(stmt)
-            except sqlite3.OperationalError:
-                pass  # column already exists
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" in str(e):
+                    pass
+                else:
+                    raise
 
 
 @contextmanager

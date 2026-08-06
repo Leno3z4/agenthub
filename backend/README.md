@@ -10,14 +10,16 @@ This whole folder is one deployable backend service. Structure:
 
 ```
 agenttrade-backend/
-├── main.py            # FastAPI app — all routes live here
+├── main.py             # FastAPI app — all live routes
 ├── config.py           # reads .env
-├── db.py                # sqlite persistence (users, trades, bridge transfers)
-├── crypto_utils.py       # encrypts delegated agent keys at rest
-├── hl_client.py          # Hyperliquid: agent wallets, trades, account reads
-├── bridge.py              # CCTP: Arc -> HyperEVM
+├── db.py               # runtime sqlite persistence used by main.py
+├── crypto_utils.py     # encrypts delegated agent keys at rest
+├── hl_client.py        # Hyperliquid: agent wallets, trades, account reads
+├── bridge.py           # CCTP: Arc -> HyperEVM
+├── database.py         # legacy SQLAlchemy scaffold (not used by main.py)
+├── models.py           # legacy SQLAlchemy models (not used by main.py)
 ├── requirements.txt
-└── .env.example           # copy to .env and fill in
+└── .env.example        # copy to .env and fill in
 ```
 
 Run it anywhere that can host a long-lived Python process — free options:
@@ -64,6 +66,7 @@ uvicorn main:app --reload
   reasoning/confidence/model/strategy for real dashboard monitoring
 - `/users/{user_id}/agent/status` — connection state, approval state, latest
   action — auth-gated, since reasoning/strategy text is proprietary
+- `/users/{user_id}/trades` — authenticated trade history, newest first
 - Dashboard reads (positions, margin, account value)
 - CCTP attest/mint sequence, using Circle's actual V2 contract interface
   and a platform-owned relayer key — **no private key of any kind ever
@@ -83,6 +86,12 @@ uvicorn main:app --reload
   (wagmi/viem), then hand the resulting hash to this endpoint. That
   frontend piece isn't built yet.
 
+## Persistence note
+
+`main.py` uses `db.py` for the live sqlite-backed runtime path.
+`database.py` and `models.py` are retained only as legacy SQLAlchemy
+scaffolding and are not imported by the running FastAPI app.
+
 ## Test order
 
 1. Get Arc testnet + Hyperliquid testnet RPC/contract values into `.env`,
@@ -95,9 +104,10 @@ uvicorn main:app --reload
 7. Try `POST /users/{user_id}/trade` **without** the Authorization header → confirm you get a `401`
 8. Same call **with** `Authorization: Bearer <api_key>` → confirm a position opens
 9. `GET /users/{user_id}/agent/status` with the key → confirm it shows the trade you just made
-10. `GET /users/{user_id}/dashboard` → confirm it reflects the position
-11. `POST /users/{user_id}/close` (with auth) → confirm the position closes
-12. Try `POST /wallet/link` again for the *same* address → confirm you get a `409`, not a silent overwrite
+10. `GET /users/{user_id}/trades` with the key → confirm the history feed includes that action
+11. `GET /users/{user_id}/dashboard` → confirm it reflects the position
+12. `POST /users/{user_id}/close` (with auth) → confirm the position closes
+13. Try `POST /wallet/link` again for the *same* address → confirm you get a `409`, not a silent overwrite
 
 No hard limits are enforced anywhere in this backend on purpose — size,
 leverage, entries, exits are 100% the agent's call, per your call to
@@ -111,7 +121,8 @@ dev.fun Arena. A user pastes `{your_url}/skill` into their coding
 agent's chat (Claude Code, Cursor, etc). The agent reads it, walks
 the human through the one-time wallet approval, then operates the
 rest of the API (`/markets`, `/users/{user_id}/trade`,
-`/users/{user_id}/close`) entirely on its own from then on.
+`/users/{user_id}/close`, `/users/{user_id}/trades`) entirely on its
+own from then on.
 
 Edit `ALIAS_SKILL.md` directly to change what agents are told — it's
 plain markdown, served as-is with `{base_url}` swapped for your real

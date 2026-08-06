@@ -190,6 +190,14 @@ GET {base_url}/users/{user_id}/agent/status
 
 Returns connection status, permission status, and the most recent recorded action.
 
+## View Trade History
+
+```
+GET {base_url}/users/{user_id}/trades
+```
+
+Returns recorded trade actions, newest first, including optional reasoning, confidence, model, and strategy metadata when available.
+
 ## Open Position
 
 ```

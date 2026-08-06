@@ -29,6 +29,7 @@ export async function registerUser(data) {
 
   return JSON.parse(text);
 }
+
 // ----------------------------------------------------
 // Wallet
 // ----------------------------------------------------
@@ -155,7 +156,6 @@ export async function bridgeStatus(burnTxHash) {
   return res.json();
 }
 
-
 // ----------------------------------------------------
 // Agent
 // ----------------------------------------------------
@@ -164,31 +164,29 @@ export async function agentStatus(
   userId,
   apiKey,
 ) {
+  return getAgentStatus(userId, apiKey);
+}
+
+export async function dashboard(
+  userId,
+  apiKey,
+) {
+  return getDashboard(userId, apiKey);
+}
+
+export async function getTradeHistory(
+  userId,
+  apiKey,
+  limit = 50,
+) {
   const res = await fetch(
-    `${BACKEND_URL}/users/${userId}/agent/status`,
+    `${BACKEND_URL}/users/${userId}/trades?limit=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
       cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error(await res.text());
-  }
-
-  return res.json();
-}
-
-export async function dashboard(
-  userId,
-) {
-  const res = await fetch(
-    `${BACKEND_URL}/users/${userId}/dashboard`,
-    {
-      cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {

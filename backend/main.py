@@ -83,6 +83,8 @@ def root():
         "Alias backend is live. "
         "Paste /skill into your agent's chat to get started."
     )
+
+
 # ---------------------------------------------------------------------
 # Wallet linking
 # ---------------------------------------------------------------------
@@ -450,6 +452,8 @@ def confirm_permissions(
         )
 
     return {"confirmed": True}
+
+
 # ---------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------
@@ -491,6 +495,8 @@ def _mark_agent_active(
             """,
             (user_id,),
         )
+
+
 # ---------------------------------------------------------------------
 # Agent status
 # ---------------------------------------------------------------------
@@ -538,6 +544,38 @@ def agent_status(
         "last_seen": user["last_seen"],
         "latest_action": dict(last_trade) if last_trade else None,
     }
+
+
+@app.get("/users/{user_id}/trades")
+def trade_history(
+    user_id: str,
+    limit: int = 50,
+    authorization: Optional[str] = Header(None),
+):
+    user = _require_agent_auth(user_id, authorization)
+    safe_limit = max(1, min(limit, 100))
+
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, coin, is_buy, size, result, reasoning, confidence, model, strategy, created_at
+            FROM trades
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (user["id"], safe_limit),
+        ).fetchall()
+
+    history = []
+    for row in rows:
+        item = dict(row)
+        item["is_buy"] = bool(item["is_buy"])
+        history.append(item)
+
+    return history
+
+
 # ---------------------------------------------------------------------
 # Bridge
 # ---------------------------------------------------------------------
@@ -585,6 +623,8 @@ def bridge_deposit(
 @app.get("/bridge/status/{burn_tx_hash}")
 def bridge_transfer_status(burn_tx_hash: str):
     return bridge_status(ARC_CCTP_DOMAIN, burn_tx_hash)
+
+
 # ---------------------------------------------------------------------
 # Markets
 # ---------------------------------------------------------------------
@@ -701,6 +741,8 @@ def agent_close(
         )
 
     return result
+
+
 # ---------------------------------------------------------------------
 # Dashboard
 # ---------------------------------------------------------------------

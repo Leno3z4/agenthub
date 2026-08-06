@@ -357,12 +357,7 @@ export default function Onboarding() {
           >
               Connect Agent
           </button>
-          <button
-              onClick={authorizeAgent}
-              disabled={loading}
-          >
-              {loading ? "Authorizing..." : "Approve Trading"}
-          </button>
+          
       </div>
       
       )}

@@ -46,7 +46,20 @@ export async function depositUSDC({
   await publicClient.waitForTransactionReceipt({
     hash: approveHash,
   });
-
+  console.log("===== depositForBurnWithHook args =====");
+  
+  console.log({
+    amount: backendAmount,
+    destinationDomain: params.destinationDomain,
+    mintRecipient: params.mintRecipient,
+    burnToken: params.burnToken,
+    destinationCaller: params.destinationCaller,
+    maxFee: params.maxFee,
+    minFinalityThreshold: params.minFinalityThreshold,
+    hookData: params.hookData,
+  });
+  
+  console.log("=======================================");
   // Circle burn
 
   const burnHash =

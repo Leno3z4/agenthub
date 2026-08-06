@@ -3,6 +3,7 @@ uvicorn[standard]==0.30.6
 sqlalchemy==2.0.51
 psycopg2-binary==2.9.10
 python-dotenv==1.0.1
+redis==5.0.8
 web3==7.2.0
 eth-account==0.13.4
 cryptography==43.0.1

@@ -1,5 +1,5 @@
 import logging
-import os 
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,7 +37,7 @@ ARC_CCTP_DOMAIN = int(
             "ARC_CCTP_DOMAIN",
             "7",   # confirmed Arc testnet CCTP domain
         )
-)
+    )
 # ---------- HyperCore ----------
 
 CCTP_FORWARDER = os.getenv(
@@ -60,6 +60,17 @@ HL_API_URL = os.getenv(
 DB_PATH = os.getenv(
     "DB_PATH",
     "agenttrade.db",
+)
+
+SESSION_REDIS_URL = os.getenv(
+    "SESSION_REDIS_URL",
+    "redis://localhost:6379/0",
+)
+SESSION_TTL_SECONDS = int(
+    os.getenv(
+        "SESSION_TTL_SECONDS",
+        str(30 * 24 * 60 * 60),
+    )
 )
 
 ENCRYPTION_KEY = os.getenv(

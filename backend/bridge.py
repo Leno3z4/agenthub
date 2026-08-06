@@ -38,9 +38,10 @@ from config import (
     HYPERLIQUID_CCTP_DOMAIN,
     CCTP_FORWARDER,
     ARC_CCTP_DOMAIN,
+    ARC_USDC_ADDRESS,
+    CORE_DEPOSIT_WALLET,
     require,
 )
-
 
 
 

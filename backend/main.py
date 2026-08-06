@@ -9,7 +9,9 @@ from pydantic import BaseModel
 from db import init_db, get_conn
 from crypto_utils import encrypt, decrypt
 from auth import generate_api_key, verify_api_key
+from agent import router as agent_router
 
+app.include_router(agent_router)
 from hl_client import (
     generate_agent_wallet,
     get_account_state,

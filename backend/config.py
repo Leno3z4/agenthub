@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-print("ENV KEY:", os.getenv("ENCRYPTION_KEY"))
 print("CWD:", os.getcwd())
 # ---------- Arc ----------
 

@@ -191,11 +191,12 @@ export async function POST(req) {
   }
 
   const methods = rpcRequests.map((request) => request?.method);
-  const invalidMethod = methods.find(
+  const invalidMethodIndex = methods.findIndex(
     (method) => typeof method !== "string" || !ALLOWED_METHODS.has(method),
   );
 
-  if (invalidMethod !== undefined) {
+  if (invalidMethodIndex !== -1) {
+    const invalidMethod = methods[invalidMethodIndex];
     logRejected(req, "method_not_allowed", {
       method:
         typeof invalidMethod === "string"

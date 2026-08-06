@@ -158,7 +158,14 @@ def fetch_max_fee(source_domain: int):
     print("Selected fee:")
     print(fee_info)
     print("High fee:", fee_info["forwardFee"]["high"])
-    return int(float(fee_info["forwardFee"]["high"]) * 1_000_000)
+    fee = fee_info["forwardFee"]["high"]
+    
+    if isinstance(fee, str):
+        fee = int(fee)
+    else:
+        fee = int(fee)
+    
+    return fee
 
     
 def wait_for_completion(

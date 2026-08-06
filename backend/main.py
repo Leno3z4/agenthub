@@ -26,6 +26,7 @@ from bridge import (
 from config import (
     HYPERLIQUID_CCTP_DOMAIN,
     ARC_CCTP_DOMAIN,
+    ALLOWED_ORIGINS,
 )
 
 from agent_session import (
@@ -41,9 +42,9 @@ app = FastAPI(title="Alias Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -724,3 +725,4 @@ def agent_disconnect(
     return {
         "success": True,
     }
+

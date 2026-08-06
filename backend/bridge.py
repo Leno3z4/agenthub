@@ -236,21 +236,36 @@ def deposit_parameters(amount: int):
     depositForBurnWithHook().
     """
 
+    mint_recipient = address_to_bytes32(
+        require(
+            HYPERLIQUID_VAULT_ADDRESS,
+            "HYPERLIQUID_VAULT_ADDRESS",
+        )
+    )
+
+    burn_token = require(
+        ARC_USDC_ADDRESS,
+        "ARC_USDC_ADDRESS",
+    )
+
     forwarder = address_to_bytes32(
         require(
             CCTP_FORWARDER,
             "CCTP_FORWARDER",
-        ),
+        )
     )
+
+    hook_data = b""
+
     fee = fetch_max_fee(
         ARC_CCTP_DOMAIN,
     )
-    
+
     print("========== CCTP ==========")
     print("AMOUNT:", amount)
     print("MAX FEE:", fee)
     print("==========================")
-    
+
     return {
         "amount": amount,
         "destinationDomain": ARC_CCTP_DOMAIN,
@@ -259,7 +274,7 @@ def deposit_parameters(amount: int):
         "destinationCaller": forwarder,
         "maxFee": fee,
         "minFinalityThreshold": 1000,
-        "hookData": hook_data,
+        "hookData": hook_data.hex(),
     }
     
 

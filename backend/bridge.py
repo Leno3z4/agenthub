@@ -239,8 +239,8 @@ def deposit_parameters(amount: int):
 
     mint_recipient = address_to_bytes32(
         require(
-            HYPERLIQUID_VAULT_ADDRESS,
-            "HYPERLIQUID_VAULT_ADDRESS",
+            CORE_DEPOSIT_WALLET,
+            "CORE_DEPOSIT_WALLET",
         )
     )
 

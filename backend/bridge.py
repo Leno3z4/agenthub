@@ -267,7 +267,7 @@ def deposit_parameters(amount: int):
         )
     )
 
-     hook_data = create_hook_data()
+    hook_data = create_hook_data()
 
     fee = fetch_max_fee(
         ARC_CCTP_DOMAIN,

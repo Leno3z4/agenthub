@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 import logging
 import secrets
+import sqlite3
 import time
 import uuid
 
@@ -133,8 +134,8 @@ def _verified_google_user(user_id: str | None, authorization: Optional[str]):
     """Authenticate Google, then resolve the account from the verified sub.
 
     The client may send a legacy user_id for API compatibility, but it is
-    checked against the account selected by the verified Google subject and
-    is never used as the identity source.
+    checked against the account selected by the verified Google subject and is
+    never used as the identity source.
     """
     try:
         claims = verify_google_id_token(_bearer_token(authorization))
@@ -221,7 +222,7 @@ def link_wallet(
 
     if not Web3.is_address(req.wallet_address):
         logger.warning("authentication_failed method=wallet reason=invalid_address")
-        raise HTTPException(status_code=401, detail="Wallet authentication failed.")
+        raise HTTPException(status_code=400, detail="Invalid wallet address.")
 
     wallet_address = req.wallet_address.lower()
     message = wallet_link_message(user["id"], wallet_address, req.nonce)
@@ -238,106 +239,128 @@ def link_wallet(
             detail="Wallet authentication failed.",
         ) from exc
 
-    if recovered.lower() != wallet_address:
+    if not secrets.compare_digest(recovered.lower(), wallet_address):
         logger.warning("authentication_failed method=wallet reason=signer_mismatch")
         raise HTTPException(status_code=401, detail="Wallet authentication failed.")
 
     now = int(time.time())
-    with get_conn() as conn:
-        # The nonce is hashed at rest and consumed atomically immediately
-        # after signature verification, preventing replay.
-        nonce_row = conn.execute(
-            """
-            SELECT id
-            FROM wallet_nonces
-            WHERE user_id = ?
-              AND wallet_address = ?
-              AND nonce_hash = ?
-              AND used_at IS NULL
-              AND expires_at > ?
-            """,
-            (
-                user["id"],
-                wallet_address,
-                hash_nonce(req.nonce),
-                now,
-            ),
-        ).fetchone()
+    try:
+        with get_conn() as conn:
+            # The nonce is hashed at rest and consumed atomically immediately
+            # after signature verification, preventing replay.
+            nonce_row = conn.execute(
+                """
+                SELECT id
+                FROM wallet_nonces
+                WHERE user_id = ?
+                  AND wallet_address = ?
+                  AND nonce_hash = ?
+                  AND used_at IS NULL
+                  AND expires_at > ?
+                """,
+                (
+                    user["id"],
+                    wallet_address,
+                    hash_nonce(req.nonce),
+                    now,
+                ),
+            ).fetchone()
 
-        if nonce_row is None:
-            logger.warning("authentication_failed method=wallet reason=invalid_nonce")
-            raise HTTPException(
-                status_code=401,
-                detail="Wallet authentication failed.",
-            )
+            if nonce_row is None:
+                logger.warning("authentication_failed method=wallet reason=invalid_nonce")
+                raise HTTPException(
+                    status_code=401,
+                    detail="Wallet authentication failed.",
+                )
 
-        consumed = conn.execute(
-            """
-            UPDATE wallet_nonces
-            SET used_at = ?
-            WHERE id = ? AND used_at IS NULL AND expires_at > ?
-            """,
-            (now, nonce_row["id"], now),
-        ).rowcount
+            consumed = conn.execute(
+                """
+                UPDATE wallet_nonces
+                SET used_at = ?
+                WHERE id = ? AND used_at IS NULL AND expires_at > ?
+                """,
+                (now, nonce_row["id"], now),
+            ).rowcount
 
-        if consumed != 1:
-            logger.warning("authentication_failed method=wallet reason=nonce_replay")
-            raise HTTPException(
-                status_code=401,
-                detail="Wallet authentication failed.",
-            )
+            if consumed != 1:
+                logger.warning("authentication_failed method=wallet reason=nonce_replay")
+                raise HTTPException(
+                    status_code=401,
+                    detail="Wallet authentication failed.",
+                )
 
-        existing = conn.execute(
-            "SELECT * FROM users WHERE id = ?",
-            (user["id"],),
-        ).fetchone()
+            existing = conn.execute(
+                "SELECT * FROM users WHERE id = ?",
+                (user["id"],),
+            ).fetchone()
 
-        if existing is None:
-            logger.warning("authentication_failed method=wallet reason=account_not_found")
-            raise HTTPException(status_code=404, detail="Account not found.")
+            if existing is None:
+                logger.warning("authentication_failed method=wallet reason=account_not_found")
+                raise HTTPException(status_code=404, detail="Account not found.")
 
-        if (
-            existing["wallet_address"] is not None
-            and existing["wallet_address"].lower() != wallet_address
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail="A different wallet is already linked.",
-            )
+            # Do not rely on the database UNIQUE constraint for this check:
+            # return a safe authentication response instead of leaking a 500
+            # if a wallet is already controlled by another account.
+            wallet_owner = conn.execute(
+                """
+                SELECT id
+                FROM users
+                WHERE LOWER(wallet_address) = ? AND id != ?
+                LIMIT 1
+                """,
+                (wallet_address, user["id"]),
+            ).fetchone()
+            if wallet_owner is not None:
+                logger.warning("authentication_failed method=wallet reason=wallet_already_linked")
+                raise HTTPException(status_code=409, detail="Wallet is already linked.")
 
-        api_key, api_key_hash = generate_api_key()
+            if (
+                existing["wallet_address"] is not None
+                and existing["wallet_address"].lower() != wallet_address
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="A different wallet is already linked.",
+                )
 
-        if existing["agent_address"]:
+            api_key, api_key_hash = generate_api_key()
+
+            if existing["agent_address"]:
+                conn.execute(
+                    "UPDATE users SET wallet_address = ?, api_key_hash = ? WHERE id = ?",
+                    (wallet_address, api_key_hash, user["id"]),
+                )
+                return LinkWalletResponse(
+                    agent_address=existing["agent_address"],
+                    api_key=api_key,
+                )
+
+            agent_address, agent_private_key = generate_agent_wallet()
             conn.execute(
-                "UPDATE users SET wallet_address = ?, api_key_hash = ? WHERE id = ?",
-                (wallet_address, api_key_hash, user["id"]),
+                """
+                UPDATE users
+                SET wallet_address = ?, agent_address = ?,
+                    agent_key_encrypted = ?, api_key_hash = ?
+                WHERE id = ?
+                """,
+                (
+                    wallet_address,
+                    agent_address,
+                    encrypt(agent_private_key),
+                    api_key_hash,
+                    user["id"],
+                ),
             )
+
             return LinkWalletResponse(
-                agent_address=existing["agent_address"],
+                agent_address=agent_address,
                 api_key=api_key,
             )
-
-        agent_address, agent_private_key = generate_agent_wallet()
-        conn.execute(
-            """
-            UPDATE users
-            SET wallet_address = ?, agent_address = ?,
-                agent_key_encrypted = ?, api_key_hash = ?
-            WHERE id = ?
-            """,
-            (
-                wallet_address,
-                agent_address,
-                encrypt(agent_private_key),
-                api_key_hash,
-                user["id"],
-            ),
-        )
-
-        return LinkWalletResponse(
-            agent_address=agent_address,
-            api_key=api_key,
-        )
+    except sqlite3.IntegrityError as exc:
+        # A concurrent link can race the preflight ownership check. Keep that
+        # failure generic and non-sensitive rather than returning a DB error.
+        logger.warning("authentication_failed method=wallet reason=ownership_race")
+        raise HTTPException(status_code=409, detail="Wallet is already linked.") from exc
 
 
 class ConfirmPermissionsRequest(BaseModel):

@@ -231,25 +231,26 @@ def create_hook_data(
 
 
 def deposit_parameters(amount: int):
+    """
+    Returns everything the frontend needs for
+    depositForBurnWithHook().
+    """
+
     forwarder = address_to_bytes32(
-        require(CCTP_FORWARDER, "CCTP_FORWARDER"),
+        require(
+            CCTP_FORWARDER,
+            "CCTP_FORWARDER",
+        ),
     )
-
-    max_fee = int(float(fetch_max_fee(ARC_CCTP_DOMAIN)) * 1_000_000)
-
-    if amount <= max_fee:
-        raise ValueError(
-            f"Deposit amount ({amount}) must exceed the bridge fee ({max_fee}). "
-            f"Minimum deposit: {max_fee + 1} units (~{(max_fee + 1) / 1_000_000:.2f} USDC)."
-        )
-
     return {
         "amount": amount,
         "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
         "mintRecipient": forwarder,
         "destinationCaller": forwarder,
         "hookData": "0x" + create_hook_data().hex(),
-        "maxFee": max_fee,
+        "maxFee": fetch_max_fee(
+            ARC_CCTP_DOMAIN,
+        ),
         "minFinalityThreshold": 1000,
     }
 

@@ -1,7 +1,11 @@
+import logging
 import os 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
 print("ENV KEY:", os.getenv("ENCRYPTION_KEY"))
 print("CWD:", os.getcwd())
 # ---------- Arc ----------
@@ -62,6 +66,19 @@ ENCRYPTION_KEY = os.getenv(
     "ENCRYPTION_KEY",
     "",
 )
+
+# ---------- CORS ----------
+
+ALLOWED_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+if not ALLOWED_ORIGINS:
+    logger.warning(
+        "ALLOWED_ORIGINS is empty; cross-origin browser requests are disabled."
+    )
 
 
 def require(value, name):

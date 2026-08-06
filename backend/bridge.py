@@ -258,8 +258,7 @@ def deposit_parameters(amount: int):
         "maxFee": fee,
         ...
     }
-            "minFinalityThreshold": 1000,
-    }
+    
 
 # ---------------------------------------------------------------------
 # Validation

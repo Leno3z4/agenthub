@@ -35,24 +35,22 @@ export async function registerUser(data) {
 
 export async function linkWallet({
   user_id,
-  google_id,
-  email,
-  name,
-  picture,
   wallet_address,
+  nonce,
+  signature,
+  googleIdToken,
 }) {
   const res = await fetch(`${BACKEND_URL}/wallet/link`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${googleIdToken}`,
     },
     body: JSON.stringify({
       user_id,
-      google_id,
-      email,
-      name,
-      picture,
       wallet_address,
+      nonce,
+      signature,
     }),
   });
 

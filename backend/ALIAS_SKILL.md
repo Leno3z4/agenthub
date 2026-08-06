@@ -30,22 +30,56 @@ All authenticated requests require this header.
 
 These steps require the human user.
 
-## Link Wallet
+## Google Registration
+
+The frontend must send the Google ID token returned by Google authentication. The backend verifies its signature, expiry, issuer, audience, subject, and verified email before creating or updating an account.
 
 ```
-POST {base_url}/wallet/link
+POST {base_url}/users/register
 ```
 
-Request
+```json
+{
+  "provider": "google",
+  "id_token": "<google_id_token>"
+}
+```
+
+The `user_id` returned by this endpoint is an opaque account identifier. Do not construct or substitute it from frontend profile fields.
+
+## Prove Wallet Ownership
+
+First obtain a one-time nonce using the same verified Google ID token. The server stores only a hash of the nonce and expires it after 10 minutes.
+
+```
+POST {base_url}/wallet/nonce
+Authorization: Bearer <google_id_token>
+```
 
 ```json
 {
   "user_id": "<user_id>",
-  "google_id": "<google_id>",
-  "email": "<email>",
-  "name": "<name>",
-  "picture": "<picture_url>",
   "wallet_address": "0x..."
+}
+```
+
+Sign the returned `message` with the wallet. The backend recovers the signer with `eth_account`, checks it matches the submitted address, and consumes the nonce so it cannot be replayed.
+
+## Link Wallet
+
+Wallet linking requires both verified Google authentication and the wallet signature. The legacy profile fields are not accepted as identity claims.
+
+```
+POST {base_url}/wallet/link
+Authorization: Bearer <google_id_token>
+```
+
+```json
+{
+  "user_id": "<user_id>",
+  "wallet_address": "0x...",
+  "nonce": "<server_nonce>",
+  "signature": "0x..."
 }
 ```
 
@@ -112,7 +146,7 @@ POST {base_url}/bridge/deposit
 
 ```json
 {
-    "arc_address": "0x...",
+    "user_id": "<user_id>",
     "burn_tx_hash": "0x...",
     "amount_usdc_units": 50000000
 }
@@ -126,8 +160,6 @@ GET {base_url}/bridge/status/{burn_tx_hash}
 
 Trading should only begin once the transfer has completed.
 
----
-
 # Available Tools
 
 ## Discover Tradable Markets
@@ -140,8 +172,6 @@ Returns the currently tradable perpetual futures markets together with market in
 
 Use whenever market discovery or market data is required.
 
----
-
 ## View Trading Account
 
 ```
@@ -152,8 +182,6 @@ Returns the current account value, margin usage, and open positions.
 
 Use whenever account information is required.
 
----
-
 ## View Agent Status
 
 ```
@@ -161,8 +189,6 @@ GET {base_url}/users/{user_id}/agent/status
 ```
 
 Returns connection status, permission status, and the most recent recorded action.
-
----
 
 ## Open Position
 
@@ -186,8 +212,6 @@ Example
 ```
 
 The metadata fields are optional and are recorded for the user's dashboard.
-
----
 
 ## Close Position
 
@@ -213,8 +237,6 @@ Partial close
 ```
 
 Optional metadata may also be included.
-
----
 
 # Responsibilities
 

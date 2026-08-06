@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 _sessions: dict[str, dict] = {}
 
@@ -11,8 +11,8 @@ def create_session(api_key: str) -> str:
 
     _sessions[token] = {
         "api_key": api_key,
-        "expires": datetime.utcnow() + SESSION_DURATION,
-        "last_seen": datetime.utcnow(),
+        "expires": datetime.now(timezone.utc) + SESSION_DURATION,
+        "last_seen": datetime.now(timezone.utc),
     }
 
     return token
@@ -24,11 +24,11 @@ def validate_session(token: str) -> bool:
     if session is None:
         return False
 
-    if session["expires"] < datetime.utcnow():
+    if session["expires"] < datetime.now(timezone.utc):
         del _sessions[token]
         return False
 
-    session["last_seen"] = datetime.utcnow()
+    session["last_seen"] = datetime.now(timezone.utc)
     return True
 
 
@@ -36,7 +36,7 @@ def touch_session(token: str):
     session = _sessions.get(token)
 
     if session:
-        session["last_seen"] = datetime.utcnow()
+        session["last_seen"] = datetime.now(timezone.utc)
 
 
 def destroy_session(token: str):

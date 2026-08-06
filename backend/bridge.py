@@ -62,13 +62,16 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
         - None if Circle hasn't indexed it yet
     """
 
-    url = (
-        f"{CCTP_IRIS_API}"
-        f"/v2/messages/{source_domain}"
-        f"?transactionHash={burn_tx_hash}"
-    )
+    url = f"{CCTP_IRIS_API}/v2/messages/{source_domain}"
+    params = {
+        "transactionHash": burn_tx_hash,
+    }
 
-    response = requests.get(url, timeout=15)
+    response = requests.get(
+        url,
+        params=params,
+        timeout=15,
+    )
 
     # Circle hasn't indexed it yet.
     if response.status_code == 404:
@@ -89,7 +92,7 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
     )
     print(body)
     print("=" * 80)
-    print(url)
+    print(response.url)
 
     # Iris may return either a list or an object depending on endpoint/version.
 
@@ -131,11 +134,17 @@ def fetch_max_fee(source_domain: int):
         f"/v2/burn/USDC/fees/"
         f"{source_domain}/"
         f"{HYPERLIQUID_CCTP_DOMAIN}"
-        f"?forward=true"
-        f"&hyperCoreDeposit=true"
     )
+    params = {
+        "forward": "true",
+        "hyperCoreDeposit": "true",
+    }
 
-    response = requests.get(url, timeout=15)
+    response = requests.get(
+        url,
+        params=params,
+        timeout=15,
+    )
     response.raise_for_status()
 
     body = response.json()
@@ -315,3 +324,4 @@ def bridge_status(
         "messageHash": transfer["messageHash"],
         "txHash": burn_tx_hash,
     }
+

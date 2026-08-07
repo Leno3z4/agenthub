@@ -429,17 +429,22 @@ def bridge_status(
             "complete": False,
         }
 
-    if not validate_transfer(transfer):
+    status = str(transfer.get("status", "")).lower()
+
+    if not status:
+        print("IRIS RESPONSE HAS NO STATUS")
+        print("TRANSFER:", transfer)
+
         return {
-            "status": "invalid",
+            "status": "pending",
             "complete": False,
         }
 
-    status = transfer["status"]
-
     return {
         "status": status,
-        "complete": status.lower() == "complete",
-        "messageHash": transfer["messageHash"],
+        "complete": status == "complete",
+        "messageHash": transfer.get("messageHash"),
         "txHash": burn_tx_hash,
+        "forwardState": transfer.get("forwardState"),
+        "forwardTxHash": transfer.get("forwardTxHash"),
     }

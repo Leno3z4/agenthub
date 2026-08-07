@@ -23,22 +23,19 @@ export default function DashboardOverview() {
     async function load() {
       const userId = localStorage.getItem("alias_user_id");
       const apiKey = localStorage.getItem("alias_api_key");
-      
+  
       if (!userId || !apiKey) {
-
-      // Was silently doing nothing before — now it's an explicit,
-      // visible state instead of an empty dashboard that looks broken.
-      if (!arcAddress || !apiKey) {
         setNotSetUp(true);
         setLoading(false);
         return;
       }
-
+  
       try {
         const [dashboardData, agentData] = await Promise.all([
           getDashboard(userId, apiKey),
           getAgentStatus(userId, apiKey),
         ]);
+  
         setDashboard(dashboardData);
         setAgent(agentData);
       } catch (err) {
@@ -48,6 +45,7 @@ export default function DashboardOverview() {
         setLoading(false);
       }
     }
+  
     load();
   }, []);
 

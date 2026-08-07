@@ -216,27 +216,32 @@ export default function Onboarding() {
        * The backend has recognized this Google account and
        * returned the original UUID plus a fresh API key.
        */
-      if (!registration.new_user) {
-        localStorage.setItem(
-          "alias_user_id",
-          registration.user_id,
-        );
-  
-        localStorage.setItem(
-          "alias_api_key",
-          registration.api_key,
-        );
-  
-        router.push("/dashboard");
+      localStorage.setItem(
+        "alias_user_id",
+        registration.user_id,
+      );
+      
+      localStorage.setItem(
+        "alias_api_key",
+        registration.api_key,
+      );
+      
+      if (!registration.wallet_connected) {
+        setStep(1);
         return;
       }
-  
-      /*
-       * Brand-new account.
-       *
-       * Continue with normal wallet onboarding.
-       */
-      setStep(1);
+      
+      if (!registration.agent_created) {
+        setStep(3);
+        return;
+      }
+      
+      if (!registration.permissions_approved) {
+        setStep(4);
+        return;
+      }
+      
+      router.push("/dashboard");
     } catch (err) {
       console.error(err);
     } finally {

@@ -21,8 +21,10 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     async function load() {
-      const arcAddress = localStorage.getItem("alias_arc_address");
+      const userId = localStorage.getItem("alias_user_id");
       const apiKey = localStorage.getItem("alias_api_key");
+      
+      if (!userId || !apiKey) {
 
       // Was silently doing nothing before — now it's an explicit,
       // visible state instead of an empty dashboard that looks broken.
@@ -34,8 +36,8 @@ export default function DashboardOverview() {
 
       try {
         const [dashboardData, agentData] = await Promise.all([
-          getDashboard(arcAddress, apiKey),
-          getAgentStatus(arcAddress, apiKey),
+          getDashboard(userId, apiKey),
+          getAgentStatus(userId, apiKey),
         ]);
         setDashboard(dashboardData);
         setAgent(agentData);

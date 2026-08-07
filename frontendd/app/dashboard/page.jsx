@@ -7,8 +7,15 @@ import {
   Wallet,
   ShieldCheck,
   Activity,
+  Plus,
 } from "lucide-react";
+import {
+  useAccount,
+  useWalletClient,
+  usePublicClient,
+} from "wagmi";
 
+import { depositUSDC } from "@/lib/deposit";
 import StatusDot from "@/components/StatusDot";
 import { getDashboard, getAgentStatus } from "@/lib/api";
 
@@ -18,7 +25,13 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notSetUp, setNotSetUp] = useState(false);
-
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [depositError, setDepositError] = useState("");
+  const [depositSuccess, setDepositSuccess] = useState("");
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
   useEffect(() => {
     async function load() {
       const userId = localStorage.getItem("alias_user_id");
@@ -66,7 +79,64 @@ export default function DashboardOverview() {
   }
 
   const latest = agent?.latest_action;
-
+  async function handleDeposit() {
+    const userId = localStorage.getItem("alias_user_id");
+    const apiKey = localStorage.getItem("alias_api_key");
+  
+    if (!userId || !apiKey) {
+      setDepositError("Your Alias session is missing.");
+      return;
+    }
+  
+    if (!walletClient || !publicClient || !address) {
+      setDepositError("Connect your wallet first.");
+      return;
+    }
+  
+    const amount = Number(depositAmount);
+  
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setDepositError("Enter a valid USDC amount.");
+      return;
+    }
+  
+    try {
+      setDepositLoading(true);
+      setDepositError("");
+      setDepositSuccess("");
+  
+      await depositUSDC({
+        walletClient,
+        publicClient,
+        userId,
+        apiKey,
+        amount,
+      });
+  
+      setDepositAmount("");
+      setDepositSuccess(
+        "Deposit submitted successfully."
+      );
+  
+      // Refresh dashboard balance.
+      const updated = await getDashboard(
+        userId,
+        apiKey,
+      );
+  
+      setDashboard(updated);
+    } catch (err) {
+      console.error(err);
+  
+      setDepositError(
+        err instanceof Error
+          ? err.message
+          : "Deposit failed.",
+      );
+    } finally {
+      setDepositLoading(false);
+    }
+  }
   return (
     <div className="alias-overview">
       <header className="alias-overview-header">
@@ -126,7 +196,81 @@ export default function DashboardOverview() {
               <p>Open positions</p>
             </div>
           </section>
-
+          <section className="alias-card" style={{ marginTop: "24px" }}>
+            <div className="alias-card-icon">
+              <Plus size={20} />
+            </div>
+          
+            <h2 style={{ marginBottom: "8px" }}>
+              Deposit USDC
+            </h2>
+          
+            <p className="alias-overview-description">
+              Add more USDC to your HyperCore trading balance.
+            </p>
+          
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "16px",
+              }}
+            >
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={depositAmount}
+                onChange={(e) =>
+                  setDepositAmount(e.target.value)
+                }
+                placeholder="Amount"
+                disabled={depositLoading}
+                style={{
+                  flex: 1,
+                  border: "1px solid var(--line)",
+                  borderRadius: "6px",
+                  background: "transparent",
+                  padding: "10px 12px",
+                  color: "inherit",
+                }}
+              />
+          
+              <button
+                onClick={handleDeposit}
+                disabled={depositLoading || !depositAmount}
+                className="landing-primary"
+              >
+                {depositLoading
+                  ? "Depositing..."
+                  : "Deposit"}
+              </button>
+            </div>
+          
+            {depositError && (
+              <p
+                style={{
+                  color: "#ff6b6b",
+                  fontSize: "13px",
+                  marginTop: "12px",
+                }}
+              >
+                {depositError}
+              </p>
+            )}
+          
+            {depositSuccess && (
+              <p
+                style={{
+                  color: "#7ee787",
+                  fontSize: "13px",
+                  marginTop: "12px",
+                }}
+              >
+                {depositSuccess}
+              </p>
+            )}
+          </section>
           <section className="alias-next-step">
             <div>
               <span className="alias-next-label">LATEST AGENT ACTION</span>

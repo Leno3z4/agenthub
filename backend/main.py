@@ -204,20 +204,25 @@ def register_user(req: RegisterUserRequest):
             (req.google_id,),
         ).fetchone()
 
+        # Existing account.
         if existing:
+            api_key, api_key_hash = generate_api_key()
+
             conn.execute(
                 """
                 UPDATE users
                 SET
                     email = ?,
                     name = ?,
-                    picture = ?
+                    picture = ?,
+                    api_key_hash = ?
                 WHERE google_id = ?
                 """,
                 (
                     req.email,
                     req.name,
                     req.picture,
+                    api_key_hash,
                     req.google_id,
                 ),
             )
@@ -225,8 +230,10 @@ def register_user(req: RegisterUserRequest):
             return {
                 "user_id": existing["id"],
                 "new_user": False,
+                "api_key": api_key,
             }
 
+        # Brand-new account.
         user_id = str(uuid.uuid4())
 
         conn.execute(
@@ -256,6 +263,7 @@ def register_user(req: RegisterUserRequest):
         return {
             "user_id": user_id,
             "new_user": True,
+            "api_key": None,
         }
 
 @app.post("/wallet/confirm-permissions")

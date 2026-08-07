@@ -188,7 +188,6 @@ export default function Onboarding() {
     }
   }, [agentConnected]);
 
-  
   async function initializeUser() {
     if (!session?.user) {
       return;
@@ -208,46 +207,100 @@ export default function Onboarding() {
   
       const registration = await registerUser(payload);
   
-      setUserId(registration.user_id);
+      const existingUserId = registration.user_id;
+      const existingApiKey = registration.api_key;
   
-      /*
-       * Existing account.
-       *
-       * The backend has recognized this Google account and
-       * returned the original UUID plus a fresh API key.
-       */
+      setUserId(existingUserId);
+      setApiKey(existingApiKey || "");
+  
       localStorage.setItem(
         "alias_user_id",
-        registration.user_id,
+        existingUserId,
       );
-      
-      localStorage.setItem(
-        "alias_api_key",
-        registration.api_key,
-      );
-      
-      if (!registration.wallet_connected) {
-        setStep(1);
+  
+      if (existingApiKey) {
+        localStorage.setItem(
+          "alias_api_key",
+          existingApiKey,
+        );
+      }
+  
+      /*
+       * Returning user:
+       *
+       * The backend already knows their wallet/agent.
+       * Restore anything we have locally before deciding
+       * which onboarding step is actually necessary.
+       */
+      const savedAgentAddress =
+        localStorage.getItem("alias_agent_address");
+  
+      const savedWalletAddress =
+        localStorage.getItem("alias_arc_address");
+  
+      if (savedAgentAddress) {
+        setAgentAddress(savedAgentAddress);
+      }
+  
+      if (savedWalletAddress) {
+        // Keep the existing wallet address available to the app.
+        localStorage.setItem(
+          "alias_arc_address",
+          savedWalletAddress,
+        );
+      }
+  
+      /*
+       * Fully onboarded user:
+       * send them straight to the dashboard.
+       */
+      if (
+        registration.wallet_connected &&
+        registration.agent_created &&
+        registration.permissions_approved
+      ) {
+        router.replace("/dashboard");
         return;
       }
-      
-      if (!registration.agent_created) {
-        setStep(3);
-        return;
-      }
-      
-      if (!registration.permissions_approved) {
+  
+      /*
+       * Wallet exists and agent exists, but authorization
+       * still needs to be completed.
+       */
+      if (
+        registration.wallet_connected &&
+        registration.agent_created
+      ) {
         setStep(4);
         return;
       }
-      
-      router.push("/dashboard");
+  
+      /*
+       * Wallet exists but the agent has not been created yet.
+       */
+      if (registration.wallet_connected) {
+        setStep(3);
+        return;
+      }
+  
+      /*
+       * Completely new / wallet not linked.
+       */
+      setStep(1);
     } catch (err) {
       console.error(err);
+      setAgentError(
+        err instanceof Error
+          ? err.message
+          : "Failed to restore your Alias account.",
+      );
     } finally {
       setLoading(false);
     }
   }
+
+
+  
   async function setupWallet() {
     if (
       !walletClient ||

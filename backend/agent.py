@@ -82,7 +82,55 @@ def create_agent(req: CreateAgentRequest):
         ),
     }
 
+@router.get("/profile/{user_id}")
+def get_agent_profile(
+    user_id: str,
+    api_key: str,
+):
+    """
+    Restore the persistent Alias account state for a returning user.
+    Only public account identifiers and setup state are returned.
+    """
+    with get_conn() as conn:
+        user = conn.execute(
+            """
+            SELECT
+                id,
+                wallet_address,
+                agent_address,
+                permissions_confirmed,
+                api_key_hash
+            FROM users
+            WHERE id = ?
+            """,
+            (user_id,),
+        ).fetchone()
 
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
+
+    if not user["api_key_hash"] or not verify_api_key(
+        api_key,
+        user["api_key_hash"],
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+        )
+
+    return {
+        "user_id": user["id"],
+        "wallet_address": user["wallet_address"],
+        "agent_address": user["agent_address"],
+        "wallet_connected": bool(user["wallet_address"]),
+        "agent_created": bool(user["agent_address"]),
+        "permissions_approved": bool(
+            user["permissions_confirmed"]
+        ),
+    }               
 @router.post("/connect")
 def connect_agent(req: ConnectAgentRequest):
     with get_conn() as conn:

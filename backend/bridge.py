@@ -38,8 +38,6 @@ from config import (
     HYPERLIQUID_CCTP_DOMAIN,
     CCTP_FORWARDER,
     ARC_CCTP_DOMAIN,
-    ARC_USDC_ADDRESS,
-    CORE_DEPOSIT_WALLET,
     require,
 )
 
@@ -48,6 +46,12 @@ from config import (
 
 def address_to_bytes32(address: str) -> str:
     address = address.removeprefix("0x")
+
+    if len(address) != 40:
+        raise ValueError(
+            f"Invalid EVM address: {address}"
+        )
+
     return "0x" + address.rjust(64, "0")
 
 # ---------------------------------------------------------------------
@@ -124,7 +128,13 @@ def fetch_transfer(source_domain: int, burn_tx_hash: str):
 
 def fetch_max_fee(source_domain: int):
     """
-    Fetches the recommended forward fee from Circle.
+    Fetch the current CCTP fee for a HyperCore deposit.
+
+    Circle's API returns forwardFee values in USDC
+    micro-units/subunits.
+
+    Example:
+        238902 = 0.238902 USDC
     """
 
     url = (
@@ -136,36 +146,49 @@ def fetch_max_fee(source_domain: int):
         f"&hyperCoreDeposit=true"
     )
 
-    response = requests.get(url, timeout=15)
+    response = requests.get(
+        url,
+        timeout=15,
+    )
+
     response.raise_for_status()
 
     body = response.json()
 
+    print("Circle fee response:")
+    print(body)
+
     if not isinstance(body, list) or not body:
-        raise RuntimeError("Unexpected Circle fee response.")
+        raise RuntimeError(
+            "Unexpected Circle fee response."
+        )
 
     fee_info = next(
         (
             item
             for item in body
-            if item["finalityThreshold"] == 1000
+            if item.get("finalityThreshold") == 1000
         ),
         body[0],
     )
-    print("Circle fee response:")
-    print(body)
-    
+
     print("Selected fee:")
     print(fee_info)
-    print("High fee:", fee_info["forwardFee"]["high"])
-    fee = fee_info["forwardFee"]["high"]
-    
-    if isinstance(fee, str):
-        fee = int(fee)
-    else:
-        fee = int(fee)
-    
-    return fee
+
+    forward_fee = fee_info.get("forwardFee")
+
+    if not forward_fee:
+        raise RuntimeError(
+            "Circle response does not contain forwardFee."
+        )
+
+    high_fee = int(
+        forward_fee["high"]
+    )
+
+    print("High fee:", high_fee)
+
+    return high_fee
 
     
 def wait_for_completion(
@@ -217,35 +240,69 @@ FORWARDER_PREFIX = b"cctp-forward"
 PROTOCOL_VERSION = bytes([1])
 
 
+
 def create_hook_data(
-    recipient: str,
+    hypercore_recipient: str,
     destination_dex: int = 0,
-):
+) -> str:
     """
-    HyperCore Forwarder hookData
+    Circle HyperCore CctpForwarder hook format:
 
-    magic
-    version
-    data length
-    recipient
-    destination dex
+        bytes 0-23   magicBytes
+        bytes 24-27  version
+        bytes 28-31  dataLength
+        bytes 32-51  hyperCoreMintRecipient
+        bytes 52-55  destinationDex
+
+    destination_dex:
+        0          = Perps
+        0xffffffff = Spot
     """
 
-    recipient = bytes.fromhex(
-        recipient.removeprefix("0x")
+    recipient = hypercore_recipient.removeprefix("0x")
+
+    if len(recipient) != 40:
+        raise ValueError(
+            "hypercore_recipient must be a 20-byte EVM address"
+        )
+
+    if not 0 <= destination_dex <= 0xFFFFFFFF:
+        raise ValueError(
+            "destination_dex must fit uint32"
+        )
+
+    # "cctp-forward" padded to 24 bytes.
+    magic = (
+        "cctp-forward"
+        .encode("utf-8")
+        .hex()
+        .ljust(48, "0")
     )
 
-    payload = (
-        recipient +
-        destination_dex.to_bytes(4, "big")
-    )
+    # uint32(0)
+    version = "00000000"
+
+    # Recipient = 20 bytes + destinationDex = 4 bytes
+    # Total payload = 24 bytes.
+    data_length = "00000018"
+
+    recipient_hex = recipient.lower()
+
+    dex_hex = destination_dex.to_bytes(
+        4,
+        "big",
+    ).hex()
 
     return (
-        FORWARDER_PREFIX +
-        PROTOCOL_VERSION +
-        len(payload).to_bytes(4, "big") +
-        payload
-)
+        "0x"
+        + magic
+        + version
+        + data_length
+        + recipient_hex
+        + dex_hex
+    )
+
+
 
 
 # ---------------------------------------------------------------------
@@ -253,33 +310,34 @@ def create_hook_data(
 # ---------------------------------------------------------------------
 
 
-def deposit_parameters(amount: int):
+def deposit_parameters(
+    amount: int,
+    hypercore_recipient: str,
+):
     """
     Returns everything the frontend needs for
     depositForBurnWithHook().
     """
 
-    mint_recipient = address_to_bytes32(
-        require(
-            CTTP_FORWARDER,
-            "CCTP_FORWARDER",
+    if amount <= 0:
+        raise ValueError(
+            "Amount must be greater than zero."
         )
-    )
 
-    burn_token = require(
-        ARC_USDC_ADDRESS,
-        "ARC_USDC_ADDRESS",
-    )
+    if not hypercore_recipient:
+        raise ValueError(
+            "HyperCore recipient is required."
+        )
 
     forwarder = address_to_bytes32(
         require(
-            CCTP_FORWARDER,
             "CCTP_FORWARDER",
         )
     )
 
+    # Hook recipient is the user's HyperCore/EVM address.
     hook_data = create_hook_data(
-        HYPERLIQUID_VAULT_ADDRESS,
+        hypercore_recipient,
         destination_dex=0,
     )
 
@@ -287,21 +345,36 @@ def deposit_parameters(amount: int):
         ARC_CCTP_DOMAIN,
     )
 
+    # Circle requires the CctpForwarder as both:
+    # mintRecipient and destinationCaller.
+    mint_recipient = forwarder
+    destination_caller = forwarder
+
+    # USDC contract on Arc.
+    burn_token = require(
+        "ARC_USDC_ADDRESS",
+    )
+
     print("========== CCTP ==========")
     print("AMOUNT:", amount)
     print("MAX FEE:", fee)
+    print("DESTINATION DOMAIN:", HYPERLIQUID_CCTP_DOMAIN)
+    print("MINT RECIPIENT:", mint_recipient)
+    print("DESTINATION CALLER:", destination_caller)
+    print("BURN TOKEN:", burn_token)
+    print("HYPERCORE RECIPIENT:", hypercore_recipient)
+    print("HOOK DATA:", hook_data)
     print("==========================")
-
 
     return {
         "amount": amount,
         "destinationDomain": HYPERLIQUID_CCTP_DOMAIN,
         "mintRecipient": mint_recipient,
         "burnToken": burn_token,
-        "destinationCaller": forwarder,
+        "destinationCaller": destination_caller,
         "maxFee": fee,
         "minFinalityThreshold": 1000,
-        "hookData": hook_data.hex(),
+        "hookData": hook_data,
     }
     
 

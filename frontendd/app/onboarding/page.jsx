@@ -179,26 +179,53 @@ export default function Onboarding() {
     ) {
       return;
     }
-
+  
     try {
       setLoading(true);
-
+  
       const user = session.user;
-
+  
       const payload = {
         google_id: user.authId,
         email: user.email,
         name: user.name,
         picture: user.image ?? null,
       };
-
-      const registration =
-        await registerUser(payload);
-
-      setUserId(
-        registration.user_id,
-      );
-
+  
+      const registration = await registerUser(payload);
+  
+      setUserId(registration.user_id);
+  
+      /*
+       * Existing user.
+       *
+       * The backend has already found this Google account and
+       * returned the existing internal UUID.
+       *
+       * If the browser already has the API key, restore the
+       * existing session and go straight to the dashboard.
+       */
+      if (!registration.new_user) {
+        const storedApiKey =
+          localStorage.getItem("alias_api_key");
+  
+        if (storedApiKey) {
+          localStorage.setItem(
+            "alias_user_id",
+            registration.user_id,
+          );
+  
+          router.push("/dashboard");
+          return;
+        }
+  
+        /*
+         * Existing account but this browser has no API key.
+         * We need to relink the wallet so the backend can issue
+         * a fresh API key.
+         */
+      }
+  
       const data = await linkWallet({
         user_id: registration.user_id,
         google_id: user.authId,
@@ -207,31 +234,29 @@ export default function Onboarding() {
         picture: user.image,
         wallet_address: address,
       });
-
+  
       localStorage.setItem(
         "alias_user_id",
         registration.user_id,
       );
-
+  
       localStorage.setItem(
         "alias_api_key",
         data.api_key,
       );
-
+  
       localStorage.setItem(
         "alias_arc_address",
         address,
       );
-
+  
       localStorage.setItem(
         "alias_agent_address",
         data.agent_address,
       );
-
+  
       setApiKey(data.api_key);
-      setAgentAddress(
-        data.agent_address,
-      );
+      setAgentAddress(data.agent_address);
       setStep(2);
     } catch (err) {
       console.error(err);

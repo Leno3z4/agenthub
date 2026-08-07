@@ -96,9 +96,9 @@ def link_wallet(req: LinkWalletRequest):
             """
             SELECT *
             FROM users
-            WHERE google_id = ?
+            WHERE google_id = ? OR email = ?
             """,
-            (req.google_id,),
+            (req.google_id, req.email),
         ).fetchone()
 
         if existing is None:
@@ -124,20 +124,20 @@ def link_wallet(req: LinkWalletRequest):
                 """
                 UPDATE users
                 SET
-                    wallet_address = ?,
+                    google_id = ?,
                     email = ?,
                     name = ?,
                     picture = ?,
                     api_key_hash = ?
-                WHERE google_id = ?
+                WHERE id = ?
                 """,
                 (
-                    req.wallet_address,
+                    req.google_id,
                     req.email,
                     req.name,
                     req.picture,
                     api_key_hash,
-                    req.google_id,
+                    existing["id"],
                 ),
             )
 

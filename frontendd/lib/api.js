@@ -209,43 +209,6 @@ export async function getAgentStatus(
   return res.json();
 }
 
-export async function agentStatus(
-  userId,
-  apiKey,
-) {
-  const res = await fetch(
-    `${BACKEND_URL}/users/${userId}/agent/status`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error(await res.text());
-  }
-
-  return res.json();
-}
-
-export async function dashboard(
-  userId,
-) {
-  const res = await fetch(
-    `${BACKEND_URL}/users/${userId}/dashboard`,
-    {
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error(await res.text());
-  }
-
-  return res.json();
-}
 
 // ----------------------------------------------------
 // Markets

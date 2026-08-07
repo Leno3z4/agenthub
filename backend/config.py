@@ -72,6 +72,7 @@ DB_PATH = os.getenv(
 )
 
 ENCRYPTION_KEY = os.getenv(
+    ENCRYPTION_KEY,
     "ENCRYPTION_KEY"
 )
 

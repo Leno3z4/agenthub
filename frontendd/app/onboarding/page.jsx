@@ -186,7 +186,7 @@ export default function Onboarding() {
       const user = session.user;
 
       const payload = {
-        google_id: user.id,
+        google_id: user.authId,
         email: user.email,
         name: user.name,
         picture: user.image ?? null,
@@ -201,7 +201,7 @@ export default function Onboarding() {
 
       const data = await linkWallet({
         user_id: registration.user_id,
-        google_id: user.id,
+        google_id: user.authId,
         email: user.email,
         name: user.name,
         picture: user.image,

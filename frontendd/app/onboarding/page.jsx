@@ -21,6 +21,7 @@ import {
   confirmPermissions,
   createAgent,
   getAgentStatus,
+  getAgentProfile,
 } from "../../lib/api";
 
 import {
@@ -206,7 +207,70 @@ export default function Onboarding() {
       };
   
       const registration = await registerUser(payload);
-  
+      const existingUserId = registration.user_id;
+      const existingApiKey = registration.api_key;
+      
+      setUserId(existingUserId);
+      setApiKey(existingApiKey || "");
+      
+      localStorage.setItem(
+        "alias_user_id",
+        existingUserId,
+      );
+      
+      if (existingApiKey) {
+        localStorage.setItem(
+          "alias_api_key",
+          existingApiKey,
+        );
+      }
+      
+      if (existingApiKey) {
+        const profile = await getAgentProfile(
+          existingUserId,
+          existingApiKey,
+        );
+      
+        if (profile.agent_address) {
+          setAgentAddress(profile.agent_address);
+      
+          localStorage.setItem(
+            "alias_agent_address",
+            profile.agent_address,
+          );
+        }
+      
+        if (profile.wallet_address) {
+          localStorage.setItem(
+            "alias_arc_address",
+            profile.wallet_address,
+          );
+        }
+      
+        if (
+          profile.wallet_connected &&
+          profile.agent_created &&
+          profile.permissions_approved
+        ) {
+          router.replace("/dashboard");
+          return;
+        }
+      
+        if (
+          profile.wallet_connected &&
+          profile.agent_created
+        ) {
+          setStep(4);
+          return;
+        }
+      
+        if (profile.wallet_connected) {
+          setStep(3);
+          return;
+        }
+      }
+      
+      setStep(1);
       const existingUserId = registration.user_id;
       const existingApiKey = registration.api_key;
   
@@ -232,11 +296,7 @@ export default function Onboarding() {
        * Restore anything we have locally before deciding
        * which onboarding step is actually necessary.
        */
-      const savedAgentAddress =
-        localStorage.getItem("alias_agent_address");
-  
-      const savedWalletAddress =
-        localStorage.getItem("alias_arc_address");
+      
   
       if (savedAgentAddress) {
         setAgentAddress(savedAgentAddress);

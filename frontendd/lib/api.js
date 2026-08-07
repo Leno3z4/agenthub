@@ -210,6 +210,24 @@ export async function getAgentStatus(
 }
 
 
+export async function getAgentProfile(
+  userId,
+  apiKey,
+) {
+  const res = await fetch(
+    `${BACKEND_URL}/agent/profile/${userId}?api_key=${encodeURIComponent(apiKey)}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
 // ----------------------------------------------------
 // Markets
 // ----------------------------------------------------

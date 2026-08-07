@@ -94,6 +94,7 @@ export async function confirmPermissions(
 
 export async function depositParams(
   amount,
+  hypercoreRecipient,
 ) {
   const res = await fetch(
     `${BACKEND_URL}/bridge/deposit-params`,
@@ -103,7 +104,8 @@ export async function depositParams(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount_usdc_units: amount,
+        amount,
+        hypercore_recipient: hypercoreRecipient,
       }),
     }
   );

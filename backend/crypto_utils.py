@@ -3,7 +3,7 @@ from config import ENCRYPTION_KEY, require
 
 
 def _fernet() -> Fernet:
-    key = require(ENCRYPTION_KEY, "ENCRYPTION_KEY")
+    key = require("ENCRYPTION_KEY")
     return Fernet(key.encode())
 
 

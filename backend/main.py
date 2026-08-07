@@ -199,6 +199,7 @@ def register_user(req: RegisterUserRequest):
             """
             SELECT
                 id,
+                google_id,
                 wallet_address,
                 agent_address,
                 permissions_confirmed
@@ -216,21 +217,22 @@ def register_user(req: RegisterUserRequest):
                 """
                 UPDATE users
                 SET
+                    google_id = ?,
                     email = ?,
                     name = ?,
                     picture = ?,
                     api_key_hash = ?
-                WHERE google_id = ?
+                WHERE id = ?
                 """,
                 (
+                    req.google_id,
                     req.email,
                     req.name,
                     req.picture,
                     api_key_hash,
-                    req.google_id,
+                    existing["id"],
                 ),
             )
-
             return {
                 "user_id": existing["id"],
                 "new_user": False,

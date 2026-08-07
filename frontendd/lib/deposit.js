@@ -55,7 +55,7 @@ export async function depositUSDC({
 
   const burnHash =
     await messenger.write.depositForBurnWithHook([
-      BigInt(params.amount),
+      totalAmount,
       params.destinationDomain,
       params.mintRecipient,
       process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS,

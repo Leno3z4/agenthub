@@ -323,18 +323,36 @@ def _require_agent_auth(
             detail="invalid Authorization header",
         )
 
-    api_key = authorization.removeprefix("Bearer ").strip()
+    credential = authorization.removeprefix("Bearer ").strip()
 
-    if not verify_api_key(
-        api_key,
+    # Browser/user authentication: existing API key.
+    if user["api_key_hash"] and verify_api_key(
+        credential,
         user["api_key_hash"],
     ):
+        return user
+
+    # Agent authentication: connection token issued by /agent/create.
+    with get_conn() as conn:
+        connection = conn.execute(
+            """
+            SELECT id
+            FROM agent_connections
+            WHERE user_id = ?
+              AND token = ?
+              AND connected = 1
+            """,
+            (user_id, credential),
+        ).fetchone()
+
+    if connection is None:
         raise HTTPException(
             status_code=401,
-            detail="invalid API key",
+            detail="invalid API key or agent token",
         )
 
     return user
+
 
 
 def _mark_agent_active(
@@ -381,21 +399,22 @@ def agent_status(
 
     if user["last_seen"]:
         with get_conn() as conn:
-            row = conn.execute(
+            connection = conn.execute(
                 """
-                SELECT
-                    (julianday('now') - julianday(?))
-                    * 24
-                    * 60
-                    AS minutes_ago
+                SELECT connected, connected_at
+                FROM agent_connections
+                WHERE user_id = ?
+                ORDER BY id DESC
+                LIMIT 1
                 """,
-                (user["last_seen"],),
+                (user["id"],),
             ).fetchone()
-
-        connected = (
-            row["minutes_ago"] is not None
-            and row["minutes_ago"] < 10
+    
+        connected = bool(
+            connection
+            and connection["connected"]
         )
+
 
     return {
         "wallet_connected": True,

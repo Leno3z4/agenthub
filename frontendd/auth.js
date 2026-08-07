@@ -27,51 +27,35 @@ export const {
 
   callbacks: {
    async jwt({ token, account, profile }) {
-      if (account?.provider === "google") {
-       
-        console.log("BACKEND:", process.env.NEXT_PUBLIC_BACKEND_URL);
-        console.log("PROFILE:", profile);
-        
+      if (account?.provider === "google" || account?.provider === "twitter") {
         const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
-        
-        console.log("REGISTER URL:", url);
-        
+    
         const res = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              google_id: profile.sub,
-              email: profile.email,
-              name: profile.name,
-              picture: profile.picture,
-            }),
-          }
-        );
-
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            google_id: profile.sub,
+            email: profile.email,
+            name: profile.name,
+            picture: profile.picture,
+          }),
+        });
+    
         if (!res.ok) {
           const text = await res.text();
           console.error("Backend register failed:", res.status, text);
           throw new Error(text);
         }
-
-        console.log("STATUS:", res.status);
-        
-        const body = await res.text();
-        
-        console.log("BODY:", body);
-        
-        if (!res.ok) {
-          throw new Error(body);
-        }
-        
-        const data = JSON.parse(body);
-
+    
+        const data = await res.json();
+    
+        // IMPORTANT:
+        // This is the backend UUID.
+        // Never replace it with profile.sub.
         token.userId = data.user_id;
-        token.userId = profile.sub;
       }
-
     
       return token;
     },

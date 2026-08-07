@@ -8,7 +8,9 @@ print("CWD:", os.getcwd())
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "https://rpc.testnet.arc.io")
 ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", "5042002"))
 ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "0x3600000000000000000000000000000000000000")
-
+HYPERLIQUID_VAULT_ADDRESS = require(
+    "HYPERLIQUID_VAULT_ADDRESS"
+)
 # ---------- Circle CCTP ----------
 
 CCTP_TOKEN_MESSENGER_ARC = os.getenv(

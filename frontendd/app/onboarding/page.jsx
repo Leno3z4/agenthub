@@ -271,23 +271,7 @@ export default function Onboarding() {
       }
       
       setStep(1);
-      const existingUserId = registration.user_id;
-      const existingApiKey = registration.api_key;
-  
-      setUserId(existingUserId);
-      setApiKey(existingApiKey || "");
-  
-      localStorage.setItem(
-        "alias_user_id",
-        existingUserId,
-      );
-  
-      if (existingApiKey) {
-        localStorage.setItem(
-          "alias_api_key",
-          existingApiKey,
-        );
-      }
+     
   
       /*
        * Returning user:

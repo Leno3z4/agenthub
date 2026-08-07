@@ -188,7 +188,9 @@ def fetch_max_fee(source_domain: int):
 
     print("High fee:", high_fee)
 
-    return high_fee
+    return int(
+        fee_info["forwardFee"]["high"]
+    )
 
     
 def wait_for_completion(

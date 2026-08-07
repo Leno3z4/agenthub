@@ -331,23 +331,3 @@ export async function getDashboard(
   return res.json();
 }
 
-export async function getAgentStatus(
-  userId,
-  apiKey,
-) {
-  const res = await fetch(
-    `${BACKEND_URL}/users/${userId}/agent/status`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      cache: "no-store",
-    },
-  );
-
-  if (!res.ok) {
-    throw new Error(await res.text());
-  }
-
-  return res.json();
-}

@@ -104,7 +104,28 @@ export default function Onboarding() {
     session,
     initialized,
   ]);
-
+  useEffect(() => {
+    if (
+      !userId ||
+      !walletClient ||
+      !address ||
+      !session?.user
+    ) {
+      return;
+    }
+  
+    if (step !== 1) {
+      return;
+    }
+  
+    setupWallet();
+  }, [
+    userId,
+    walletClient,
+    address,
+    session,
+    step,
+  ]);
   useEffect(() => {
     if (
       step !== 3 ||
@@ -226,7 +247,8 @@ export default function Onboarding() {
     if (
       !walletClient ||
       !address ||
-      !session?.user
+      !session?.user ||
+      !userId
     ) {
       return;
     }
@@ -236,59 +258,18 @@ export default function Onboarding() {
   
       const user = session.user;
   
-      const payload = {
+      const data = await linkWallet({
+        user_id: userId,
         google_id: user.authId,
         email: user.email,
         name: user.name,
         picture: user.image ?? null,
-      };
-  
-      const registration = await registerUser(payload);
-  
-      setUserId(registration.user_id);
-  
-      /*
-       * Existing user.
-       *
-       * The backend has already found this Google account and
-       * returned the existing internal UUID.
-       *
-       * If the browser already has the API key, restore the
-       * existing session and go straight to the dashboard.
-       */
-      if (!registration.new_user) {
-        const storedApiKey =
-          localStorage.getItem("alias_api_key");
-  
-        if (storedApiKey) {
-          localStorage.setItem(
-            "alias_user_id",
-            registration.user_id,
-          );
-  
-          router.push("/dashboard");
-          return;
-        }
-  
-        /*
-         * Existing account but this browser has no API key.
-         * We need to relink the wallet so the backend can issue
-         * a fresh API key.
-         */
-      }
-  
-      const data = await linkWallet({
-        user_id: registration.user_id,
-        google_id: user.authId,
-        email: user.email,
-        name: user.name,
-        picture: user.image,
         wallet_address: address,
       });
   
       localStorage.setItem(
         "alias_user_id",
-        registration.user_id,
+        userId,
       );
   
       localStorage.setItem(

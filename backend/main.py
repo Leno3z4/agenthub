@@ -436,7 +436,7 @@ def bridge_deposit_params(
     depositForBurn() from the user's wallet.
     """
 
-   return deposit_parameters(
+    return deposit_parameters(
         req.amount,
         req.hypercore_recipient,
     )

@@ -28,16 +28,45 @@ def get_exchange_for_agent(agent_private_key: str) -> Exchange:
 
 
 def get_account_state(user_address: str) -> dict:
-    """Reads the MASTER account's state — same address on Arc and
-    Hyperliquid since both are EVM (secp256k1) chains."""
+    """Read the user's HyperCore/Hyperliquid account state."""
+
+    if not user_address:
+        raise ValueError("Hyperliquid account address is missing.")
+
+    user_address = user_address.strip()
+
+    if (
+        not user_address.startswith("0x")
+        or len(user_address) != 42
+    ):
+        raise ValueError(
+            f"Invalid Hyperliquid account address: {user_address!r}"
+        )
+
+    try:
+        int(user_address[2:], 16)
+    except ValueError:
+        raise ValueError(
+            f"Invalid Hyperliquid account address: {user_address!r}"
+        )
+
+    print("========== HYPERLIQUID ACCOUNT ==========")
+    print("USER ADDRESS:", user_address)
+    print("ADDRESS LENGTH:", len(user_address))
+    print("==========================================")
+
     info = Info(HL_API_URL, skip_ws=True)
+
     state = info.user_state(user_address)
+
     return {
         "account_value": state["marginSummary"]["accountValue"],
         "margin_used": state["marginSummary"]["totalMarginUsed"],
-        "positions": [p["position"] for p in state["assetPositions"]],
+        "positions": [
+            p["position"]
+            for p in state["assetPositions"]
+        ],
     }
-
 
 def get_markets() -> list[dict]:
     """Full universe of tradable perp markets, live from Hyperliquid.

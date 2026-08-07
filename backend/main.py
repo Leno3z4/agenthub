@@ -96,7 +96,7 @@ def link_wallet(req: LinkWalletRequest):
             """
             SELECT *
             FROM users
-            WHERE google_id = ? OR email = ?
+            WHERE google_id = %s OR email = %s
             """,
             (req.google_id, req.email),
         ).fetchone()
@@ -129,7 +129,7 @@ def link_wallet(req: LinkWalletRequest):
                     name = ?,
                     picture = ?,
                     api_key_hash = ?
-                WHERE id = ?
+                WHERE user_id = %s
                 """,
                 (
                     req.google_id,
@@ -160,7 +160,7 @@ def link_wallet(req: LinkWalletRequest):
                 agent_address = ?,
                 agent_key_encrypted = ?,
                 api_key_hash = ?
-            WHERE id = ?
+            WHERE user_id = %s
             """,
             (
                 req.wallet_address,
@@ -204,7 +204,7 @@ def register_user(req: RegisterUserRequest):
                 agent_address,
                 permissions_confirmed
             FROM users
-            WHERE google_id = ? OR email = ?
+            WHERE google_id = %s OR email = %s
             """,
             (req.google_id, req.email),
         ).fetchone()
@@ -222,7 +222,7 @@ def register_user(req: RegisterUserRequest):
                     name = ?,
                     picture = ?,
                     api_key_hash = ?
-                WHERE id = ?
+                WHERE user_id = %s
                 """,
                 (
                     req.google_id,

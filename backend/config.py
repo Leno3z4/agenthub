@@ -8,33 +8,45 @@ print("CWD:", os.getcwd())
 ARC_RPC_URL = os.getenv("ARC_RPC_URL", "https://rpc.testnet.arc.io")
 ARC_CHAIN_ID = int(os.getenv("ARC_CHAIN_ID", "5042002"))
 ARC_USDC_ADDRESS = os.getenv("ARC_USDC_ADDRESS", "0x3600000000000000000000000000000000000000")
-HYPERLIQUID_VAULT_ADDRESS = require(
-    "HYPERLIQUID_VAULT_ADDRESS"
-)
-# ---------- Circle CCTP ----------
+
+def require(name: str) -> str:
+    value = os.getenv(name)
+
+    if not value:
+        raise RuntimeError(
+            f"Missing required environment variable: {name}"
+        )
+
+    return value
+
+
+# ---------------------------------------------------------------------
+# Circle CCTP
+# ---------------------------------------------------------------------
+
+CCTP_IRIS_API = require("CCTP_IRIS_API")
+
 
 CCTP_TOKEN_MESSENGER_ARC = os.getenv(
     "CCTP_TOKEN_MESSENGER_ARC",
     "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA",
 )
 
-CCTP_IRIS_API = os.getenv(
-    "CCTP_IRIS_API",
-    "https://iris-api-sandbox.circle.com",
+# Source chain/domain: Arc
+ARC_CCTP_DOMAIN = int(
+    require("ARC_CCTP_DOMAIN")
 )
 
+# Destination: HyperEVM
 HYPERLIQUID_CCTP_DOMAIN = int(
-    os.getenv(
-        "HYPERLIQUID_CCTP_DOMAIN",
-        "19",
-    )
+    require("HYPERLIQUID_CCTP_DOMAIN")
 )
-ARC_CCTP_DOMAIN = int(
-        os.getenv(
-            "ARC_CCTP_DOMAIN",
-            "26",   # confirmed Arc testnet CCTP domain
-        )
+
+# CctpForwarder on HyperEVM.
+CCTP_FORWARDER = require(
+    "CCTP_FORWARDER"
 )
+
 # ---------- HyperCore ----------
 
 CCTP_FORWARDER = os.getenv(
@@ -65,12 +77,7 @@ ENCRYPTION_KEY = os.getenv(
 )
 
 
-def require(value, name):
-    if value in ("", None, 0):
-        raise RuntimeError(
-            f"{name} is not configured."
-        )
-    return value
+
 
 
 # ---------- Validate required configuration ----------

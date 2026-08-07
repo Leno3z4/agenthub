@@ -47,17 +47,14 @@ CCTP_TOKEN_MESSENGER_ARC = os.getenv(
     "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA",
 )
 
-# Source chain/domain: Arc
 ARC_CCTP_DOMAIN = int(
     require("ARC_CCTP_DOMAIN")
 )
 
-# Destination chain/domain: HyperEVM
 HYPERLIQUID_CCTP_DOMAIN = int(
     require("HYPERLIQUID_CCTP_DOMAIN")
 )
 
-# CCTP Forwarder on HyperEVM
 CCTP_FORWARDER = os.getenv(
     "CCTP_FORWARDER",
     "0x02e39ECb8368b41bF68FF99ff351aC9864e5E2a2",
@@ -89,29 +86,3 @@ DB_PATH = os.getenv(
 )
 
 ENCRYPTION_KEY = require("ENCRYPTION_KEY")
-
-
-
-
-
-# ---------- Validate required configuration ----------
-
-CCTP_TOKEN_MESSENGER_ARC = require(
-    CCTP_TOKEN_MESSENGER_ARC,
-    "CCTP_TOKEN_MESSENGER_ARC",
-)
-
-CCTP_FORWARDER = require(
-    CCTP_FORWARDER,
-    "CCTP_FORWARDER",
-)
-
-CORE_DEPOSIT_WALLET = require(
-    CORE_DEPOSIT_WALLET,
-    "CORE_DEPOSIT_WALLET",
-)
-
-ENCRYPTION_KEY = require(
-    ENCRYPTION_KEY,
-    "ENCRYPTION_KEY",
-)

@@ -92,14 +92,18 @@ class LinkWalletResponse(BaseModel):
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(req: LinkWalletRequest):
     with get_conn() as conn:
-        existing = conn.execute(
+        cursor = conn.cursor()
+
+        cursor.execute(
             """
-            SELECT *
+            SELECT id
             FROM users
             WHERE google_id = %s OR email = %s
             """,
-            (req.google_id, req.email),
-        ).fetchone()
+            (google_id, email),
+        )
+        
+        existing = cursor.fetchone()
 
         if existing is None:
             raise HTTPException(
@@ -247,21 +251,23 @@ def register_user(req: RegisterUserRequest):
         # Brand-new account.
         user_id = str(uuid.uuid4())
 
-        conn.execute(
+        cursor.execute(
             """
             INSERT INTO users (
-                id,
                 google_id,
                 email,
                 name,
                 picture,
+                x_id,
                 wallet_address,
                 agent_address,
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)
+            VALUES (%s, %s, %s, %s, %s, NULL, NULL, NULL, NULL)
             """,
+            (google_id, email, name, picture, x_id),
+        )
             (
                 user_id,
                 req.google_id,

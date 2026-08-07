@@ -163,6 +163,51 @@ export async function bridgeStatus(burnTxHash) {
 // ----------------------------------------------------
 // Agent
 // ----------------------------------------------------
+export async function createAgent(
+  userId,
+  apiKey,
+) {
+  const res = await fetch(
+    `${BACKEND_URL}/agent/create`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        api_key: apiKey,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function getAgentStatus(
+  userId,
+  apiKey,
+) {
+  const res = await fetch(
+    `${BACKEND_URL}/users/${userId}/agent/status`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
 
 export async function agentStatus(
   userId,

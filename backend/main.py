@@ -195,11 +195,10 @@ class RegisterUserRequest(BaseModel):
 @app.post("/users/register")
 def register_user(req: RegisterUserRequest):
     with get_conn() as conn:
-        existing = conn.execute(
+        conn.execute(
             """
             SELECT
                 id,
-                google_id,
                 wallet_address,
                 agent_address,
                 permissions_confirmed
@@ -207,7 +206,8 @@ def register_user(req: RegisterUserRequest):
             WHERE google_id = %s OR email = %s
             """,
             (req.google_id, req.email),
-        ).fetchone()
+        )
+        existing = conn.fetchone()
 
         # Existing account.
         if existing:

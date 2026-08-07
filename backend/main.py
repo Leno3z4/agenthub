@@ -197,7 +197,11 @@ def register_user(req: RegisterUserRequest):
     with get_conn() as conn:
         existing = conn.execute(
             """
-            SELECT id
+            SELECT
+                id,
+                wallet_address,
+                agent_address,
+                permissions_confirmed
             FROM users
             WHERE google_id = ?
             """,
@@ -231,6 +235,11 @@ def register_user(req: RegisterUserRequest):
                 "user_id": existing["id"],
                 "new_user": False,
                 "api_key": api_key,
+                "wallet_connected": bool(existing["wallet_address"]),
+                "agent_created": bool(existing["agent_address"]),
+                "permissions_approved": bool(
+                    existing["permissions_confirmed"]
+                ),
             }
 
         # Brand-new account.

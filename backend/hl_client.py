@@ -56,8 +56,15 @@ def get_account_state(user_address: str) -> dict:
     print("==========================================")
 
     info = Info(HL_API_URL, skip_ws=True)
-
-    state = info.user_state(user_address)
+    
+    state = info.post(
+        "/info",
+        {
+            "type": "clearinghouseState",
+            "user": user_address,
+            "dex": "",
+        },
+    )
 
     return {
         "account_value": state["marginSummary"]["accountValue"],

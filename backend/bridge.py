@@ -218,23 +218,34 @@ PROTOCOL_VERSION = bytes([1])
 
 
 def create_hook_data(
+    recipient: str,
     destination_dex: int = 0,
 ):
     """
-    Builds the hookData consumed by Hyperliquid's
-    CctpForwarder.
+    HyperCore Forwarder hookData
 
-    destination_dex
-
-    0              -> Perps
-
-    0xffffffff     -> Spot
+    magic
+    version
+    data length
+    recipient
+    destination dex
     """
-    return (
-        FORWARDER_PREFIX
-        + PROTOCOL_VERSION
-        + destination_dex.to_bytes(4, "big")
+
+    recipient = bytes.fromhex(
+        recipient.removeprefix("0x")
     )
+
+    payload = (
+        recipient +
+        destination_dex.to_bytes(4, "big")
+    )
+
+    return (
+        FORWARDER_PREFIX +
+        PROTOCOL_VERSION +
+        len(payload).to_bytes(4, "big") +
+        payload
+)
 
 
 # ---------------------------------------------------------------------

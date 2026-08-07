@@ -90,22 +90,18 @@ export default function Onboarding() {
   useEffect(() => {
     if (
       status !== "authenticated" ||
-      !isConnected ||
-      !walletClient ||
-      !address ||
+      !session?.user ||
       initialized
     ) {
       return;
     }
-
+  
     setInitialized(true);
-    setStep(1);
-    setupWallet();
+  
+    initializeUser();
   }, [
     status,
-    isConnected,
-    walletClient,
-    address,
+    session,
     initialized,
   ]);
 
@@ -171,6 +167,61 @@ export default function Onboarding() {
     }
   }, [agentConnected]);
 
+  
+  async function initializeUser() {
+    if (!session?.user) {
+      return;
+    }
+  
+    try {
+      setLoading(true);
+  
+      const user = session.user;
+  
+      const payload = {
+        google_id: user.authId,
+        email: user.email,
+        name: user.name,
+        picture: user.image ?? null,
+      };
+  
+      const registration = await registerUser(payload);
+  
+      setUserId(registration.user_id);
+  
+      /*
+       * Existing account.
+       *
+       * The backend has recognized this Google account and
+       * returned the original UUID plus a fresh API key.
+       */
+      if (!registration.new_user) {
+        localStorage.setItem(
+          "alias_user_id",
+          registration.user_id,
+        );
+  
+        localStorage.setItem(
+          "alias_api_key",
+          registration.api_key,
+        );
+  
+        router.push("/dashboard");
+        return;
+      }
+  
+      /*
+       * Brand-new account.
+       *
+       * Continue with normal wallet onboarding.
+       */
+      setStep(1);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
   async function setupWallet() {
     if (
       !walletClient ||

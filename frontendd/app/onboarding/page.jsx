@@ -9,7 +9,6 @@ import {
 import { Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
-
 import {
   useAccount,
   useWalletClient,
@@ -20,6 +19,8 @@ import {
   registerUser,
   linkWallet,
   confirmPermissions,
+  createAgent,
+  getAgentStatus,
 } from "../../lib/api";
 
 import {
@@ -45,7 +46,7 @@ const STEPS = [
   },
   {
     title: "Connect your agent",
-    desc: "Paste your agent link",
+    desc: "Give your agent the Alias setup prompt",
   },
   {
     title: "Authorize",
@@ -55,17 +56,23 @@ const STEPS = [
 
 export default function Onboarding() {
   const router = useRouter();
+
   const {
     data: session,
     status,
   } = useSession();
+
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
-  const [agentLink, setAgentLink] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [agentAddress, setAgentAddress] = useState("");
   const [userId, setUserId] = useState("");
+
+  const [agentPrompt, setAgentPrompt] = useState("");
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [agentError, setAgentError] = useState("");
 
   const {
     address,
@@ -76,8 +83,7 @@ export default function Onboarding() {
     data: walletClient,
   } = useWalletClient();
 
-  const publicClient =
-    usePublicClient();
+  const publicClient = usePublicClient();
 
   const [initialized, setInitialized] = useState(false);
 
@@ -91,7 +97,7 @@ export default function Onboarding() {
     ) {
       return;
     }
-  
+
     setInitialized(true);
     setStep(1);
     setupWallet();
@@ -102,65 +108,109 @@ export default function Onboarding() {
     address,
     initialized,
   ]);
-  
+
+  useEffect(() => {
+    if (
+      step !== 3 ||
+      !userId ||
+      !apiKey ||
+      agentPrompt
+    ) {
+      return;
+    }
+
+    prepareAgentConnection();
+  }, [
+    step,
+    userId,
+    apiKey,
+    agentPrompt,
+  ]);
+
+  useEffect(() => {
+    if (
+      step !== 3 ||
+      !userId ||
+      !apiKey
+    ) {
+      return;
+    }
+
+    const check = async () => {
+      try {
+        const data = await getAgentStatus(
+          userId,
+          apiKey,
+        );
+
+        if (data.agent_connected) {
+          setAgentConnected(true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    check();
+
+    const interval = setInterval(
+      check,
+      3000,
+    );
+
+    return () => clearInterval(interval);
+  }, [
+    step,
+    userId,
+    apiKey,
+  ]);
+
+  useEffect(() => {
+    if (agentConnected) {
+      setStep(4);
+    }
+  }, [agentConnected]);
+
   async function setupWallet() {
     if (
       !walletClient ||
-      !address
+      !address ||
+      !session?.user
     ) {
       return;
     }
 
     try {
       setLoading(true);
+
       const user = session.user;
-      
-      console.log("Google user:", user);
-      
+
       const payload = {
         google_id: user.id,
         email: user.email,
         name: user.name,
         picture: user.image ?? null,
       };
-      
-      console.log("Register payload:", payload);
-      
-      const registration = await registerUser(payload);
-      
-      console.log("Registration response:", registration);
-      console.log("REGISTERING USER", user);
-      console.log("REGISTER RESPONSE", registration);
-      
-      
-      setUserId(registration.user_id);
+
+      const registration =
+        await registerUser(payload);
+
+      setUserId(
+        registration.user_id,
+      );
+
       const data = await linkWallet({
-          user_id: registration.user_id,
-          google_id: user.id,
-          email: user.email,
-          name: user.name,
-          picture: user.image,
-          wallet_address: address,
+        user_id: registration.user_id,
+        google_id: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.image,
+        wallet_address: address,
       });
-      localStorage.setItem(
-          "alias_user_id",
-           registration.user_id,
-      );
-      setApiKey(data.api_key);
 
-      setAgentAddress(
-        data.agent_address,
-      );
-
-      
-      
-      
-      
-      
-      
       localStorage.setItem(
-        "alias_arc_address",
-        address,
+        "alias_user_id",
+        registration.user_id,
       );
 
       localStorage.setItem(
@@ -169,10 +219,19 @@ export default function Onboarding() {
       );
 
       localStorage.setItem(
+        "alias_arc_address",
+        address,
+      );
+
+      localStorage.setItem(
         "alias_agent_address",
         data.agent_address,
       );
 
+      setApiKey(data.api_key);
+      setAgentAddress(
+        data.agent_address,
+      );
       setStep(2);
     } catch (err) {
       console.error(err);
@@ -208,30 +267,106 @@ export default function Onboarding() {
       setLoading(false);
     }
   }
-  async function authorizeAgent() {
-      if (!walletClient) return;
-  
-      try {
-          setLoading(true);
-  
-          await approveAgent({
-              walletClient,
-              agentAddress,
-          });
-  
-          await confirmPermissions(
-              userId,
-              apiKey,
-          );
-  
-          router.push("/dashboard");
-  
-      } catch (err) {
-          console.error(err);
-      } finally {
-          setLoading(false);
-      }
+
+  async function prepareAgentConnection() {
+    try {
+      setLoading(true);
+      setAgentError("");
+
+      const data = await createAgent(
+        userId,
+        apiKey,
+      );
+
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://agenthub-g0m8.onrender.com";
+
+      setAgentPrompt(
+        data.prompt.replaceAll(
+          "{base_url}",
+          backendUrl,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      setAgentError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create agent connection.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
+
+  async function copyPrompt() {
+    await navigator.clipboard.writeText(
+      agentPrompt,
+    );
+
+    setCopied(true);
+
+    setTimeout(
+      () => setCopied(false),
+      1500,
+    );
+  }
+
+  async function checkAgentConnection() {
+    try {
+      setLoading(true);
+      setAgentError("");
+
+      const data = await getAgentStatus(
+        userId,
+        apiKey,
+      );
+
+      if (!data.agent_connected) {
+        setAgentError(
+          "Agent has not connected yet.",
+        );
+        return;
+      }
+
+      setAgentConnected(true);
+    } catch (err) {
+      console.error(err);
+      setAgentError(
+        err instanceof Error
+          ? err.message
+          : "Could not check agent connection.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function authorizeAgent() {
+    if (!walletClient) return;
+
+    try {
+      setLoading(true);
+
+      await approveAgent({
+        walletClient,
+        agentAddress,
+      });
+
+      await confirmPermissions(
+        userId,
+        apiKey,
+      );
+
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function handleGoogleLogin() {
     signIn("google", {
       callbackUrl: "/onboarding",
@@ -311,65 +446,98 @@ export default function Onboarding() {
         </div>
       ) : step === 1 ? (
         <div className="flex flex-col items-center gap-4">
-          
           <ConnectButton />
         </div>
       ) : step === 2 ? (
-      
-      <div className="space-y-4">
-      
+        <div className="space-y-4">
           <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={amount}
-              onChange={(e)=>setAmount(e.target.value)}
-              placeholder="Amount (USDC)"
-              className="w-full border border-line rounded bg-transparent px-3 py-2"
+            type="number"
+            min="0"
+            step="0.01"
+            value={amount}
+            onChange={(e) =>
+              setAmount(e.target.value)
+            }
+            placeholder="Amount (USDC)"
+            className="w-full border border-line rounded bg-transparent px-3 py-2"
           />
-      
+
           <button
-              onClick={fundWallet}
-              disabled={loading || !amount}
-              className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+            onClick={fundWallet}
+            disabled={
+              loading ||
+              !amount
+            }
+            className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
           >
-              {loading ? "Depositing..." : "Deposit"}
+            {loading
+              ? "Depositing..."
+              : "Deposit"}
           </button>
-      
-      </div>
+        </div>
       ) : step === 3 ? (
-      
-      <div className="space-y-4">
-      
-          <input
-              value={agentLink}
-              onChange={(e)=>setAgentLink(e.target.value)}
-              placeholder="Paste Agent URL"
-              className="w-full border border-line rounded bg-transparent px-3 py-2"
+        <div className="space-y-4">
+          <div className="text-sm text-dim">
+            Copy this prompt and paste it
+            into the agent you want to connect
+            to Alias.
+          </div>
+
+          <textarea
+            readOnly
+            value={
+              loading
+                ? "Generating setup prompt..."
+                : agentPrompt
+            }
+            className="w-full min-h-64 border border-line rounded bg-transparent px-3 py-2 font-mono text-xs"
           />
-      
+
           <button
-              onClick={() => {
-                  // we'll implement this next
-                  setStep(4);
-              }}
-              className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+            onClick={copyPrompt}
+            disabled={
+              loading ||
+              !agentPrompt
+            }
+            className="w-full border border-line text-white py-2.5 rounded"
           >
-              Connect Agent
+            {copied
+              ? "Copied"
+              : "Copy Setup Prompt"}
           </button>
-      
-      </div>
-      
+
+          <button
+            onClick={checkAgentConnection}
+            disabled={loading}
+            className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+          >
+            {loading
+              ? "Checking..."
+              : "I've Connected My Agent"}
+          </button>
+
+          {agentError && (
+            <div className="text-xs text-red-400 font-mono">
+              {agentError}
+            </div>
+          )}
+
+          <div className="text-xs text-dim text-center">
+            {agentConnected
+              ? "Agent connected."
+              : "Waiting for your agent to connect..."}
+          </div>
+        </div>
       ) : (
-      
-      <button
+        <button
           onClick={authorizeAgent}
           disabled={loading}
           className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
-      >
-          {loading ? "Authorizing..." : "Approve Trading"}
-      </button>
-      
+        >
+          {loading
+            ? "Authorizing..."
+            : "Approve Trading"}
+        </button>
       )}
 
       <p className="text-dim text-xs text-center mt-4 font-mono">

@@ -278,7 +278,10 @@ def deposit_parameters(amount: int):
         )
     )
 
-    hook_data = create_hook_data()
+    hook_data = create_hook_data(
+        HYPERLIQUID_VAULT_ADDRESS,
+        destination_dex=0,
+    )
 
     fee = fetch_max_fee(
         ARC_CCTP_DOMAIN,

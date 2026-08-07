@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
+import secrets
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import secrets
-import sqlite3
-from datetime import datetime, timezone
+
+from auth import verify_api_key
+from db import get_conn
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -12,58 +15,172 @@ class CreateAgentRequest(BaseModel):
     api_key: str
 
 
+class ConnectAgentRequest(BaseModel):
+    connection_token: str
+    agent_name: str | None = None
+    provider: str | None = None
+
+
+class HeartbeatRequest(BaseModel):
+    agent_token: str
+
+
+class DisconnectRequest(BaseModel):
+    agent_token: str
+
+
 @router.post("/create")
 def create_agent(req: CreateAgentRequest):
-    token = "alias_live_" + secrets.token_urlsafe(32)
+    with get_conn() as conn:
+        user = conn.execute(
+            "SELECT id, api_key_hash FROM users WHERE id = ?",
+            (req.user_id,),
+        ).fetchone()
 
-    conn = sqlite3.connect("alias.db")
-    cur = conn.cursor()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    cur.execute(
-        """
-        INSERT INTO agent_connections
-        (
-            user_id,
-            token,
-            connected,
-            created_at
+        if not user["api_key_hash"] or not verify_api_key(
+            req.api_key,
+            user["api_key_hash"],
+        ):
+            raise HTTPException(status_code=401, detail="Invalid API key")
+
+        conn.execute(
+            "DELETE FROM agent_connections WHERE user_id = ? AND connected = 0",
+            (req.user_id,),
         )
-        VALUES
-        (?, ?, ?, ?)
-        """,
-        (
-            req.user_id,
-            token,
-            0,
-            datetime.now(timezone.utc).isoformat(),
-        ),
-    )
 
-    conn.commit()
-    conn.close()
+        token = "alias_connect_" + secrets.token_urlsafe(32)
 
-    prompt = f"""
-You are connecting to Alias.
-
-Read the instructions in ALIAS.md.
-
-Connection Token:
-{token}
-
-Authenticate by calling
-
-POST /agent/connect
-
-Body:
-
-{{
-    "connection_token": "{token}"
-}}
-
-After authentication you may begin trading.
-""".strip()
+        conn.execute(
+            """
+            INSERT INTO agent_connections
+            (user_id, token, connected, created_at)
+            VALUES (?, ?, 0, ?)
+            """,
+            (
+                req.user_id,
+                token,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
 
     return {
         "connection_token": token,
-        "prompt": prompt,
+        "skill_url": "/skill",
+        "prompt": (
+            "Connect this agent to Alias.\n\n"
+            "First read {base_url}/skill.\n\n"
+            "Then call POST {base_url}/agent/connect with this JSON:\n\n"
+            f'{{"connection_token":"{token}",'
+            '"agent_name":"<your agent name>",'
+            '"provider":"<your provider>"}}\n\n'
+            "The response contains an agent_token. Store that token securely.\n\n"
+            "Use it for authenticated Alias requests as:\n"
+            "Authorization: Bearer <agent_token>"
+        ),
     }
+
+
+@router.post("/connect")
+def connect_agent(req: ConnectAgentRequest):
+    with get_conn() as conn:
+        connection = conn.execute(
+            "SELECT * FROM agent_connections WHERE token = ?",
+            (req.connection_token,),
+        ).fetchone()
+
+        if connection is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid connection token",
+            )
+
+        if connection["connected"]:
+            raise HTTPException(
+                status_code=409,
+                detail="Connection token has already been used",
+            )
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        conn.execute(
+            """
+            UPDATE agent_connections
+            SET connected = 1, agent_name = ?, provider = ?, connected_at = ?
+            WHERE id = ?
+            """,
+            (
+                req.agent_name,
+                req.provider,
+                now,
+                connection["id"],
+            ),
+        )
+
+        conn.execute(
+            "UPDATE users SET last_seen = ? WHERE id = ?",
+            (now, connection["user_id"]),
+        )
+
+    return {
+        "connected": True,
+        "user_id": connection["user_id"],
+        "agent_token": req.connection_token,
+        "message": "Agent connected successfully.",
+    }
+
+
+@router.post("/heartbeat")
+def heartbeat(req: HeartbeatRequest):
+    with get_conn() as conn:
+        connection = conn.execute(
+            """
+            SELECT user_id
+            FROM agent_connections
+            WHERE token = ? AND connected = 1
+            """,
+            (req.agent_token,),
+        ).fetchone()
+
+        if connection is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid agent token",
+            )
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        conn.execute(
+            "UPDATE users SET last_seen = ? WHERE id = ?",
+            (now, connection["user_id"]),
+        )
+
+    return {"alive": True}
+
+
+@router.post("/disconnect")
+def disconnect(req: DisconnectRequest):
+    with get_conn() as conn:
+        connection = conn.execute(
+            """
+            SELECT user_id
+            FROM agent_connections
+            WHERE token = ? AND connected = 1
+            """,
+            (req.agent_token,),
+        ).fetchone()
+
+        if connection is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid agent token",
+            )
+
+        conn.execute(
+            "UPDATE agent_connections SET connected = 0 WHERE token = ?",
+            (req.agent_token,),
+        )
+
+    return {"success": True}

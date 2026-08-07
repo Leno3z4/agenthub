@@ -407,23 +407,36 @@ export default function Onboarding() {
 
   async function authorizeAgent() {
     if (!walletClient) return;
-
+  
+    if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
+      setAgentError(
+        `Invalid or missing agent address: ${agentAddress || "(empty)"}`,
+      );
+      return;
+    }
+  
     try {
       setLoading(true);
-
+      setAgentError("");
+  
       await approveAgent({
         walletClient,
         agentAddress,
       });
-
+  
       await confirmPermissions(
         userId,
         apiKey,
       );
-
+  
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
+      setAgentError(
+        err instanceof Error
+          ? err.message
+          : "Failed to authorize agent.",
+      );
     } finally {
       setLoading(false);
     }

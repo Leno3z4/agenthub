@@ -43,8 +43,8 @@ export async function depositUSDC({
   const approveHash =
     await usdc.write.approve([
       process.env.NEXT_PUBLIC_CCTP_TOKEN_MESSENGER,
-      BigInt(params.amount),
-    ]);
+      totalAmount,
+  ]);
 
   await publicClient.waitForTransactionReceipt({
     hash: approveHash,

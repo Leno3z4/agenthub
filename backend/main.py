@@ -92,18 +92,19 @@ class LinkWalletResponse(BaseModel):
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(req: LinkWalletRequest):
     with get_conn() as conn:
-        cursor = conn.cursor()
-
-        cursor.execute(
+        with get_conn() as conn:
+        conn.execute(
             """
-            SELECT id
+            SELECT id, wallet_address, agent_address
             FROM users
             WHERE google_id = %s OR email = %s
             """,
-            (google_id, email),
+            (req.google_id, req.email),
         )
+    
+        existing = conn.fetchone()
         
-        existing = cursor.fetchone()
+     
 
         if existing is None:
             raise HTTPException(
@@ -128,11 +129,11 @@ def link_wallet(req: LinkWalletRequest):
                 """
                 UPDATE users
                 SET
-                    google_id = ?,
-                    email = ?,
-                    name = ?,
-                    picture = ?,
-                    api_key_hash = ?
+                    google_id = %s,
+                    email = %s,
+                    name = %s,
+                    picture = %s,
+                    api_key_hash = %s
                 WHERE user_id = %s
                 """,
                 (
@@ -157,13 +158,13 @@ def link_wallet(req: LinkWalletRequest):
             """
             UPDATE users
             SET
-                wallet_address = ?,
-                email = ?,
-                name = ?,
-                picture = ?,
-                agent_address = ?,
-                agent_key_encrypted = ?,
-                api_key_hash = ?
+                wallet_address = %s,
+                email = %s,
+                name = %s,
+                picture = %s,
+                agent_address = %s,
+                agent_key_encrypted = %s,
+                api_key_hash = %s
             WHERE user_id = %s
             """,
             (
@@ -221,11 +222,11 @@ def register_user(req: RegisterUserRequest):
                 """
                 UPDATE users
                 SET
-                    google_id = ?,
-                    email = ?,
-                    name = ?,
-                    picture = ?,
-                    api_key_hash = ?
+                    google_id = %s,
+                    email = %s,
+                    name = %s,
+                    picture = %s,
+                    api_key_hash = %s
                 WHERE user_id = %s
                 """,
                 (
@@ -251,9 +252,10 @@ def register_user(req: RegisterUserRequest):
         # Brand-new account.
         user_id = str(uuid.uuid4())
 
-        cursor.execute(
+        conn.execute(
             """
             INSERT INTO users (
+                id,
                 google_id,
                 email,
                 name,
@@ -264,10 +266,8 @@ def register_user(req: RegisterUserRequest):
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (%s, %s, %s, %s, %s, NULL, NULL, NULL, NULL)
+            VALUES (%s, %s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL)
             """,
-            (google_id, email, name, picture, x_id),
-        )
             (
                 user_id,
                 req.google_id,
@@ -298,7 +298,7 @@ def confirm_permissions(
             """
             UPDATE users
             SET permissions_confirmed = 1
-            WHERE id = ?
+            WHERE id =  %s
             """,
             (req.user_id,),
         )
@@ -312,14 +312,16 @@ def confirm_permissions(
 
 def _get_user(user_id: str):
     with get_conn() as conn:
-        user = conn.execute(
+        conn.execute(
             """
             SELECT *
             FROM users
-            WHERE id = ?
+            WHERE id = %s
             """,
             (user_id,),
-        ).fetchone()
+        )
+        
+        user = conn.fetchone()
 
     if user is None:
         raise HTTPException(
@@ -359,16 +361,18 @@ def _require_agent_auth(
 
     # Agent authentication: connection token issued by /agent/create.
     with get_conn() as conn:
-        connection = conn.execute(
+        conn.execute(
             """
             SELECT id
             FROM agent_connections
-            WHERE user_id = ?
-              AND token = ?
+            WHERE user_id = %s
+              AND token = %s
               AND connected = 1
             """,
             (user_id, credential),
-        ).fetchone()
+        )
+        
+        connection = conn.fetchone()
 
     if connection is None:
         raise HTTPException(
@@ -390,7 +394,7 @@ def _mark_agent_active(
             SET
                 last_seen = CURRENT_TIMESTAMP,
                 permissions_confirmed = 1
-            WHERE id = ?
+            WHERE id = %s
             """,
             (user_id,),
         )
@@ -413,7 +417,7 @@ def agent_status(
             """
             SELECT *
             FROM trades
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY id DESC
             LIMIT 1
             """,
@@ -428,7 +432,7 @@ def agent_status(
                 """
                 SELECT connected, connected_at
                 FROM agent_connections
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY id DESC
                 LIMIT 1
                 """,
@@ -510,7 +514,7 @@ def bridge_deposit(
                 burn_tx_hash,
                 status
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
             """,
             (
                 user["id"],
@@ -600,7 +604,7 @@ def agent_trade(
                 model,
                 strategy
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 user["id"],
@@ -684,7 +688,7 @@ def agent_close(
                 model,
                 strategy
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 user["id"],

@@ -386,21 +386,23 @@ def deposit_parameters(
 
 
 def validate_transfer(transfer: dict):
-
     if not transfer:
         return False
 
-    required = [
-        "status",
-        "messageHash",
-    ]
+    status = transfer.get("status")
 
-    for field in required:
-        if field not in transfer:
-            return False
+    if not status:
+        print("IRIS VALIDATION FAILED: missing status")
+        return False
+
+    message_hash = transfer.get("messageHash")
+
+    if not message_hash:
+        print("IRIS VALIDATION FAILED: missing messageHash")
+        print("IRIS TRANSFER KEYS:", list(transfer.keys()))
+        return False
 
     return True
-
 
 # ---------------------------------------------------------------------
 # Public API

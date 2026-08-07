@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS trades (
     id SERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    user_id UUID NOT NULL,
     coin TEXT NOT NULL,
     is_buy INTEGER NOT NULL,
     size DOUBLE PRECISION NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS trades (
 
 CREATE TABLE IF NOT EXISTS agent_connections (
     id SERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    user_id UUID NOT NULL,
     token TEXT UNIQUE NOT NULL,
     connected INTEGER DEFAULT 0,
     agent_name TEXT,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS agent_connections (
 
 CREATE TABLE IF NOT EXISTS bridge_transfers (
     id SERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    user_id UUID NOT NULL,
     amount_usdc DOUBLE PRECISION NOT NULL,
     burn_tx_hash TEXT,
     status TEXT DEFAULT 'pending',

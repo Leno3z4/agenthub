@@ -160,7 +160,7 @@ def link_wallet(req: LinkWalletRequest):
                 agent_address = ?,
                 agent_key_encrypted = ?,
                 api_key_hash = ?
-            WHERE google_id = ?
+            WHERE id = ?
             """,
             (
                 req.wallet_address,
@@ -203,9 +203,9 @@ def register_user(req: RegisterUserRequest):
                 agent_address,
                 permissions_confirmed
             FROM users
-            WHERE google_id = ?
+            WHERE google_id = ? OR email = ?
             """,
-            (req.google_id,),
+            (req.google_id, req.email),
         ).fetchone()
 
         # Existing account.
@@ -450,8 +450,6 @@ def agent_status(
 # Bridge
 # ---------------------------------------------------------------------
 
-class DepositParamsRequest(BaseModel):
-    amount_usdc_units: int
 
 class DepositParamsRequest(BaseModel):
     amount: int

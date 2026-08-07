@@ -417,6 +417,9 @@ def agent_status(
 class DepositParamsRequest(BaseModel):
     amount_usdc_units: int
 
+class DepositParamsRequest(BaseModel):
+    amount: int
+    hypercore_recipient: str
 
 class DepositCompleteRequest(BaseModel):
     user_id: str
@@ -433,8 +436,9 @@ def bridge_deposit_params(
     depositForBurn() from the user's wallet.
     """
 
-    return deposit_parameters(
-        req.amount_usdc_units,
+   return deposit_parameters(
+        req.amount,
+        req.hypercore_recipient,
     )
 
 

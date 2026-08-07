@@ -58,7 +58,7 @@ export async function depositUSDC({
       totalAmount,
       params.destinationDomain,
       params.mintRecipient,
-      process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS,
+      params.burnToken,
       params.destinationCaller,
       BigInt(params.maxFee),
       params.minFinalityThreshold,

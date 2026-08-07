@@ -45,26 +45,24 @@ export const {
     
         if (!res.ok) {
           const text = await res.text();
-          console.error("Backend register failed:", res.status, text);
           throw new Error(text);
         }
     
         const data = await res.json();
     
-        // IMPORTANT:
-        // This is the backend UUID.
-        // Never replace it with profile.sub.
         token.userId = data.user_id;
+        token.authId = profile.sub;
       }
     
       return token;
-    },
+   },
 
     async session({ session, token }) {
       if (session.user) {
         session.user = {
           ...session.user,
           id: token.userId,
+          authId: token.authId,
         };
       }
     

@@ -53,6 +53,7 @@ export const {
     
         token.userId = data.user_id;
         token.authId = profile.sub;
+        token.provider = account.provider;
       }
     
       return token;
@@ -64,6 +65,7 @@ export const {
           ...session.user,
           id: token.userId,
           authId: token.authId,
+          provider: token.provider,
         };
       }
     

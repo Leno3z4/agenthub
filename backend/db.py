@@ -92,6 +92,7 @@ def init_db():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions_confirmed INTEGER DEFAULT 0",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS provider TEXT",
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS reasoning TEXT",
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS confidence DOUBLE PRECISION",
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS model TEXT",

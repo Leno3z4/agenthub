@@ -15,7 +15,7 @@ if not DATABASE_URL:
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY,
     google_id TEXT UNIQUE,
     email TEXT UNIQUE,
     name TEXT,

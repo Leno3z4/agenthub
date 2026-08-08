@@ -271,6 +271,7 @@ def register_user(req: RegisterUserRequest):
                 req.email,
                 req.name,
                 req.picture,
+                "google",
             ),
         )
 

@@ -92,7 +92,6 @@ class LinkWalletResponse(BaseModel):
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(req: LinkWalletRequest):
     with get_conn() as conn:
-        with get_conn() as conn:
         conn.execute(
             """
             SELECT id, wallet_address, agent_address
@@ -101,10 +100,7 @@ def link_wallet(req: LinkWalletRequest):
             """,
             (req.google_id, req.email),
         )
-    
         existing = conn.fetchone()
-        
-     
 
         if existing is None:
             raise HTTPException(
@@ -134,7 +130,7 @@ def link_wallet(req: LinkWalletRequest):
                     name = %s,
                     picture = %s,
                     api_key_hash = %s
-                WHERE user_id = %s
+                WHERE id = %s
                 """,
                 (
                     req.google_id,
@@ -165,7 +161,7 @@ def link_wallet(req: LinkWalletRequest):
                 agent_address = %s,
                 agent_key_encrypted = %s,
                 api_key_hash = %s
-            WHERE user_id = %s
+            WHERE google_id = %s
             """,
             (
                 req.wallet_address,
@@ -227,7 +223,7 @@ def register_user(req: RegisterUserRequest):
                     name = %s,
                     picture = %s,
                     api_key_hash = %s
-                WHERE user_id = %s
+                WHERE id = %s
                 """,
                 (
                     req.google_id,

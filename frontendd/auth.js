@@ -36,6 +36,7 @@ export const {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            google_id: profile.sub,
             provider: account.provider,
             email: profile.email,
             name: profile.name,

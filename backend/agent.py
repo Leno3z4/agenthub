@@ -33,7 +33,7 @@ class DisconnectRequest(BaseModel):
 def create_agent(req: CreateAgentRequest):
     with get_conn() as conn:
         user = conn.execute(
-            "SELECT id, api_key_hash FROM users WHERE id = ?",
+            "SELECT id, api_key_hash FROM users WHERE id = %s",
             (req.user_id,),
         ).fetchone()
 
@@ -47,7 +47,7 @@ def create_agent(req: CreateAgentRequest):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
         conn.execute(
-            "DELETE FROM agent_connections WHERE user_id = ? AND connected = 0",
+            "DELETE FROM agent_connections WHERE user_id = %s AND connected = 0",
             (req.user_id,),
         )
 
@@ -57,7 +57,7 @@ def create_agent(req: CreateAgentRequest):
             """
             INSERT INTO agent_connections
             (user_id, token, connected, created_at)
-            VALUES (?, ?, 0, ?)
+            VALUES (%s, %s, 0, %s)
             """,
             (
                 req.user_id,
@@ -75,7 +75,7 @@ def create_agent(req: CreateAgentRequest):
             "Then call POST {base_url}/agent/connect with this JSON:\n\n"
             f'{{"connection_token":"{token}",'
             '"agent_name":"<your agent name>",'
-            '"provider":"<your provider>"}}\n\n'
+            '"provider":"<your provider>"}\n\n'
             "The response contains an agent_token. Store that token securely.\n\n"
             "Use it for authenticated Alias requests as:\n"
             "Authorization: Bearer <agent_token>"
@@ -101,7 +101,7 @@ def get_agent_profile(
                 permissions_confirmed,
                 api_key_hash
             FROM users
-            WHERE id = ?
+            WHERE id = %s
             """,
             (user_id,),
         ).fetchone()
@@ -135,7 +135,7 @@ def get_agent_profile(
 def connect_agent(req: ConnectAgentRequest):
     with get_conn() as conn:
         connection = conn.execute(
-            "SELECT * FROM agent_connections WHERE token = ?",
+            "SELECT * FROM agent_connections WHERE token = %s",
             (req.connection_token,),
         ).fetchone()
 
@@ -156,8 +156,8 @@ def connect_agent(req: ConnectAgentRequest):
         conn.execute(
             """
             UPDATE agent_connections
-            SET connected = 1, agent_name = ?, provider = ?, connected_at = ?
-            WHERE id = ?
+            SET connected = 1, agent_name = %s, provider = %s, connected_at = %s
+            WHERE id = %s
             """,
             (
                 req.agent_name,
@@ -168,7 +168,7 @@ def connect_agent(req: ConnectAgentRequest):
         )
 
         conn.execute(
-            "UPDATE users SET last_seen = ? WHERE id = ?",
+            "UPDATE users SET last_seen = %s WHERE id = %s",
             (now, connection["user_id"]),
         )
 
@@ -187,7 +187,7 @@ def heartbeat(req: HeartbeatRequest):
             """
             SELECT user_id
             FROM agent_connections
-            WHERE token = ? AND connected = 1
+            WHERE token = %s AND connected = 1
             """,
             (req.agent_token,),
         ).fetchone()
@@ -201,7 +201,7 @@ def heartbeat(req: HeartbeatRequest):
         now = datetime.now(timezone.utc).isoformat()
 
         conn.execute(
-            "UPDATE users SET last_seen = ? WHERE id = ?",
+            "UPDATE users SET last_seen = %s WHERE id = %s",
             (now, connection["user_id"]),
         )
 
@@ -215,7 +215,7 @@ def disconnect(req: DisconnectRequest):
             """
             SELECT user_id
             FROM agent_connections
-            WHERE token = ? AND connected = 1
+            WHERE token = %s AND connected = 1
             """,
             (req.agent_token,),
         ).fetchone()
@@ -227,7 +227,7 @@ def disconnect(req: DisconnectRequest):
             )
 
         conn.execute(
-            "UPDATE agent_connections SET connected = 0 WHERE token = ?",
+            "UPDATE agent_connections SET connected = 0 WHERE token = %s",
             (req.agent_token,),
         )
 

@@ -256,13 +256,14 @@ def register_user(req: RegisterUserRequest):
                 email,
                 name,
                 picture,
+                provider,
                 x_id,
                 wallet_address,
                 agent_address,
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (%s, %s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL)
+            VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL)
             """,
             (
                 user_id,

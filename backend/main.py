@@ -254,6 +254,7 @@ def register_user(req: RegisterUserRequest):
             INSERT INTO users (
                 id,
                 google_id,
+                provider_id,
                 email,
                 name,
                 picture,
@@ -264,10 +265,11 @@ def register_user(req: RegisterUserRequest):
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL)
             """,
             (
                 user_id,
+                req.google_id,
                 req.google_id,
                 req.email,
                 req.name,

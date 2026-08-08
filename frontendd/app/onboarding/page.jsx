@@ -201,6 +201,7 @@ export default function Onboarding() {
   
       const payload = {
         google_id: user.authId,
+        provider: user.provider,
         email: user.email,
         name: user.name,
         picture: user.image ?? null,

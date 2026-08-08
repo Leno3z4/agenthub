@@ -97,6 +97,7 @@ def init_db():
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS confidence DOUBLE PRECISION",
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS model TEXT",
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS strategy TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id TEXT",
         ]
 
         for statement in migrations:

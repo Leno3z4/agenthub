@@ -18,9 +18,16 @@ def generate_agent_wallet() -> tuple[str, str]:
     return acct.address, acct.key.hex()
 
 
-def get_exchange_for_agent(agent_private_key: str) -> Exchange:
+def get_exchange_for_agent(
+    agent_private_key: str,
+    account_address: str,
+) -> Exchange:
     wallet = Account.from_key(agent_private_key)
-    return Exchange(wallet, HL_API_URL)
+    return Exchange(
+        wallet,
+        HL_API_URL,
+        account_address=account_address,
+    )
 
 
 def _validate_address(user_address: str) -> str:

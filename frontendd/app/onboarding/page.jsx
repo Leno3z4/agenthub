@@ -515,7 +515,10 @@ export default function Onboarding() {
   }
 
   async function authorizeAgent() {
-    if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
+    if (
+      !agentAddress ||
+      !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)
+    ) {
       setAgentError(
         `Invalid or missing agent address: ${
           agentAddress || "(empty)"
@@ -524,9 +527,53 @@ export default function Onboarding() {
       return;
     }
   
+    if (!walletClient) {
+      setAgentError("Wallet is not connected.");
+      return;
+    }
+  
     try {
       setLoading(true);
       setAgentError("");
+  
+      /*
+       * Hyperliquid testnet requires Arbitrum Sepolia
+       * as the EIP-712 signing chain.
+       *
+       * Alias itself remains on Arc.
+       */
+  
+      try {
+        await walletClient.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: "0x66eee",
+              chainName: "Arbitrum Sepolia",
+              nativeCurrency: {
+                name: "Ether",
+                symbol: "ETH",
+                decimals: 18,
+              },
+              rpcUrls: [
+                arbitrumSepolia.rpcUrls.default.http[0],
+              ],
+              blockExplorerUrls: [
+                arbitrumSepolia.blockExplorers.default.url,
+              ],
+            },
+          ],
+        });
+      } catch (err) {
+        /*
+         * MetaMask throws if the chain already exists.
+         * That's fine — continue to the switch.
+         */
+        console.log(
+          "Arbitrum Sepolia already exists or was rejected:",
+          err,
+        );
+      }
   
       await switchChainAsync({
         chainId: arbitrumSepolia.id,
@@ -541,6 +588,12 @@ export default function Onboarding() {
           chainId: arbitrumSepolia.id,
         });
   
+      if (!hyperliquidWalletClient) {
+        throw new Error(
+          "Could not access the wallet on Arbitrum Sepolia.",
+        );
+      }
+  
       await approveAgent({
         walletClient: hyperliquidWalletClient,
         agentAddress,
@@ -551,6 +604,10 @@ export default function Onboarding() {
         apiKey,
       );
   
+      /*
+       * Authorization is complete.
+       * Put the user's wallet back on Arc.
+       */
       await switchChainAsync({
         chainId: arcTestnet.id,
       });

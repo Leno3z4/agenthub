@@ -69,7 +69,17 @@ const config = createConfig({
 });
 
 const queryClient = new QueryClient();
-
+export const config = createConfig({
+  connectors,
+  chains: [
+    arcTestnet,
+    arbitrumSepolia,
+  ],
+  transports: {
+    [arcTestnet.id]: http("/api/rpc"),
+    [arbitrumSepolia.id]: http(),
+  },
+});
 export default function Providers({ children }) {
   return (
     <SessionProvider>

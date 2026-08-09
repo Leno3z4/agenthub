@@ -34,6 +34,15 @@ import {
   getGatewayBalance,
 } from "@/lib/api";
 
+function StatusDot({ active = false }) {
+  return (
+    <span
+      className={`status-dot ${active ? "status-dot-active" : ""}`}
+      aria-hidden="true"
+    />
+  );
+}
+
 export default function DashboardOverview() {
   const [dashboard, setDashboard] = useState(null);
   const [agent, setAgent] = useState(null);

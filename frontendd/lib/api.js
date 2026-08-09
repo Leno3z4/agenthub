@@ -139,3 +139,18 @@ export async function getDashboard(userId, apiKey) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+
+
+export async function getGatewayBalance(walletAddress) {
+  const res = await fetch(
+    `${BACKEND_URL}/gateway/balance/${walletAddress}`,
+    { cache: "no-store" }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}

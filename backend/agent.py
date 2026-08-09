@@ -332,7 +332,7 @@ def heartbeat(
             """
             SELECT user_id
             FROM agent_connections
-            WHERE token = %s
+            WHERE agent_token = %s
               AND connected = 1
             """,
             (req.agent_token,),
@@ -378,7 +378,7 @@ def disconnect(
             """
             SELECT user_id
             FROM agent_connections
-            WHERE token = %s
+            WHERE agent_token = %s
               AND connected = 1
             """,
             (req.agent_token,),
@@ -396,7 +396,7 @@ def disconnect(
             """
             UPDATE agent_connections
             SET connected = 0
-            WHERE token = %s
+            WHERE agent_token = %s
             """,
             (req.agent_token,),
         )

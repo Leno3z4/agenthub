@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAgentStatus } from "@/lib/api";
+import { signOut } from "next-auth/react";
 
 export default function SettingsPage() {
   const [status, setStatus] = useState(null);
@@ -13,7 +14,16 @@ export default function SettingsPage() {
     if (!userId || !apiKey) return;
     getAgentStatus(userId, apiKey).then(setStatus).catch(console.error);
   }, []);
+async function handleLogout() {
+  localStorage.removeItem("alias_user_id");
+  localStorage.removeItem("alias_api_key");
+  localStorage.removeItem("alias_agent_address");
+  localStorage.removeItem("alias_arc_address");
 
+  await signOut({
+    callbackUrl: "/onboarding",
+  });
+}
   return (
     <div>
       <h1 className="font-mono text-lg mb-6">Settings</h1>
@@ -31,5 +41,8 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+    <button onClick={handleLogout}>
+      Log out
+    </button>
   );
 }

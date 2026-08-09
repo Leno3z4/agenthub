@@ -222,6 +222,75 @@ class RegisterUserRequest(BaseModel):
     provider: str
 
 
+@app.post("/agent/repair")
+def repair_agent(
+    user_id: str,
+    authorization: Optional[str] = Header(None),
+):
+    user = _require_agent_auth(
+        user_id,
+        authorization,
+    )
+
+    agent_is_valid = False
+
+    if (
+        user["agent_address"]
+        and user["agent_key_encrypted"]
+    ):
+        try:
+            decrypt(user["agent_key_encrypted"])
+            agent_is_valid = True
+        except Exception:
+            agent_is_valid = False
+
+    # Nothing is broken. Keep the existing delegated wallet.
+    if agent_is_valid:
+        return {
+            "repaired": False,
+            "agent_address": user["agent_address"],
+        }
+
+    # Generate a completely new delegated wallet.
+    agent_address, agent_private_key = generate_agent_wallet()
+
+    encrypted_key = encrypt(agent_private_key)
+
+    # Verify the encryption immediately before saving.
+    if decrypt(encrypted_key) != agent_private_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to validate newly generated agent signing key.",
+        )
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET
+                agent_address = %s,
+                agent_key_encrypted = %s,
+                permissions_confirmed = 0
+            WHERE id = %s
+            """,
+            (
+                agent_address,
+                encrypted_key,
+                user_id,
+            ),
+        )
+
+    print(
+        "REPAIRED AGENT:",
+        user_id,
+        agent_address,
+    )
+
+    return {
+        "repaired": True,
+        "agent_address": agent_address,
+    }
+
 @app.post("/users/register")
 def register_user(req: RegisterUserRequest):
     with get_conn() as conn:

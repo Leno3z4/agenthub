@@ -44,6 +44,7 @@ export default function DashboardOverview() {
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositError, setDepositError] = useState("");
   const [depositSuccess, setDepositSuccess] = useState("");
+  const { switchChainAsync } = useSwitchChain();
   const [
     withdrawalAmount,
     setWithdrawalAmount,
@@ -216,7 +217,7 @@ export default function DashboardOverview() {
           arbitrumSepolia.id,
       });
   
-      if (!arbitrumWalletClient) {
+      if (!walletClient) {
         throw new Error(
           "Wallet client is not ready. Try again after the network switches."
         );
@@ -224,7 +225,7 @@ export default function DashboardOverview() {
   
       await transferSpotToPerps({
         walletClient:
-          arbitrumWalletClient,
+          walletClient,
         amount: amount.toString(),
       });
   
@@ -293,7 +294,7 @@ export default function DashboardOverview() {
           arbitrumSepolia.id,
       });
   
-      if (!arbitrumWalletClient) {
+      if (!walletClient) {
         throw new Error(
           "Wallet client is not ready. Try again after the network switches."
         );
@@ -301,7 +302,7 @@ export default function DashboardOverview() {
   
       await withdrawHyperliquid({
         walletClient:
-          arbitrumWalletClient,
+          walletClient,
         destination:
           walletAddress,
         amount:
@@ -626,7 +627,7 @@ export default function DashboardOverview() {
               {latest ? (
                 <>
                   <h2>{latest.is_buy ? "Bought" : "Sold / closed"} {latest.size} {latest.coin}</h2>
-                  <p>{latest.reasoning || "No reasoning reported by the agent."}{latest.confidence != null && ` — confidence ${Math.round(latest.confidence * 100)}%`}</p>
+                  <p>{latest.reasoning || "No reasoning reported by the agent."} {latest.confidence != null && ` — confidence ${Math.round(latest.confidence * 100)}%`}</p>
                 </>
               ) : (
                 <><h2>No actions yet.</h2><p>Once your agent makes its first trade, it'll show up here.</p></>

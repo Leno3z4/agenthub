@@ -14,7 +14,10 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 
-import { arcTestnet } from "viem/chains";
+import {
+  arcTestnet,
+  arbitrumSepolia,
+} from "viem/chains";
 
 import {
   createConfig,
@@ -54,9 +57,14 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   connectors,
-  chains: [arcTestnet],
+  chains: [
+    arcTestnet,
+    arbitrumSepolia,
+  ],
+  
   transports: {
     [arcTestnet.id]: http("/api/rpc"),
+    [arbitrumSepolia.id]: http(),
   },
 });
 

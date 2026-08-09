@@ -86,8 +86,6 @@ export default function DashboardOverview() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
-  
-  async function loadDashboard() {
 
   async function loadDashboard() {
     const userId = localStorage.getItem("alias_user_id");

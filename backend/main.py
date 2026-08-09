@@ -480,11 +480,13 @@ def _require_agent_auth(
             FROM agent_connections ac
             JOIN users u
                 ON u.id = ac.user_id
-            WHERE ac.agent_token = %s
+            WHERE ac.user_id = %s
+              AND ac.agent_token = %s
               AND ac.connected = 1
             """,
             (user_id, credential),
         )
+            
         
         connection = conn.fetchone()
 

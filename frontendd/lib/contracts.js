@@ -1,6 +1,4 @@
-import {
-  getContract,
-} from "viem";
+import { getContract } from "viem";
 
 export const USDC_ABI = [
   {
@@ -8,86 +6,41 @@ export const USDC_ABI = [
     name: "approve",
     stateMutability: "nonpayable",
     inputs: [
-      {
-        name: "spender",
-        type: "address",
-      },
-      {
-        name: "amount",
-        type: "uint256",
-      },
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
     ],
-    outputs: [
-      {
-        type: "bool",
-      },
-    ],
+    outputs: [{ type: "bool" }],
   },
 ];
 
-export const TOKEN_MESSENGER_ABI = [
+export const GATEWAY_WALLET_ABI = [
   {
     type: "function",
-    name: "depositForBurnWithHook",
+    name: "deposit",
     stateMutability: "nonpayable",
     inputs: [
-      {
-        name: "amount",
-        type: "uint256",
-      },
-      {
-        name: "destinationDomain",
-        type: "uint32",
-      },
-      {
-        name: "mintRecipient",
-        type: "bytes32",
-      },
-      {
-        name: "burnToken",
-        type: "address",
-      },
-      {
-        name: "destinationCaller",
-        type: "bytes32",
-      },
-      {
-        name: "maxFee",
-        type: "uint256",
-      },
-      {
-        name: "minFinalityThreshold",
-        type: "uint32",
-      },
-      {
-        name: "hookData",
-        type: "bytes",
-      },
+      { name: "token", type: "address" },
+      { name: "value", type: "uint256" },
     ],
     outputs: [],
   },
 ];
 
-export function getUsdcContract(
-  walletClient,
-) {
+export const GATEWAY_WALLET_ADDRESS =
+  "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
+
+export function getUsdcContract(walletClient) {
   return getContract({
-    address:
-      process.env
-        .NEXT_PUBLIC_ARC_USDC_ADDRESS,
+    address: process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS,
     abi: USDC_ABI,
     client: walletClient,
   });
 }
 
-export function getTokenMessengerContract(
-  walletClient,
-) {
+export function getGatewayWalletContract(walletClient) {
   return getContract({
-    address:
-      process.env
-        .NEXT_PUBLIC_CCTP_TOKEN_MESSENGER,
-    abi: TOKEN_MESSENGER_ABI,
+    address: GATEWAY_WALLET_ADDRESS,
+    abi: GATEWAY_WALLET_ABI,
     client: walletClient,
   });
 }

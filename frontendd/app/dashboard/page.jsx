@@ -79,11 +79,14 @@ export default function DashboardOverview() {
     setTransferError,
   ] = useState("");
   
-  const [
-    transferSuccess,
-    setTransferSuccess,
-  const { switchChainAsync } =
-    useSwitchChain();
+  const [transferSuccess, setTransferSuccess] = useState(false);
+  
+  const { switchChainAsync } = useSwitchChain();
+  
+  const {
+    address,
+    isConnected,
+  } = useAccount();
   
   const {
     data: arbitrumWalletClient,

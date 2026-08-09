@@ -313,6 +313,7 @@ def confirm_permissions(
 # ---------------------------------------------------------------------
 
 def _get_user(user_id: str):
+
     with get_conn() as conn:
         conn.execute(
             """
@@ -322,13 +323,25 @@ def _get_user(user_id: str):
             """,
             (user_id,),
         )
-        
+
         user = conn.fetchone()
 
     if user is None:
         raise HTTPException(
             status_code=404,
-            detail="wallet not linked",
+            detail="User not found",
+        )
+
+    if not user["wallet_address"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Wallet not linked",
+        )
+
+    if not user["agent_address"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Agent wallet not created",
         )
 
     return user
@@ -605,6 +618,7 @@ def agent_trade(
 
     result = execute_trade(
         agent_private_key=agent_private_key,
+        account_address=user["wallet_address"],
         coin=req.coin,
         is_buy=req.is_buy,
         size=req.size,
@@ -691,6 +705,7 @@ def agent_close(
 
     result = execute_close(
         agent_private_key=agent_private_key,
+        account_address=user["wallet_address"],
         coin=req.coin,
         size=req.size,
     )

@@ -36,9 +36,7 @@ class DisconnectRequest(BaseModel):
 
 @router.post("/create")
 def create_agent(req: CreateAgentRequest):
-
     with get_conn() as conn:
-
         conn.execute(
             """
             SELECT
@@ -84,28 +82,34 @@ def create_agent(req: CreateAgentRequest):
                 detail="Agent wallet has not been created",
             )
 
-        # Kill every previous active connection.
-        # Only the newly generated token remains valid.
+        # If this user already has a live agent connection,
+        # don't create another one.
         conn.execute(
             """
-            UPDATE agent_connections
-            SET connected = 0
+            SELECT
+                agent_token
+            FROM agent_connections
             WHERE user_id = %s
               AND connected = 1
+            ORDER BY id DESC
+            LIMIT 1
             """,
             (req.user_id,),
         )
 
-        # Remove old disconnected tokens.
-        conn.execute(
-            """
-            DELETE FROM agent_connections
-            WHERE user_id = %s
-              AND connected = 0
-            """,
-            (req.user_id,),
-        )
+        existing = conn.fetchone()
 
+        if existing is not None:
+            return {
+                "connected": True,
+                "already_connected": True,
+                "message": (
+                    "Agent is already connected. "
+                    "Use the existing agent token."
+                ),
+            }
+
+        # Create a fresh ONE-TIME connection token.
         token = (
             "alias_connect_"
             + secrets.token_urlsafe(32)
@@ -149,7 +153,6 @@ def create_agent(req: CreateAgentRequest):
             "Authorization: Bearer <agent_token>"
         ),
     }
-
 
 @router.get("/profile/{user_id}")
 def get_agent_profile(

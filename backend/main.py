@@ -414,7 +414,7 @@ def agent_status(
     )
 
     with get_conn() as conn:
-        last_trade = conn.execute(
+        conn.execute(
             """
             SELECT *
             FROM trades
@@ -423,13 +423,14 @@ def agent_status(
             LIMIT 1
             """,
             (user["id"],),
-        ).fetchone()
+        )
+        last_trade = conn.fetchone()
 
     connected = False
 
     if user["last_seen"]:
         with get_conn() as conn:
-            connection = conn.execute(
+            conn.execute(
                 """
                 SELECT connected, connected_at
                 FROM agent_connections
@@ -438,7 +439,8 @@ def agent_status(
                 LIMIT 1
                 """,
                 (user["id"],),
-            ).fetchone()
+            )
+            connection = conn.fetchone()
     
         connected = bool(
             connection

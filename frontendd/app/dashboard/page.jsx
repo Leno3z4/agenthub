@@ -49,7 +49,7 @@ export default function DashboardOverview() {
         gateway_available: gatewayData?.available ?? 0,
         gateway_arc_balance: gatewayData?.arc_balance ?? 0,
       });
-      setDashboard(dashboardData);
+     
       setAgent(agentData);
       setError("");
     } catch (err) {
@@ -64,7 +64,7 @@ export default function DashboardOverview() {
     loadDashboard();
     const interval = setInterval(loadDashboard, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [address]);
 
   async function handleDeposit() {
     const userId = localStorage.getItem("alias_user_id");

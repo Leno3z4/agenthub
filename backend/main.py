@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
+from eth_account import Account
 
 from db import init_db, get_conn
 from crypto_utils import encrypt, decrypt
@@ -132,9 +133,31 @@ def link_wallet(req: LinkWalletRequest):
             and existing["agent_key_encrypted"]
         ):
             try:
-                decrypt(existing["agent_key_encrypted"])
-                agent_is_valid = True
-            except Exception:
+                private_key = decrypt(
+                    existing["agent_key_encrypted"]
+                )
+        
+                derived_address = Account.from_key(
+                    private_key
+                ).address
+        
+                agent_is_valid = (
+                    derived_address.lower()
+                    == existing["agent_address"].lower()
+                )
+        
+                if not agent_is_valid:
+                    print(
+                        "AGENT KEY/ADDRESS MISMATCH:",
+                        existing["agent_address"],
+                        derived_address,
+                    )
+        
+            except Exception as exc:
+                print(
+                    "AGENT KEY VALIDATION FAILED:",
+                    repr(exc),
+                )
                 agent_is_valid = False
 
         # Existing agent is healthy — keep it.
@@ -235,13 +258,35 @@ def repair_agent(
     agent_is_valid = False
 
     if (
-        user["agent_address"]
-        and user["agent_key_encrypted"]
+        existing["agent_address"]
+        and existing["agent_key_encrypted"]
     ):
         try:
-            decrypt(user["agent_key_encrypted"])
-            agent_is_valid = True
-        except Exception:
+            private_key = decrypt(
+                existing["agent_key_encrypted"]
+            )
+    
+            derived_address = Account.from_key(
+                private_key
+            ).address
+    
+            agent_is_valid = (
+                derived_address.lower()
+                == existing["agent_address"].lower()
+            )
+    
+            if not agent_is_valid:
+                print(
+                    "AGENT KEY/ADDRESS MISMATCH:",
+                    existing["agent_address"],
+                    derived_address,
+                )
+    
+        except Exception as exc:
+            print(
+                "AGENT KEY VALIDATION FAILED:",
+                repr(exc),
+            )
             agent_is_valid = False
 
     # Nothing is broken. Keep the existing delegated wallet.

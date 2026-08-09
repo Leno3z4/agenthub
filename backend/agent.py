@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from auth import verify_api_key
 from db import get_conn
+from hl_client import get_market_candles
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -41,10 +42,7 @@ def create_agent(req: CreateAgentRequest):
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
 
-        if not user["api_key_hash"] or not verify_api_key(
-            req.api_key,
-            user["api_key_hash"],
-        ):
+        if not user["api_key_hash"] or not verify_api_key(req.api_key, user["api_key_hash"]):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
         conn.execute(
@@ -60,11 +58,7 @@ def create_agent(req: CreateAgentRequest):
             (user_id, token, connected, created_at)
             VALUES (%s, %s, 0, %s)
             """,
-            (
-                req.user_id,
-                token,
-                datetime.now(timezone.utc).isoformat(),
-            ),
+            (req.user_id, token, datetime.now(timezone.utc).isoformat()),
         )
 
     return {
@@ -83,45 +77,26 @@ def create_agent(req: CreateAgentRequest):
         ),
     }
 
+
 @router.get("/profile/{user_id}")
-def get_agent_profile(
-    user_id: str,
-    api_key: str,
-):
-    """
-    Restore the persistent Alias account state for a returning user.
-    Only public account identifiers and setup state are returned.
-    """
+def get_agent_profile(user_id: str, api_key: str):
     with get_conn() as conn:
         conn.execute(
             """
-            SELECT
-                id,
-                wallet_address,
-                agent_address,
-                permissions_confirmed,
-                api_key_hash
+            SELECT id, wallet_address, agent_address,
+                   permissions_confirmed, api_key_hash
             FROM users
             WHERE id = %s
             """,
             (user_id,),
-        )  
+        )
         user = conn.fetchone()
 
     if user is None:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found",
-        )
+        raise HTTPException(status_code=404, detail="User not found")
 
-    if not user["api_key_hash"] or not verify_api_key(
-        api_key,
-        user["api_key_hash"],
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid API key",
-        )
+    if not user["api_key_hash"] or not verify_api_key(api_key, user["api_key_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
     return {
         "user_id": user["id"],
@@ -129,10 +104,10 @@ def get_agent_profile(
         "agent_address": user["agent_address"],
         "wallet_connected": bool(user["wallet_address"]),
         "agent_created": bool(user["agent_address"]),
-        "permissions_approved": bool(
-            user["permissions_confirmed"]
-        ),
-    }               
+        "permissions_approved": bool(user["permissions_confirmed"]),
+    }
+
+
 @router.post("/connect")
 def connect_agent(req: ConnectAgentRequest):
     with get_conn() as conn:
@@ -143,16 +118,10 @@ def connect_agent(req: ConnectAgentRequest):
         connection = conn.fetchone()
 
         if connection is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid connection token",
-            )
+            raise HTTPException(status_code=401, detail="Invalid connection token")
 
         if connection["connected"]:
-            raise HTTPException(
-                status_code=409,
-                detail="Connection token has already been used",
-            )
+            raise HTTPException(status_code=409, detail="Connection token has already been used")
 
         now = datetime.now(timezone.utc).isoformat()
 
@@ -162,12 +131,7 @@ def connect_agent(req: ConnectAgentRequest):
             SET connected = 1, agent_name = %s, provider = %s, connected_at = %s
             WHERE id = %s
             """,
-            (
-                req.agent_name,
-                req.provider,
-                now,
-                connection["id"],
-            ),
+            (req.agent_name, req.provider, now, connection["id"]),
         )
 
         conn.execute(
@@ -197,17 +161,10 @@ def heartbeat(req: HeartbeatRequest):
         connection = conn.fetchone()
 
         if connection is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid agent token",
-            )
+            raise HTTPException(status_code=401, detail="Invalid agent token")
 
         now = datetime.now(timezone.utc).isoformat()
-
-        conn.execute(
-            "UPDATE users SET last_seen = %s WHERE id = %s",
-            (now, connection["user_id"]),
-        )
+        conn.execute("UPDATE users SET last_seen = %s WHERE id = %s", (now, connection["user_id"]))
 
     return {"alive": True}
 
@@ -226,14 +183,40 @@ def disconnect(req: DisconnectRequest):
         connection = conn.fetchone()
 
         if connection is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid agent token",
-            )
+            raise HTTPException(status_code=401, detail="Invalid agent token")
 
-        conn.execute(
-            "UPDATE agent_connections SET connected = 0 WHERE token = %s",
-            (req.agent_token,),
-        )
+        conn.execute("UPDATE agent_connections SET connected = 0 WHERE token = %s", (req.agent_token,))
 
     return {"success": True}
+
+
+@router.get("/history/{user_id}")
+def trade_history(user_id: str, api_key: str):
+    """Return the user's recorded Alias trade actions."""
+    with get_conn() as conn:
+        conn.execute("SELECT id, api_key_hash FROM users WHERE id = %s", (user_id,))
+        user = conn.fetchone()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        if not user["api_key_hash"] or not verify_api_key(api_key, user["api_key_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid API key")
+
+        conn.execute(
+            """
+            SELECT id, coin, is_buy, size, reasoning, confidence,
+                   model, strategy, result, created_at
+            FROM trades
+            WHERE user_id = %s
+            ORDER BY id DESC
+            LIMIT 100
+            """,
+            (user_id,),
+        )
+        trades = conn.fetchall()
+
+    return {"trades": [dict(trade) for trade in trades]}
+
+
+@router.get("/markets/{coin}/candles")
+def market_candles(coin: str, interval: str = "1h", hours: int = 48):
+    return {"candles": get_market_candles(coin, interval, hours)}

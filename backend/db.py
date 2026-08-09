@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS agent_connections (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
     token TEXT UNIQUE NOT NULL,
+    agent_token TEXT UNIQUE,
     connected INTEGER DEFAULT 0,
     agent_name TEXT,
     provider TEXT,
@@ -98,6 +99,7 @@ def init_db():
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS model TEXT",
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS strategy TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id TEXT",
+            "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token TEXT UNIQUE",
         ]
 
         for statement in migrations:

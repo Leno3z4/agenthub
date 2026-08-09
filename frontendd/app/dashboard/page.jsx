@@ -2,10 +2,32 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Wallet, ShieldCheck, Activity, DollarSign, Plus } from "lucide-react";
-import { useAccount, useWalletClient, usePublicClient } from "wagmi";
-import { depositUSDC } from "@/lib/deposit";
-import StatusDot from "@/components/StatusDot";
+import {
+  ArrowUpRight,
+  Wallet,
+  ShieldCheck,
+  Activity,
+  DollarSign,
+  Plus,
+} from "lucide-react";
+
+import {
+  useAccount,
+  useWalletClient,
+  usePublicClient,
+  useSwitchChain,
+} from "wagmi";
+
+import { arbitrumSepolia } from "viem/chains";
+
+import {
+  depositUSDC,
+} from "@/lib/deposit";
+
+import {
+  withdrawHyperliquid,
+  transferSpotToPerps,
+} from "@/lib/hyperliquid";
 import {
   getDashboard,
   getAgentStatus,
@@ -22,6 +44,55 @@ export default function DashboardOverview() {
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositError, setDepositError] = useState("");
   const [depositSuccess, setDepositSuccess] = useState("");
+  const [
+    withdrawalAmount,
+    setWithdrawalAmount,
+  ] = useState("");
+  
+  const [
+    withdrawalLoading,
+    setWithdrawalLoading,
+  ] = useState(false);
+  
+  const [
+    withdrawalError,
+    setWithdrawalError,
+  ] = useState("");
+  
+  const [
+    withdrawalSuccess,
+    setWithdrawalSuccess,
+  ] = useState("");
+  
+  const [
+    transferAmount,
+    setTransferAmount,
+  ] = useState("");
+  
+  const [
+    transferLoading,
+    setTransferLoading,
+  ] = useState(false);
+  
+  const [
+    transferError,
+    setTransferError,
+  ] = useState("");
+  
+  const [
+    transferSuccess,
+    setTransferSuccess,
+  const { switchChainAsync } =
+    useSwitchChain();
+  
+  const {
+    data: arbitrumWalletClient,
+  } =
+    useWalletClient({
+      chainId:
+        arbitrumSepolia.id,
+    });
+  ] = useState("");
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -110,7 +181,163 @@ export default function DashboardOverview() {
   const tradingBalance = Number(dashboard?.usdc_balance ?? 0);
   const accountValue = Number(dashboard?.account_value ?? 0);
   const marginUsed = Number(dashboard?.margin_used ?? 0);
-
+  const withdrawable =
+    Number(
+      dashboard?.withdrawable ?? 0
+    );
+  
+  const spotAvailable =
+    Number(
+      dashboard?.spot_usdc_available ?? 0
+    );
+  
+  const walletAddress =
+    address ||
+    "";
+  async function handleTransferSpotToPerps() {
+    const amount =
+      Number(transferAmount);
+  
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      setTransferError(
+        "Enter a valid amount."
+      );
+      return;
+    }
+  
+    if (amount > spotAvailable) {
+      setTransferError(
+        "Amount exceeds available Spot USDC."
+      );
+      return;
+    }
+  
+    try {
+      setTransferLoading(true);
+      setTransferError("");
+      setTransferSuccess("");
+  
+      await switchChainAsync({
+        chainId:
+          arbitrumSepolia.id,
+      });
+  
+      if (!arbitrumWalletClient) {
+        throw new Error(
+          "Wallet client is not ready. Try again after the network switches."
+        );
+      }
+  
+      await transferSpotToPerps({
+        walletClient:
+          arbitrumWalletClient,
+        amount: amount.toString(),
+      });
+  
+      setTransferAmount("");
+  
+      setTransferSuccess(
+        "USDC moved from Spot to Perps."
+      );
+  
+      await loadDashboard();
+  
+    } catch (err) {
+      setTransferError(
+        err instanceof Error
+          ? err.message
+          : "Spot transfer failed."
+      );
+    } finally {
+      setTransferLoading(false);
+    }
+  }
+  
+  
+  async function handleWithdrawal() {
+    const amount =
+      Number(withdrawalAmount);
+  
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      setWithdrawalError(
+        "Enter a valid withdrawal amount."
+      );
+      return;
+    }
+  
+    if (!walletAddress) {
+      setWithdrawalError(
+        "Connect your wallet first."
+      );
+      return;
+    }
+  
+    // Hyperliquid currently charges a $1 withdrawal fee.
+    const maximum =
+      Math.max(
+        0,
+        withdrawable - 1
+      );
+  
+    if (amount > maximum) {
+      setWithdrawalError(
+        `Maximum withdrawable amount is $${maximum.toFixed(2)} after the $1 withdrawal fee.`
+      );
+      return;
+    }
+  
+    try {
+      setWithdrawalLoading(true);
+      setWithdrawalError("");
+      setWithdrawalSuccess("");
+  
+      await switchChainAsync({
+        chainId:
+          arbitrumSepolia.id,
+      });
+  
+      if (!arbitrumWalletClient) {
+        throw new Error(
+          "Wallet client is not ready. Try again after the network switches."
+        );
+      }
+  
+      await withdrawHyperliquid({
+        walletClient:
+          arbitrumWalletClient,
+        destination:
+          walletAddress,
+        amount:
+          amount.toString(),
+      });
+  
+      setWithdrawalAmount("");
+  
+      setWithdrawalSuccess(
+        "Withdrawal submitted. Hyperliquid will process the bridge to your wallet."
+      );
+  
+      setTimeout(
+        loadDashboard,
+        5000
+      );
+  
+    } catch (err) {
+      setWithdrawalError(
+        err instanceof Error
+          ? err.message
+          : "Withdrawal failed."
+      );
+    } finally {
+      setWithdrawalLoading(false);
+    }
+  }
   return (
     <div className="alias-overview">
       <header className="alias-overview-header">
@@ -177,7 +404,231 @@ export default function DashboardOverview() {
             {depositError && <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>{depositError}</p>}
             {depositSuccess && <p style={{ color: "#7ee787", fontSize: "13px", marginTop: "12px" }}>{depositSuccess}</p>}
           </section>
-
+          <section
+            className="alias-card"
+            style={{ marginTop: "24px" }}
+          >
+            <div className="alias-card-icon">
+              <Wallet size={20} />
+            </div>
+          
+            <h2 style={{ marginBottom: "8px" }}>
+              Withdraw USDC
+            </h2>
+          
+            <p className="alias-overview-description">
+              Withdraw available Hyperliquid USDC
+              to your linked wallet.
+            </p>
+          
+            <p
+              className="text-dim"
+              style={{
+                marginTop: "10px",
+                fontSize: "13px",
+              }}
+            >
+              Available: $
+              {withdrawable.toLocaleString(
+                undefined,
+                {
+                  maximumFractionDigits: 2,
+                }
+              )}
+            </p>
+          
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "16px",
+              }}
+            >
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={withdrawalAmount}
+                onChange={(e) =>
+                  setWithdrawalAmount(
+                    e.target.value
+                  )
+                }
+                placeholder="Amount"
+                disabled={withdrawalLoading}
+                style={{
+                  flex: 1,
+                  border:
+                    "1px solid var(--line)",
+                  borderRadius: "6px",
+                  background: "transparent",
+                  padding: "10px 12px",
+                  color: "inherit",
+                }}
+              />
+          
+              <button
+                onClick={handleWithdrawal}
+                disabled={
+                  withdrawalLoading ||
+                  !withdrawalAmount ||
+                  withdrawable <= 1
+                }
+                className="landing-primary"
+              >
+                {withdrawalLoading
+                  ? "Withdrawing..."
+                  : "Withdraw"}
+              </button>
+            </div>
+          
+            <p
+              className="text-dim"
+              style={{
+                marginTop: "10px",
+                fontSize: "12px",
+              }}
+            >
+              Destination:{" "}
+              {walletAddress
+                ? `${walletAddress.slice(
+                    0,
+                    6
+                  )}...${walletAddress.slice(
+                    -4
+                  )}`
+                : "Wallet not connected"}
+            </p>
+          
+            {withdrawalError && (
+              <p
+                style={{
+                  color: "#ff6b6b",
+                  fontSize: "13px",
+                  marginTop: "12px",
+                }}
+              >
+                {withdrawalError}
+              </p>
+            )}
+          
+            {withdrawalSuccess && (
+              <p
+                style={{
+                  color: "#7ee787",
+                  fontSize: "13px",
+                  marginTop: "12px",
+                }}
+              >
+                {withdrawalSuccess}
+              </p>
+            )}
+          </section>
+          <section
+            className="alias-card"
+            style={{ marginTop: "24px" }}
+          >
+            <div className="alias-card-icon">
+              <Activity size={20} />
+            </div>
+          
+            <h2 style={{ marginBottom: "8px" }}>
+              Move Spot USDC
+            </h2>
+          
+            <p className="alias-overview-description">
+              Move USDC from your Hyperliquid Spot
+              account into Perps so it becomes
+              withdrawable trading balance.
+            </p>
+          
+            <p
+              className="text-dim"
+              style={{
+                marginTop: "10px",
+                fontSize: "13px",
+              }}
+            >
+              Spot available: $
+              {spotAvailable.toLocaleString(
+                undefined,
+                {
+                  maximumFractionDigits: 2,
+                }
+              )}
+            </p>
+          
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "16px",
+              }}
+            >
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={transferAmount}
+                onChange={(e) =>
+                  setTransferAmount(
+                    e.target.value
+                  )
+                }
+                placeholder="Amount"
+                disabled={transferLoading}
+                style={{
+                  flex: 1,
+                  border:
+                    "1px solid var(--line)",
+                  borderRadius: "6px",
+                  background: "transparent",
+                  padding: "10px 12px",
+                  color: "inherit",
+                }}
+              />
+          
+              <button
+                onClick={
+                  handleTransferSpotToPerps
+                }
+                disabled={
+                  transferLoading ||
+                  !transferAmount ||
+                  spotAvailable <= 0
+                }
+                className="landing-primary"
+              >
+                {transferLoading
+                  ? "Moving..."
+                  : "Move to Perps"}
+              </button>
+            </div>
+          
+            {transferError && (
+              <p
+                style={{
+                  color: "#ff6b6b",
+                  fontSize: "13px",
+                  marginTop: "12px",
+                }}
+              >
+                {transferError}
+              </p>
+            )}
+          
+            {transferSuccess && (
+              <p
+                style={{
+                  color: "#7ee787",
+                  fontSize: "13px",
+                  marginTop: "12px",
+                }}
+              >
+                {transferSuccess}
+              </p>
+            )}
+          </section>
           <section className="alias-next-step">
             <div>
               <span className="alias-next-label">LATEST AGENT ACTION</span>

@@ -32,10 +32,11 @@ class DisconnectRequest(BaseModel):
 @router.post("/create")
 def create_agent(req: CreateAgentRequest):
     with get_conn() as conn:
-        user = conn.execute(
+        conn.execute(
             "SELECT id, api_key_hash FROM users WHERE id = %s",
             (req.user_id,),
-        ).fetchone()
+        )
+        user = conn.fetchone()
 
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
@@ -92,7 +93,7 @@ def get_agent_profile(
     Only public account identifiers and setup state are returned.
     """
     with get_conn() as conn:
-        user = conn.execute(
+        conn.execute(
             """
             SELECT
                 id,
@@ -104,7 +105,8 @@ def get_agent_profile(
             WHERE id = %s
             """,
             (user_id,),
-        ).fetchone()
+        )  
+        user = conn.fetchone()
 
     if user is None:
         raise HTTPException(

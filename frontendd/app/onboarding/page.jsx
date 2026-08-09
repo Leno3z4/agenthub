@@ -33,6 +33,7 @@ import {
   createAgent,
   getAgentStatus,
   getAgentProfile,
+  repairAgent,
 } from "../../lib/api";
 
 import {
@@ -238,19 +239,10 @@ export default function Onboarding() {
       }
       
       if (existingApiKey) {
-        const profile = await getAgentProfile(
+        let profile = await getAgentProfile(
           existingUserId,
           existingApiKey,
         );
-      
-        if (profile.agent_address) {
-          setAgentAddress(profile.agent_address);
-      
-          localStorage.setItem(
-            "alias_agent_address",
-            profile.agent_address,
-          );
-        }
       
         if (profile.wallet_address) {
           localStorage.setItem(
@@ -259,19 +251,48 @@ export default function Onboarding() {
           );
         }
       
-        if (
-          profile.wallet_connected &&
-          profile.agent_created &&
-          profile.permissions_approved
-        ) {
-          router.replace("/dashboard");
-          return;
-        }
-      
+        /*
+         * Existing users may have an agent address whose
+         * encrypted signing key is missing or invalid.
+         *
+         * The backend checks this without exposing the
+         * private key and repairs it only when necessary.
+         */
         if (
           profile.wallet_connected &&
           profile.agent_created
         ) {
+          const repair = await repairAgent(
+            existingUserId,
+            existingApiKey,
+          );
+      
+          if (repair.agent_address) {
+            setAgentAddress(repair.agent_address);
+      
+            localStorage.setItem(
+              "alias_agent_address",
+              repair.agent_address,
+            );
+          }
+      
+          /*
+           * A repaired agent has not yet been authorized
+           * on Hyperliquid.
+           */
+          if (repair.repaired) {
+            setStep(4);
+            return;
+          }
+      
+          /*
+           * Existing healthy agent.
+           */
+          if (profile.permissions_approved) {
+            router.replace("/dashboard");
+            return;
+          }
+      
           setStep(4);
           return;
         }

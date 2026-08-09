@@ -32,7 +32,22 @@ export async function confirmPermissions(userId, apiKey) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+export async function repairAgent(userId, apiKey) {
+  const res = await fetch(`${BACKEND_URL}/agent/repair`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ user_id: userId }),
+  });
 
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
 export async function depositParams(amount, hypercoreRecipient) {
   const res = await fetch(`${BACKEND_URL}/bridge/deposit-params`, {
     method: "POST",

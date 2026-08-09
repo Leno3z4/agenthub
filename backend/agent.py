@@ -136,10 +136,11 @@ def get_agent_profile(
 @router.post("/connect")
 def connect_agent(req: ConnectAgentRequest):
     with get_conn() as conn:
-        connection = conn.execute(
+        conn.execute(
             "SELECT * FROM agent_connections WHERE token = %s",
             (req.connection_token,),
-        ).fetchone()
+        )
+        connection = conn.fetchone()
 
         if connection is None:
             raise HTTPException(
@@ -185,14 +186,15 @@ def connect_agent(req: ConnectAgentRequest):
 @router.post("/heartbeat")
 def heartbeat(req: HeartbeatRequest):
     with get_conn() as conn:
-        connection = conn.execute(
+        conn.execute(
             """
             SELECT user_id
             FROM agent_connections
             WHERE token = %s AND connected = 1
             """,
             (req.agent_token,),
-        ).fetchone()
+        )
+        connection = conn.fetchone()
 
         if connection is None:
             raise HTTPException(
@@ -213,14 +215,15 @@ def heartbeat(req: HeartbeatRequest):
 @router.post("/disconnect")
 def disconnect(req: DisconnectRequest):
     with get_conn() as conn:
-        connection = conn.execute(
+        conn.execute(
             """
             SELECT user_id
             FROM agent_connections
             WHERE token = %s AND connected = 1
             """,
             (req.agent_token,),
-        ).fetchone()
+        )
+        connection = conn.fetchone()
 
         if connection is None:
             raise HTTPException(

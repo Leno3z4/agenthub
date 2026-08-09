@@ -18,6 +18,8 @@ import {
   useSwitchChain,
 } from "wagmi";
 
+import { arcTestnet } from "viem/chains";
+
 
 import {
   depositUSDC,
@@ -52,7 +54,7 @@ export default function DashboardOverview() {
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositError, setDepositError] = useState("");
   const [depositSuccess, setDepositSuccess] = useState("");
-  const { switchChainAsync } = useSwitchChain();
+  
   const [
     withdrawalAmount,
     setWithdrawalAmount,
@@ -218,10 +220,7 @@ export default function DashboardOverview() {
       setTransferError("");
       setTransferSuccess("");
   
-      await switchChainAsync({
-        chainId:
-          arbitrumSepolia.id,
-      });
+      
   
       if (!walletClient) {
         throw new Error(
@@ -295,10 +294,7 @@ export default function DashboardOverview() {
       setWithdrawalError("");
       setWithdrawalSuccess("");
   
-      await switchChainAsync({
-        chainId:
-          arbitrumSepolia.id,
-      });
+      
   
       if (!walletClient) {
         throw new Error(

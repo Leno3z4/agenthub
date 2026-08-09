@@ -474,11 +474,14 @@ def _require_agent_auth(
     with get_conn() as conn:
         conn.execute(
             """
-            SELECT id
-            FROM agent_connections
-            WHERE user_id = %s
-              AND token = %s
-              AND connected = 1
+            SELECT
+                ac.user_id,
+                u.*
+            FROM agent_connections ac
+            JOIN users u
+                ON u.id = ac.user_id
+            WHERE ac.agent_token = %s
+              AND ac.connected = 1
             """,
             (user_id, credential),
         )

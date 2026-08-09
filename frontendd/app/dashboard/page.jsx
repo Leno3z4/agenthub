@@ -80,22 +80,11 @@ export default function DashboardOverview() {
   ] = useState("");
   
   const [transferSuccess, setTransferSuccess] = useState(false);
+  const [chainId, setChainId] = useState(arbitrumSepolia.id);
   
-  const { switchChainAsync } = useSwitchChain();
-  
-  const {
-    address,
-    isConnected,
-  } = useAccount();
-  
-  const {
-    data: arbitrumWalletClient,
-  } =
-    useWalletClient({
-      chainId:
-        arbitrumSepolia.id,
-    });
-  ] = useState("");
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();

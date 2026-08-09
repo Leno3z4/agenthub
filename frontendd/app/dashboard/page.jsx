@@ -18,7 +18,7 @@ import {
   useSwitchChain,
 } from "wagmi";
 
-import { arbitrumSepolia } from "viem/chains";
+const [chainId, setChainId] = useState(arcTestnet.id);
 
 import {
   depositUSDC,
@@ -90,7 +90,7 @@ export default function DashboardOverview() {
   ] = useState("");
   
   const [transferSuccess, setTransferSuccess] = useState(false);
-  const [chainId, setChainId] = useState(arbitrumSepolia.id);
+  const [chainId, setChainId] = useState(arcTestnet.id);
   
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();

@@ -95,7 +95,11 @@ def link_wallet(req: LinkWalletRequest):
     with get_conn() as conn:
         conn.execute(
             """
-            SELECT id, wallet_address, agent_address
+            SELECT
+                id,
+                wallet_address,
+                agent_address,
+                agent_key_encrypted
             FROM users
             WHERE google_id = %s OR email = %s
             """,
@@ -120,12 +124,26 @@ def link_wallet(req: LinkWalletRequest):
 
         api_key, api_key_hash = generate_api_key()
 
-        # Agent already exists — just update wallet/profile/api key.
-        if existing["agent_address"]:
+        # Check whether the existing delegated agent is actually usable.
+        agent_is_valid = False
+
+        if (
+            existing["agent_address"]
+            and existing["agent_key_encrypted"]
+        ):
+            try:
+                decrypt(existing["agent_key_encrypted"])
+                agent_is_valid = True
+            except Exception:
+                agent_is_valid = False
+
+        # Existing agent is healthy — keep it.
+        if agent_is_valid:
             conn.execute(
                 """
                 UPDATE users
                 SET
+                    wallet_address = %s,
                     google_id = %s,
                     email = %s,
                     name = %s,
@@ -134,6 +152,7 @@ def link_wallet(req: LinkWalletRequest):
                 WHERE id = %s
                 """,
                 (
+                    req.wallet_address,
                     req.google_id,
                     req.email,
                     req.name,
@@ -148,7 +167,8 @@ def link_wallet(req: LinkWalletRequest):
                 api_key=api_key,
             )
 
-        # First wallet link — create the delegated agent.
+        # Existing agent is corrupted/incomplete.
+        # Generate a completely new delegated wallet.
         agent_address, agent_private_key = generate_agent_wallet()
 
         conn.execute(
@@ -156,23 +176,26 @@ def link_wallet(req: LinkWalletRequest):
             UPDATE users
             SET
                 wallet_address = %s,
+                google_id = %s,
                 email = %s,
                 name = %s,
                 picture = %s,
                 agent_address = %s,
                 agent_key_encrypted = %s,
-                api_key_hash = %s
-            WHERE google_id = %s
+                api_key_hash = %s,
+                permissions_confirmed = 0
+            WHERE id = %s
             """,
             (
                 req.wallet_address,
+                req.google_id,
                 req.email,
                 req.name,
                 req.picture,
                 agent_address,
                 encrypt(agent_private_key),
                 api_key_hash,
-                req.google_id,
+                existing["id"],
             ),
         )
 
@@ -180,7 +203,6 @@ def link_wallet(req: LinkWalletRequest):
             agent_address=agent_address,
             api_key=api_key,
         )
-
 
 class ConfirmPermissionsRequest(BaseModel):
     user_id: str
@@ -612,9 +634,19 @@ def agent_trade(
         authorization,
     )
 
-    agent_private_key = decrypt(
-        user["agent_key_encrypted"],
-    )
+    if not user["agent_key_encrypted"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Agent signing key is missing. Re-authorize the agent.",
+        )
+    
+    try:
+        agent_private_key = decrypt(user["agent_key_encrypted"])
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=409,
+            detail="Agent signing key is invalid. Re-authorize the agent.",
+        )
 
     result = execute_trade(
         agent_private_key=agent_private_key,

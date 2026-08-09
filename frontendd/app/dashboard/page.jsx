@@ -78,7 +78,11 @@ export default function DashboardOverview() {
       setDepositLoading(true);
       setDepositError("");
       setDepositSuccess("");
-      await depositUSDC({ walletClient, publicClient, userId, apiKey, amount });
+      await depositUSDC({
+        walletClient,
+        publicClient,
+        amount,
+      });
       setDepositAmount("");
       setDepositSuccess("Deposit submitted successfully.");
       await loadDashboard();

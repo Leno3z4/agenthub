@@ -13,6 +13,7 @@ import {
   useAccount,
   useWalletClient,
   usePublicClient,
+  useSwitchChain,
 } from "wagmi";
 
 import {
@@ -69,7 +70,7 @@ export default function Onboarding() {
   const [apiKey, setApiKey] = useState("");
   const [agentAddress, setAgentAddress] = useState("");
   const [userId, setUserId] = useState("");
-
+  const { switchChainAsync } = useSwitchChain();
   const [agentPrompt, setAgentPrompt] = useState("");
   const [agentConnected, setAgentConnected] = useState(false);
   const [copied, setCopied] = useState(false);

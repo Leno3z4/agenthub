@@ -8,7 +8,17 @@ import {
 } from "next-auth/react";
 import { Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import {
+  arcTestnet,
+  arbitrumSepolia,
+} from "viem/chains";
+import {
+  getWalletClient,
+} from "wagmi/actions";
 
+import {
+  config,
+} from "../providers";
 import {
   useAccount,
   useWalletClient,
@@ -505,11 +515,11 @@ export default function Onboarding() {
   }
 
   async function authorizeAgent() {
-    if (!walletClient) return;
-  
     if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
       setAgentError(
-        `Invalid or missing agent address: ${agentAddress || "(empty)"}`,
+        `Invalid or missing agent address: ${
+          agentAddress || "(empty)"
+        }`,
       );
       return;
     }
@@ -518,8 +528,21 @@ export default function Onboarding() {
       setLoading(true);
       setAgentError("");
   
+      await switchChainAsync({
+        chainId: arbitrumSepolia.id,
+      });
+  
+      await new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      );
+  
+      const hyperliquidWalletClient =
+        await getWalletClient(config, {
+          chainId: arbitrumSepolia.id,
+        });
+  
       await approveAgent({
-        walletClient,
+        walletClient: hyperliquidWalletClient,
         agentAddress,
       });
   
@@ -528,9 +551,14 @@ export default function Onboarding() {
         apiKey,
       );
   
+      await switchChainAsync({
+        chainId: arcTestnet.id,
+      });
+  
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
+  
       setAgentError(
         err instanceof Error
           ? err.message

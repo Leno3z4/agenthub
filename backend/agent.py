@@ -117,10 +117,11 @@ def create_agent(req: CreateAgentRequest):
             (
                 user_id,
                 token,
+                agent_token,
                 connected,
                 created_at
             )
-            VALUES (%s, %s, 0, %s)
+            VALUES (%s, %s, NULL, 0, %s)
             """,
             (
                 req.user_id,
@@ -212,7 +213,6 @@ def get_agent_profile(
 def connect_agent(
     req: ConnectAgentRequest,
 ):
-
     with get_conn() as conn:
 
         conn.execute(
@@ -233,6 +233,7 @@ def connect_agent(
                 detail="Invalid connection token",
             )
 
+        # The connection token is intentionally one-time.
         if connection["connected"]:
             raise HTTPException(
                 status_code=409,
@@ -270,6 +271,12 @@ def connect_agent(
                 detail="Agent wallet not created",
             )
 
+        # Generate a SEPARATE long-lived agent token.
+        agent_token = (
+            "alias_agent_"
+            + secrets.token_urlsafe(48)
+        )
+
         now = datetime.now(
             timezone.utc
         ).isoformat()
@@ -279,12 +286,14 @@ def connect_agent(
             UPDATE agent_connections
             SET
                 connected = 1,
+                agent_token = %s,
                 agent_name = %s,
                 provider = %s,
                 connected_at = %s
             WHERE id = %s
             """,
             (
+                agent_token,
                 req.agent_name,
                 req.provider,
                 now,
@@ -307,7 +316,7 @@ def connect_agent(
     return {
         "connected": True,
         "user_id": connection["user_id"],
-        "agent_token": req.connection_token,
+        "agent_token": agent_token,
         "message": "Agent connected successfully.",
     }
 

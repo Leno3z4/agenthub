@@ -10,7 +10,6 @@ import { Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   arcTestnet,
-  arbitrumSepolia,
 } from "viem/chains";
 import {
   getWalletClient,

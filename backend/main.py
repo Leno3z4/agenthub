@@ -258,30 +258,30 @@ def repair_agent(
     agent_is_valid = False
 
     if (
-        existing["agent_address"]
-        and existing["agent_key_encrypted"]
+        user["agent_address"]
+        and user["agent_key_encrypted"]
     ):
         try:
             private_key = decrypt(
-                existing["agent_key_encrypted"]
+                user["agent_key_encrypted"]
             )
-    
+
             derived_address = Account.from_key(
                 private_key
             ).address
-    
+
             agent_is_valid = (
                 derived_address.lower()
-                == existing["agent_address"].lower()
+                == user["agent_address"].lower()
             )
-    
+
             if not agent_is_valid:
                 print(
                     "AGENT KEY/ADDRESS MISMATCH:",
-                    existing["agent_address"],
+                    user["agent_address"],
                     derived_address,
                 )
-    
+
         except Exception as exc:
             print(
                 "AGENT KEY VALIDATION FAILED:",
@@ -289,19 +289,16 @@ def repair_agent(
             )
             agent_is_valid = False
 
-    # Nothing is broken. Keep the existing delegated wallet.
     if agent_is_valid:
         return {
             "repaired": False,
             "agent_address": user["agent_address"],
         }
 
-    # Generate a completely new delegated wallet.
     agent_address, agent_private_key = generate_agent_wallet()
 
     encrypted_key = encrypt(agent_private_key)
 
-    # Verify the encryption immediately before saving.
     if decrypt(encrypted_key) != agent_private_key:
         raise HTTPException(
             status_code=500,

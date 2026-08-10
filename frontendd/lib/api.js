@@ -43,12 +43,15 @@ export async function repairAgent(userId, apiKey) {
     }
   );
 
+  const data = await res.json();
+
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Agent repair failed (${res.status}): ${text}`);
+    throw new Error(
+      data.detail || "Failed to repair agent"
+    );
   }
 
-  return res.json();
+  return data;
 }
 export async function depositParams(amount, hypercoreRecipient) {
   const res = await fetch(`${BACKEND_URL}/bridge/deposit-params`, {

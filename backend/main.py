@@ -1,7 +1,12 @@
 from typing import Optional
 from pathlib import Path
 from config import require
-from fastapi import FastAPI, HTTPException, Request, Header
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    Header,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
@@ -97,7 +102,12 @@ class LinkWalletResponse(BaseModel):
 
 
 @app.post("/wallet/link", response_model=LinkWalletResponse)
-def link_wallet(req: LinkWalletRequest):
+def link_wallet(
+    req: LinkWalletRequest,
+    x_internal_auth: Optional[str] = Header(None),
+):
+    require_internal_auth(x_internal_auth)
+
     with get_conn() as conn:
         conn.execute(
             """
@@ -339,7 +349,12 @@ def repair_agent(
     }
 
 @app.post("/users/register")
-def register_user(req: RegisterUserRequest):
+def register_user(
+    req: RegisterUserRequest,
+    x_internal_auth: Optional[str] = Header(None),
+):
+    require_internal_auth(x_internal_auth)
+
     with get_conn() as conn:
         conn.execute(
             """

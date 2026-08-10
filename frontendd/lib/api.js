@@ -33,20 +33,23 @@ export async function confirmPermissions(userId, apiKey) {
   return res.json();
 }
 export async function repairAgent(userId, apiKey) {
-  const res = await fetch(`${BACKEND_URL}/agent/repair`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ user_id: userId }),
-  });
+  const res = await fetch(
+    `${API_BASE}/agent/repair?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }
+  );
+
+  const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(await res.text());
+    throw new Error(data.detail || "Failed to repair agent");
   }
 
-  return res.json();
+  return data;
 }
 export async function depositParams(amount, hypercoreRecipient) {
   const res = await fetch(`${BACKEND_URL}/bridge/deposit-params`, {

@@ -34,7 +34,7 @@ export async function confirmPermissions(userId, apiKey) {
 }
 export async function repairAgent(userId, apiKey) {
   const res = await fetch(
-    `${BACKEND_URL}/agent/repair?user_id=${encodeURIComponent(userId)}`
+    `${BACKEND_URL}/agent/repair?user_id=${encodeURIComponent(userId)}`,
     {
       method: "POST",
       headers: {
@@ -43,13 +43,12 @@ export async function repairAgent(userId, apiKey) {
     }
   );
 
-  const data = await res.json();
-
   if (!res.ok) {
-    throw new Error(data.detail || "Failed to repair agent");
+    const text = await res.text();
+    throw new Error(`Agent repair failed (${res.status}): ${text}`);
   }
 
-  return data;
+  return res.json();
 }
 export async function depositParams(amount, hypercoreRecipient) {
   const res = await fetch(`${BACKEND_URL}/bridge/deposit-params`, {

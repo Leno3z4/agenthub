@@ -13,16 +13,23 @@ export async function registerUser(data) {
   return JSON.parse(text);
 }
 
-export async function linkWallet({ user_id, google_id, email, name, picture, wallet_address }) {
-  const res = await fetch(`${BACKEND_URL}/wallet/link`, {
+export async function linkWallet({ wallet_address }) {
+  const res = await fetch("/api/link-wallet", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id, google_id, email, name, picture, wallet_address }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      wallet_address,
+    }),
   });
-  if (!res.ok) throw new Error(await res.text());
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
   return res.json();
 }
-
 export async function confirmPermissions(userId, apiKey) {
   const res = await fetch(`${BACKEND_URL}/wallet/confirm-permissions`, {
     method: "POST",

@@ -85,14 +85,20 @@ def is_agent_authorized(
 
     now = int(time.time() * 1000)
 
-    return any(
-        agent.get("address", "").lower() == agent_address.lower()
-        and (
-            agent.get("validUntil") is None
-            or agent["validUntil"] > now
-        )
-        for agent in agents
-    )
+    for agent in agents:
+        address = agent.get("address", "")
+        valid_until = agent.get("validUntil")
+
+        if address.lower() != agent_address.lower():
+            continue
+
+        if valid_until is None:
+            return True
+
+        if int(valid_until) > now:
+            return True
+
+    return False
 
 
 def get_account_state(user_address: str) -> dict:

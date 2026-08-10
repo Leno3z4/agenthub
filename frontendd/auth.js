@@ -34,6 +34,7 @@ export const {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-Internal-Auth": process.env.BACKEND_INTERNAL_SECRET,
           },
           body: JSON.stringify({
             google_id: profile.sub,

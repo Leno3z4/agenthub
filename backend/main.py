@@ -9,7 +9,11 @@ from eth_account import Account
 
 from db import init_db, get_conn
 from crypto_utils import encrypt, decrypt
-from auth import generate_api_key, verify_api_key
+from auth import (
+    generate_api_key,
+    verify_api_key,
+    require_internal_auth,
+)
 from agent import router as agent_router
 
 

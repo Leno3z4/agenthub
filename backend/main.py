@@ -19,6 +19,7 @@ from hl_client import (
     execute_trade,
     execute_close,
     get_markets,
+    is_agent_authorized,
 )
 
 from bridge import (
@@ -758,15 +759,56 @@ def agent_trade(
     if not user["agent_key_encrypted"]:
         raise HTTPException(
             status_code=409,
-            detail="Agent signing key is missing. Re-authorize the agent.",
+            detail="Agent signing key is missing. Repair the agent.",
         )
     
     try:
-        agent_private_key = decrypt(user["agent_key_encrypted"])
-    except (TypeError, ValueError):
+        agent_private_key = decrypt(
+            user["agent_key_encrypted"]
+        )
+    except Exception as exc:
+        print(
+            "AGENT KEY DECRYPTION FAILED:",
+            repr(exc),
+        )
         raise HTTPException(
             status_code=409,
-            detail="Agent signing key is invalid. Re-authorize the agent.",
+            detail="Stored agent signing key cannot be decrypted. Repair the agent.",
+        )
+    
+    try:
+        derived_address = Account.from_key(
+            agent_private_key
+        ).address
+    except Exception as exc:
+        print(
+            "AGENT KEY INVALID:",
+            repr(exc),
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="Stored agent signing key is invalid. Repair the agent.",
+        )
+    
+    if derived_address.lower() != user["agent_address"].lower():
+        print(
+            "AGENT KEY/ADDRESS MISMATCH:",
+            user["agent_address"],
+            derived_address,
+        )
+    
+        raise HTTPException(
+            status_code=409,
+            detail="Stored agent key does not match the agent address. Repair the agent.",
+        )
+    
+    if not is_agent_authorized(
+        user["wallet_address"],
+        user["agent_address"],
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Agent is not authorized by Hyperliquid. Authorize the agent from your wallet.",
         )
 
     result = execute_trade(

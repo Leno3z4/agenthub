@@ -62,6 +62,38 @@ def _validate_address(user_address: str) -> str:
 
     return user_address
 
+def get_authorized_agents(user_address: str) -> list[dict]:
+    info = Info(
+        HL_API_URL,
+        skip_ws=True,
+    )
+
+    return info.extra_agents(user_address)
+
+def is_agent_authorized(
+    user_address: str,
+    agent_address: str,
+) -> bool:
+    if not user_address or not agent_address:
+        return False
+
+    try:
+        agents = get_authorized_agents(user_address)
+    except Exception as exc:
+        print("HYPERLIQUID AGENT CHECK FAILED:", repr(exc))
+        return False
+
+    now = int(time.time() * 1000)
+
+    return any(
+        agent.get("address", "").lower() == agent_address.lower()
+        and (
+            agent.get("validUntil") is None
+            or agent["validUntil"] > now
+        )
+        for agent in agents
+    )
+
 
 def get_account_state(user_address: str) -> dict:
     """

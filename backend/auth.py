@@ -1,6 +1,10 @@
 import hashlib
 import secrets
 
+from fastapi import HTTPException
+
+from config import require
+
 
 def generate_api_key() -> tuple[str, str]:
     """Returns (plaintext_key, hash_to_store). Plaintext is shown to
@@ -16,3 +20,15 @@ def hash_api_key(key: str) -> str:
 
 def verify_api_key(key: str, stored_hash: str) -> bool:
     return secrets.compare_digest(hash_api_key(key), stored_hash)
+
+
+
+
+def require_internal_auth(value: str | None) -> None:
+    expected = require("BACKEND_INTERNAL_SECRET")
+
+    if not value or not secrets.compare_digest(value, expected):
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized",
+        )

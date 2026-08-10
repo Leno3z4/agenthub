@@ -34,7 +34,7 @@ export async function confirmPermissions(userId, apiKey) {
 }
 export async function repairAgent(userId, apiKey) {
   const res = await fetch(
-    `${API_BASE}/agent/repair?user_id=${encodeURIComponent(userId)}`,
+    `${BACKEND_URL}/agent/repair?user_id=${encodeURIComponent(userId)}`
     {
       method: "POST",
       headers: {

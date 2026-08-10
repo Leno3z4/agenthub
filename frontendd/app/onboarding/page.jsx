@@ -394,11 +394,6 @@ export default function Onboarding() {
       const user = session.user;
   
       const data = await linkWallet({
-        user_id: userId,
-        google_id: user.authId,
-        email: user.email,
-        name: user.name,
-        picture: user.image ?? null,
         wallet_address: address,
       });
   

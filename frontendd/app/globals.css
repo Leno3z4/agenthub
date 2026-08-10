@@ -268,31 +268,42 @@ a {
   margin-top: 32px;
 }
 
-.landing-page .landing-primary {
+.landing-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
 
-  min-height: 52px;
-  padding: 0 23px;
+  min-height: 48px;
+  padding: 0 22px;
 
-  border-radius: 999px;
+  border: 0;
+  border-radius: 10px;
 
   background: var(--alias-lime);
   color: #0a0d08;
 
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+
+  cursor: pointer;
 
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.landing-page .landing-primary:hover {
+.landing-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 40px rgba(200, 255, 53, 0.18);
+}
+
+.landing-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .landing-page .landing-primary span {

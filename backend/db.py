@@ -104,77 +104,81 @@ def init_db():
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token_hash TEXT",
         ]
 
+        # Run ALL migrations before creating indexes that depend on them.
         for statement in migrations:
             conn.execute(statement)
+
+        conn.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_agent_connections_token_hash
+            ON agent_connections(token_hash)
+            WHERE token_hash IS NOT NULL
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_agent_connections_agent_token_hash
+            ON agent_connections(agent_token_hash)
+            WHERE agent_token_hash IS NOT NULL
+            """
+        )
+
+        from auth import hash_agent_token
+
+        # Migrate existing plaintext connection tokens.
+        conn.execute(
+            """
+            SELECT id, token
+            FROM agent_connections
+            WHERE token IS NOT NULL
+              AND token_hash IS NULL
+            """
+        )
+
+        connection_tokens = conn.fetchall()
+
+        for row in connection_tokens:
             conn.execute(
                 """
-                CREATE UNIQUE INDEX IF NOT EXISTS
-                idx_agent_connections_token_hash
-                ON agent_connections(token_hash)
-                WHERE token_hash IS NOT NULL
-                """
+                UPDATE agent_connections
+                SET token_hash = %s,
+                    token = NULL
+                WHERE id = %s
+                """,
+                (
+                    hash_agent_token(row["token"]),
+                    row["id"],
+                ),
             )
-    
+
+        # Migrate existing plaintext agent tokens.
+        conn.execute(
+            """
+            SELECT id, agent_token
+            FROM agent_connections
+            WHERE agent_token IS NOT NULL
+              AND agent_token_hash IS NULL
+            """
+        )
+
+        agent_tokens = conn.fetchall()
+
+        for row in agent_tokens:
             conn.execute(
                 """
-                CREATE UNIQUE INDEX IF NOT EXISTS
-                idx_agent_connections_agent_token_hash
-                ON agent_connections(agent_token_hash)
-                WHERE agent_token_hash IS NOT NULL
-                """
+                UPDATE agent_connections
+                SET agent_token_hash = %s,
+                    agent_token = NULL
+                WHERE id = %s
+                """,
+                (
+                    hash_agent_token(row["agent_token"]),
+                    row["id"],
+                ),
             )
-    
-            conn.execute(
-                """
-                SELECT id, token
-                FROM agent_connections
-                WHERE token IS NOT NULL
-                  AND token_hash IS NULL
-                """
-            )
-    
-            connection_tokens = conn.fetchall()
-    
-            from auth import hash_agent_token
-    
-            for row in connection_tokens:
-                conn.execute(
-                    """
-                    UPDATE agent_connections
-                    SET token_hash = %s,
-                        token = NULL
-                    WHERE id = %s
-                    """,
-                    (
-                        hash_agent_token(row["token"]),
-                        row["id"],
-                    ),
-                )
-    
-            conn.execute(
-                """
-                SELECT id, agent_token
-                FROM agent_connections
-                WHERE agent_token IS NOT NULL
-                  AND agent_token_hash IS NULL
-                """
-            )
-    
-            agent_tokens = conn.fetchall()
-    
-            for row in agent_tokens:
-                conn.execute(
-                    """
-                    UPDATE agent_connections
-                    SET agent_token_hash = %s,
-                        agent_token = NULL
-                    WHERE id = %s
-                    """,
-                    (
-                        hash_agent_token(row["agent_token"]),
-                        row["id"],
-                    ),
-                )
             
 
 @contextmanager

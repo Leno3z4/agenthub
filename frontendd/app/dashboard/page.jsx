@@ -32,7 +32,6 @@ import {
 import {
   getDashboard,
   getAgentStatus,
-  getGatewayBalance,
 } from "@/lib/api";
 
 function StatusDot({ active = false }) {
@@ -111,20 +110,12 @@ export default function DashboardOverview() {
       return;
     }
     try {
-      const [dashboardData, agentData, gatewayData] = await Promise.all([
+      const [dashboardData, agentData] = await Promise.all([
         getDashboard(userId, apiKey),
         getAgentStatus(userId, apiKey),
-        address
-          ? getGatewayBalance(address)
-          : Promise.resolve(null),
       ]);
       
-      setDashboard({
-        ...dashboardData,
-        gateway_balance: gatewayData?.total ?? 0,
-        gateway_available: gatewayData?.available ?? 0,
-        gateway_arc_balance: gatewayData?.arc_balance ?? 0,
-      });
+      
      
       setAgent(agentData);
       setError("");
@@ -181,8 +172,6 @@ export default function DashboardOverview() {
   }
 
   const latest = agent?.latest_action;
-  const gatewayBalance = Number(dashboard?.gateway_balance ?? 0);
-  const gatewayAvailable = Number(dashboard?.gateway_available ?? 0);
   const tradingBalance = Number(dashboard?.usdc_balance ?? 0);
   const accountValue = Number(dashboard?.account_value ?? 0);
   const marginUsed = Number(dashboard?.margin_used ?? 0);
@@ -356,21 +345,6 @@ export default function DashboardOverview() {
 
       {loading ? <p className="alias-overview-description">Loading...</p> : (
         <>
-          <section className="alias-setup-grid">
-            <div className="alias-card">
-              <div className="alias-card-icon"><DollarSign size={20} /></div>
-              <h3>
-                ${gatewayBalance.toLocaleString(undefined, {
-                  maximumFractionDigits: 2,
-                })}
-              </h3>
-              <p>Unified USDC balance</p>
-              <small className="text-dim">
-                ${gatewayAvailable.toLocaleString(undefined, {
-                  maximumFractionDigits: 2,
-                })} available
-              </small>
-            </div>
             <div className="alias-card">
               <div className="alias-card-icon"><Wallet size={20} /></div>
               <h3>

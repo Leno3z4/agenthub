@@ -131,13 +131,13 @@ def create_agent(
             }
 
         # Create a fresh ONE-TIME connection token.
-        token_hash = hash_agent_token(token)
+        
         
         token = (
             "alias_connect_"
             + secrets.token_urlsafe(32)
         )
-
+        token_hash = hash_agent_token(token)
         conn.execute(
             """
             INSERT INTO agent_connections

@@ -27,7 +27,6 @@ import {
 } from "wagmi";
 
 import {
-  registerUser,
   linkWallet,
   confirmPermissions,
   createAgent,

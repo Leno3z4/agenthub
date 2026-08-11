@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import secrets
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 
 from auth import verify_api_key
@@ -17,7 +17,7 @@ router = APIRouter(
 
 class CreateAgentRequest(BaseModel):
     user_id: str
-    api_key: str
+    
 
 
 class ConnectAgentRequest(BaseModel):
@@ -34,8 +34,29 @@ class DisconnectRequest(BaseModel):
     agent_token: str
 
 
+
+def _extract_api_key(authorization: str | None) -> str:
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization header",
+        )
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Authorization header",
+        )
+
+    return authorization.removeprefix("Bearer ").strip()
+
+
 @router.post("/create")
-def create_agent(req: CreateAgentRequest):
+def create_agent(
+    req: CreateAgentRequest,
+    authorization: str | None = Header(None),
+):
+    api_key = _extract_api_key(authorization)
     with get_conn() as conn:
         conn.execute(
             """
@@ -61,7 +82,7 @@ def create_agent(req: CreateAgentRequest):
         if (
             not user["api_key_hash"]
             or not verify_api_key(
-                req.api_key,
+                api_key,
                 user["api_key_hash"],
             )
         ):
@@ -157,8 +178,9 @@ def create_agent(req: CreateAgentRequest):
 @router.get("/profile/{user_id}")
 def get_agent_profile(
     user_id: str,
-    api_key: str,
+    authorization: str | None = Header(None),
 ):
+    api_key = _extract_api_key(authorization)
 
     with get_conn() as conn:
 
@@ -412,8 +434,9 @@ def disconnect(
 @router.get("/history/{user_id}")
 def trade_history(
     user_id: str,
-    api_key: str,
+    authorization: str | None = Header(None),
 ):
+    api_key = _extract_api_key(authorization)
 
     with get_conn() as conn:
 

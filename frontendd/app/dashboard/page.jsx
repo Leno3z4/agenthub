@@ -265,7 +265,7 @@ export default function DashboardOverview() {
   }
 
   const latest = agent?.latest_action;
-  const tradingBalance = Number(dashboard?.usdc_balance ?? 0);
+  const tradingBalance = Number(dashboard?.account_balance ?? 0);
   const marginUsed = Number(dashboard?.margin_used ?? 0);
   const withdrawable = Number(dashboard?.withdrawable ?? 0);
   const spotAvailable = Number(
@@ -319,7 +319,7 @@ export default function DashboardOverview() {
                 maximumFractionDigits: 2,
               })}
             </h3>
-            <p>Trading account balance</p>
+            <p>Perps account balance</p>
           </div>
 
           <div className="alias-card">

@@ -13,22 +13,24 @@ export default function AgentPage() {
   const [copied, setCopied] = useState(false);
   const {
     data: session,
-    
+    status: sessionStatus,
   } = useSession();
+  
   const userId = session?.user?.id;
-  const apiKey = session?.user?.apiKey;
+  
   async function load() {
-    const userId = localStorage.getItem("alias_user_id");
-    
-    if (!userId || !apiKey) {
+    if (sessionStatus === "loading") return;
+  
+    if (!userId) {
       setError("Alias session not found. Complete onboarding first.");
       setLoading(false);
       return;
     }
+  
     try {
       const [statusData, profileData] = await Promise.all([
-        getAgentStatus(userId, apiKey),
-        getAgentProfile(userId, apiKey),
+        getAgentStatus(userId),
+        getAgentProfile(userId),
       ]);
       setStatus(statusData);
       setProfile(profileData);
@@ -41,10 +43,14 @@ export default function AgentPage() {
   }
 
   useEffect(() => {
+    if (sessionStatus === "loading") return;
+  
     load();
+  
     const interval = setInterval(load, 5000);
+  
     return () => clearInterval(interval);
-  }, []);
+  }, [sessionStatus, userId]);
 
   async function copyAddress() {
     if (!profile?.agent_address) return;

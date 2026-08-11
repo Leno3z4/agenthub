@@ -1,31 +1,80 @@
-import { getGatewayWalletContract, getUsdcContract } from "./contracts";
+import {
+  depositParams,
+  deposit as registerDeposit,
+} from "./api";
+
+import {
+  getUsdcContract,
+  getTokenMessengerV2Contract,
+} from "./contracts";
 
 export async function depositUSDC({
   walletClient,
   publicClient,
+  userId,
+  apiKey,
   amount,
 }) {
+  if (!walletClient) {
+    throw new Error("Wallet is not connected.");
+  }
+
+  if (!publicClient) {
+    throw new Error("Public client is unavailable.");
+  }
+
   const [account] = await walletClient.getAddresses();
 
+  if (!account) {
+    throw new Error("Wallet account is unavailable.");
+  }
+
+  const numericAmount = Number(amount);
+
+  if (
+    !Number.isFinite(numericAmount) ||
+    numericAmount <= 0
+  ) {
+    throw new Error("Enter a valid USDC amount.");
+  }
+
   const amountUnits = BigInt(
-    Math.floor(Number(amount) * 1_000_000)
+    Math.floor(numericAmount * 1_000_000)
   );
 
   if (amountUnits <= 0n) {
     throw new Error("Enter a valid USDC amount.");
   }
 
-  const usdc = getUsdcContract(walletClient);
-  const gatewayWallet = getGatewayWalletContract(walletClient);
-
-  console.log("========== GATEWAY DEPOSIT ==========");
+  console.log("========== HYPERCORE CCTP DEPOSIT ==========");
   console.log("Wallet:", account);
-  console.log("Amount:", amount);
+  console.log("Amount:", numericAmount);
   console.log("USDC units:", amountUnits.toString());
-  console.log("Gateway:", gatewayWallet.address);
 
+  /*
+   * The backend supplies:
+   *
+   * - HyperEVM destination domain
+   * - CctpForwarder
+   * - HyperCore hook data
+   * - current CCTP forwarding fee
+   */
+  const params = await depositParams(
+    amountUnits.toString(),
+    account,
+  );
+
+  console.log("CCTP parameters:", params);
+
+  const usdc = getUsdcContract(walletClient);
+  const tokenMessenger =
+    getTokenMessengerV2Contract(walletClient);
+
+  /*
+   * Allow TokenMessengerV2 to burn the user's Arc USDC.
+   */
   const approveHash = await usdc.write.approve([
-    gatewayWallet.address,
+    tokenMessenger.address,
     amountUnits,
   ]);
 
@@ -33,25 +82,70 @@ export async function depositUSDC({
     hash: approveHash,
   });
 
-  console.log("Gateway approval confirmed:", approveHash);
+  console.log(
+    "TokenMessengerV2 approval confirmed:",
+    approveHash,
+  );
 
-  const depositHash = await gatewayWallet.write.deposit([
-    process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS,
-    amountUnits,
-  ]);
+  /*
+   * Burn Arc USDC through CCTP.
+   *
+   * The hook causes the destination CctpForwarder
+   * to forward the minted USDC into HyperCore.
+   */
+  const burnHash =
+    await tokenMessenger.write.depositForBurnWithHook([
+      amountUnits,
+      Number(params.destinationDomain),
+      params.mintRecipient,
+      params.burnToken,
+      params.destinationCaller,
+      BigInt(params.maxFee),
+      Number(params.minFinalityThreshold),
+      params.hookData,
+    ]);
 
-  const receipt = await publicClient.waitForTransactionReceipt({
-    hash: depositHash,
-  });
+  const receipt =
+    await publicClient.waitForTransactionReceipt({
+      hash: burnHash,
+    });
 
   if (receipt.status !== "success") {
-    throw new Error("Gateway deposit transaction reverted.");
+    throw new Error(
+      "CCTP HyperCore deposit transaction reverted."
+    );
   }
 
-  console.log("Gateway deposit confirmed:", depositHash);
+  console.log(
+    "CCTP burn confirmed:",
+    burnHash,
+  );
+
+  /*
+   * Register the burn with Alias so the backend
+   * can track the bridge.
+   *
+   * Dashboard deposits may not have user credentials
+   * available here, so registration is optional.
+   */
+  if (userId && apiKey) {
+    try {
+      await registerDeposit(
+        userId,
+        apiKey,
+        burnHash,
+        amountUnits.toString(),
+      );
+    } catch (error) {
+      console.error(
+        "Failed to register deposit with backend:",
+        error,
+      );
+    }
+  }
 
   return {
-    hash: depositHash,
-    amount: Number(amount),
+    hash: burnHash,
+    amount: numericAmount,
   };
 }

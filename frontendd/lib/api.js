@@ -48,11 +48,26 @@ export async function registerUser(data) {
 }
 
 export async function linkWallet({ wallet_address }) {
-  return privateFetch("wallet/link", {
+  const res = await fetch("/api/link-wallet", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ wallet_address }),
+    cache: "no-store",
   });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(text || `Wallet linking failed (${res.status})`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Wallet linking returned invalid JSON.");
+  }
 }
 
 export async function confirmPermissions(userId) {

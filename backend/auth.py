@@ -21,7 +21,9 @@ def hash_api_key(key: str) -> str:
 def verify_api_key(key: str, stored_hash: str) -> bool:
     return secrets.compare_digest(hash_api_key(key), stored_hash)
 
-
+def hash_agent_token(token: str) -> str:
+    """Hash a high-entropy agent bearer token before persistence."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def require_internal_auth(value: str | None) -> None:

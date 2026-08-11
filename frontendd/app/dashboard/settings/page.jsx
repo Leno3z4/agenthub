@@ -35,7 +35,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="font-mono text-sm">Network</div>
-            <div className="text-dim text-xs">Hyperliquid testnet</div>
+            <div className="text-dim text-xs">Arc testnet</div>
           </div>
 
           <span className="px-3 py-1.5 rounded text-xs font-mono border border-line text-dim">

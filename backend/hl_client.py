@@ -177,7 +177,7 @@ def get_account_state(user_address: str) -> dict:
             "totalMarginUsed",
             "0",
         ),
-        "withdrawable": str(perp_withdrawable),
+        "withdrawable": str(spot_withdrawable),
         "withdrawable_total": str(
             withdrawable_total
         ),

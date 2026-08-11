@@ -35,26 +35,6 @@ function StatusDot({ active = false }) {
   );
 }
 
-function getStoredCredentials(session) {
-  if (typeof window === "undefined") {
-    return {
-      userId: session?.user?.id || "",
-      apiKey: session?.user?.apiKey || "",
-    };
-  }
-
-  return {
-    userId:
-      localStorage.getItem("alias_user_id") ||
-      session?.user?.id ||
-      "",
-    apiKey:
-      localStorage.getItem("alias_api_key") ||
-      session?.user?.apiKey ||
-      "",
-  };
-}
-
 export default function DashboardOverview() {
   const [dashboard, setDashboard] = useState(null);
   const [agent, setAgent] = useState(null);
@@ -82,10 +62,10 @@ export default function DashboardOverview() {
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
-  async function loadDashboard() {
-    const { userId, apiKey } = getStoredCredentials(session);
+  const userId = session?.user?.id || "";
 
-    if (!userId || !apiKey) {
+  async function loadDashboard() {
+    if (!userId) {
       setNotSetUp(true);
       setLoading(false);
       return;
@@ -93,8 +73,8 @@ export default function DashboardOverview() {
 
     try {
       const [dashboardData, agentData] = await Promise.all([
-        getDashboard(userId, apiKey),
-        getAgentStatus(userId, apiKey),
+        getDashboard(userId),
+        getAgentStatus(userId),
       ]);
 
       setDashboard(dashboardData);
@@ -114,7 +94,7 @@ export default function DashboardOverview() {
   }
 
   useEffect(() => {
-    if (status !== "authenticated") {
+    if (status !== "authenticated" || !userId) {
       return;
     }
 
@@ -122,12 +102,10 @@ export default function DashboardOverview() {
 
     const interval = setInterval(loadDashboard, 15000);
     return () => clearInterval(interval);
-  }, [status, session?.user?.id, address]);
+  }, [status, userId, address]);
 
   async function handleDeposit() {
-    const { userId, apiKey } = getStoredCredentials(session);
-
-    if (!userId || !apiKey) {
+    if (!userId) {
       setDepositError("Your Alias session is missing.");
       return;
     }
@@ -153,7 +131,6 @@ export default function DashboardOverview() {
         walletClient,
         publicClient,
         userId,
-        apiKey,
         amount,
       });
 
@@ -280,10 +257,7 @@ export default function DashboardOverview() {
           No wallet linked yet — there&apos;s nothing to show here until
           onboarding is complete.
         </p>
-        <Link
-          href="/onboarding"
-          className="landing-primary"
-        >
+        <Link href="/onboarding" className="landing-primary">
           Start setup <ArrowUpRight size={18} />
         </Link>
       </div>
@@ -369,10 +343,7 @@ export default function DashboardOverview() {
             <p>Open positions</p>
           </div>
 
-          <section
-            className="alias-card"
-            style={{ marginTop: "24px" }}
-          >
+          <section className="alias-card" style={{ marginTop: "24px" }}>
             <div className="alias-card-icon">
               <Plus size={20} />
             </div>
@@ -442,10 +413,7 @@ export default function DashboardOverview() {
             )}
           </section>
 
-          <section
-            className="alias-card"
-            style={{ marginTop: "24px" }}
-          >
+          <section className="alias-card" style={{ marginTop: "24px" }}>
             <div className="alias-card-icon">
               <Wallet size={20} />
             </div>
@@ -480,9 +448,7 @@ export default function DashboardOverview() {
                 min="0"
                 step="0.01"
                 value={withdrawalAmount}
-                onChange={(e) =>
-                  setWithdrawalAmount(e.target.value)
-                }
+                onChange={(e) => setWithdrawalAmount(e.target.value)}
                 placeholder="Amount"
                 disabled={withdrawalLoading}
                 style={{
@@ -504,9 +470,7 @@ export default function DashboardOverview() {
                 }
                 className="landing-primary"
               >
-                {withdrawalLoading
-                  ? "Withdrawing..."
-                  : "Withdraw"}
+                {withdrawalLoading ? "Withdrawing..." : "Withdraw"}
               </button>
             </div>
 
@@ -516,10 +480,7 @@ export default function DashboardOverview() {
             >
               Destination:{" "}
               {walletAddress
-                ? `${walletAddress.slice(
-                    0,
-                    6
-                  )}...${walletAddress.slice(-4)}`
+                ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
                 : "Wallet not connected"}
             </p>
 
@@ -548,10 +509,7 @@ export default function DashboardOverview() {
             )}
           </section>
 
-          <section
-            className="alias-card"
-            style={{ marginTop: "24px" }}
-          >
+          <section className="alias-card" style={{ marginTop: "24px" }}>
             <div className="alias-card-icon">
               <Activity size={20} />
             </div>
@@ -587,9 +545,7 @@ export default function DashboardOverview() {
                 min="0"
                 step="0.01"
                 value={transferAmount}
-                onChange={(e) =>
-                  setTransferAmount(e.target.value)
-                }
+                onChange={(e) => setTransferAmount(e.target.value)}
                 placeholder="Amount"
                 disabled={transferLoading}
                 style={{
@@ -611,9 +567,7 @@ export default function DashboardOverview() {
                 }
                 className="landing-primary"
               >
-                {transferLoading
-                  ? "Moving..."
-                  : "Move to Perps"}
+                {transferLoading ? "Moving..." : "Move to Perps"}
               </button>
             </div>
 
@@ -674,10 +628,7 @@ export default function DashboardOverview() {
               )}
             </div>
 
-            <Link
-              href="/dashboard/agent"
-              className="landing-primary"
-            >
+            <Link href="/dashboard/agent" className="landing-primary">
               View agent <ArrowUpRight size={18} />
             </Link>
           </section>

@@ -12,7 +12,6 @@ export async function depositUSDC({
   walletClient,
   publicClient,
   userId,
-  apiKey,
   amount,
 }) {
   if (!walletClient) {
@@ -31,10 +30,7 @@ export async function depositUSDC({
 
   const numericAmount = Number(amount);
 
-  if (
-    !Number.isFinite(numericAmount) ||
-    numericAmount <= 0
-  ) {
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
     throw new Error("Enter a valid USDC amount.");
   }
 
@@ -51,28 +47,15 @@ export async function depositUSDC({
   console.log("Amount:", numericAmount);
   console.log("USDC units:", amountUnits.toString());
 
-  /*
-   * The backend supplies:
-   *
-   * - HyperEVM destination domain
-   * - CctpForwarder
-   * - HyperCore hook data
-   * - current CCTP forwarding fee
-   */
   const params = await depositParams(
     amountUnits.toString(),
-    account,
+    account
   );
-
-  console.log("CCTP parameters:", params);
 
   const usdc = getUsdcContract(walletClient);
   const tokenMessenger =
     getTokenMessengerV2Contract(walletClient);
 
-  /*
-   * Allow TokenMessengerV2 to burn the user's Arc USDC.
-   */
   const approveHash = await usdc.write.approve([
     tokenMessenger.address,
     amountUnits,
@@ -84,15 +67,9 @@ export async function depositUSDC({
 
   console.log(
     "TokenMessengerV2 approval confirmed:",
-    approveHash,
+    approveHash
   );
 
-  /*
-   * Burn Arc USDC through CCTP.
-   *
-   * The hook causes the destination CctpForwarder
-   * to forward the minted USDC into HyperCore.
-   */
   const burnHash =
     await tokenMessenger.write.depositForBurnWithHook([
       amountUnits,
@@ -116,30 +93,19 @@ export async function depositUSDC({
     );
   }
 
-  console.log(
-    "CCTP burn confirmed:",
-    burnHash,
-  );
+  console.log("CCTP burn confirmed:", burnHash);
 
-  /*
-   * Register the burn with Alias so the backend
-   * can track the bridge.
-   *
-   * Dashboard deposits may not have user credentials
-   * available here, so registration is optional.
-   */
-  if (userId && apiKey) {
+  if (userId) {
     try {
       await registerDeposit(
         userId,
-        apiKey,
         burnHash,
-        amountUnits.toString(),
+        amountUnits.toString()
       );
     } catch (error) {
       console.error(
         "Failed to register deposit with backend:",
-        error,
+        error
       );
     }
   }

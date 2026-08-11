@@ -219,12 +219,7 @@ def link_wallet(
         # Existing agent is corrupted/incomplete.
         # Generate a completely new delegated wallet.
         agent_address, agent_private_key = generate_agent_wallet()
-        print("GENERATED NEW AGENT:", agent_address)
-        print("ENCRYPTION KEY LENGTH:", len(require("ENCRYPTION_KEY")))
-        print(
-            "NEW KEY DECRYPT TEST:",
-            decrypt(encrypt(agent_private_key)) == agent_private_key,
-        )
+        
         conn.execute(
             """
             UPDATE users

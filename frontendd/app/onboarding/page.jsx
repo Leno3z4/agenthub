@@ -215,7 +215,9 @@ export default function Onboarding() {
       
       setUserId(existingUserId);
       setApiKey(existingApiKey || "");
-      
+      if (existingApiKey) {
+        localStorage.setItem("alias_api_key", existingApiKey);
+      }
       localStorage.setItem(
         "alias_user_id",
         existingUserId,
@@ -400,6 +402,7 @@ export default function Onboarding() {
       );
   
       setApiKey(data.api_key);
+      localStorage.setItem("alias_api_key", data.api_key);
       setAgentAddress(data.agent_address);
       setStep(2);
     } catch (err) {

@@ -37,6 +37,11 @@ from bridge import (
     bridge_status,
 )
 
+from withdrawal import (
+    withdrawal_parameters,
+    withdrawal_status,
+)
+
 
 from config import (
     HYPERLIQUID_CCTP_DOMAIN,
@@ -660,6 +665,9 @@ class DepositCompleteRequest(BaseModel):
     burn_tx_hash: str
     amount_usdc_units: int
 
+class WithdrawalParametersRequest(BaseModel):
+    amount: str
+    destination: str
 
 @app.post("/bridge/deposit-params")
 def bridge_deposit_params(
@@ -727,6 +735,38 @@ def bridge_transfer_status(
         burn_tx_hash,
     )
 
+
+
+
+@app.post("/bridge/withdraw-params")
+def get_withdrawal_parameters(
+    req: WithdrawalParametersRequest,
+):
+    try:
+        return withdrawal_parameters(
+            amount=req.amount,
+            destination=req.destination,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+
+@app.get("/bridge/withdraw/status/{burn_tx_hash}")
+def get_withdrawal_status(
+    burn_tx_hash: str,
+):
+    try:
+        return withdrawal_status(
+            burn_tx_hash,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        )
 # ---------------------------------------------------------------------
 # Markets
 # ---------------------------------------------------------------------

@@ -13,34 +13,42 @@ export const USDC_ABI = [
   },
 ];
 
-export const GATEWAY_WALLET_ABI = [
+export const TOKEN_MESSENGER_V2_ABI = [
   {
     type: "function",
-    name: "deposit",
+    name: "depositForBurnWithHook",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "token", type: "address" },
-      { name: "value", type: "uint256" },
+      { name: "amount", type: "uint256" },
+      { name: "destinationDomain", type: "uint32" },
+      { name: "mintRecipient", type: "bytes32" },
+      { name: "burnToken", type: "address" },
+      { name: "destinationCaller", type: "bytes32" },
+      { name: "maxFee", type: "uint256" },
+      { name: "minFinalityThreshold", type: "uint32" },
+      { name: "hookData", type: "bytes" },
     ],
     outputs: [],
   },
 ];
 
-export const GATEWAY_WALLET_ADDRESS =
-  "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
+export const ARC_TOKEN_MESSENGER_V2 =
+  "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA";
 
 export function getUsdcContract(walletClient) {
   return getContract({
-    address: process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS,
+    address:
+      process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS ||
+      "0x3600000000000000000000000000000000000000",
     abi: USDC_ABI,
     client: walletClient,
   });
 }
 
-export function getGatewayWalletContract(walletClient) {
+export function getTokenMessengerV2Contract(walletClient) {
   return getContract({
-    address: GATEWAY_WALLET_ADDRESS,
-    abi: GATEWAY_WALLET_ABI,
+    address: ARC_TOKEN_MESSENGER_V2,
+    abi: TOKEN_MESSENGER_V2_ABI,
     client: walletClient,
   });
 }

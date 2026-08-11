@@ -221,12 +221,7 @@ export default function Onboarding() {
         existingUserId,
       );
       
-      if (existingApiKey) {
-        localStorage.setItem(
-          "alias_api_key",
-          existingApiKey,
-        );
-      }
+      
       
       if (existingApiKey) {
         let profile = await getAgentProfile(
@@ -392,10 +387,7 @@ export default function Onboarding() {
         userId,
       );
   
-      localStorage.setItem(
-        "alias_api_key",
-        data.api_key,
-      );
+      
   
       localStorage.setItem(
         "alias_arc_address",

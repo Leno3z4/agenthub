@@ -35,6 +35,35 @@ function StatusDot({ active = false }) {
   );
 }
 
+async function registerArcWithdrawal({ userId, amount, destination }) {
+  const response = await fetch("/api/backend/bridge/withdraw", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      amount_usdc: amount,
+      destination,
+    }),
+    cache: "no-store",
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(text || `Withdrawal bridge returned ${response.status}.`);
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Withdrawal bridge returned invalid JSON.");
+  }
+}
+
 export default function DashboardOverview() {
   const [dashboard, setDashboard] = useState(null);
   const [agent, setAgent] = useState(null);
@@ -84,9 +113,7 @@ export default function DashboardOverview() {
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "Couldn't load your dashboard."
+        err instanceof Error ? err.message : "Couldn't load your dashboard."
       );
     } finally {
       setLoading(false);
@@ -94,9 +121,7 @@ export default function DashboardOverview() {
   }
 
   useEffect(() => {
-    if (status !== "authenticated" || !userId) {
-      return;
-    }
+    if (status !== "authenticated" || !userId) return;
 
     loadDashboard();
 
@@ -148,9 +173,7 @@ export default function DashboardOverview() {
 
   async function handleTransferSpotToPerps() {
     const amount = Number(transferAmount);
-    const spotAvailable = Number(
-      dashboard?.spot_usdc_available ?? 0
-    );
+    const spotAvailable = Number(dashboard?.spot_usdc_available ?? 0);
 
     if (!Number.isFinite(amount) || amount <= 0) {
       setTransferError("Enter a valid amount.");
@@ -211,7 +234,17 @@ export default function DashboardOverview() {
       setWithdrawalError(
         `Maximum withdrawable amount is $${maximum.toFixed(
           2
-        )} after the $1 withdrawal fee.`
+        )} after the $1 Hyperliquid withdrawal fee.`
+      );
+      return;
+    }
+
+    const bridgeAddress =
+      process.env.NEXT_PUBLIC_HL_WITHDRAW_ROUTER_ADDRESS || "";
+
+    if (!bridgeAddress) {
+      setWithdrawalError(
+        "Withdrawal routing is not configured. Set NEXT_PUBLIC_HL_WITHDRAW_ROUTER_ADDRESS."
       );
       return;
     }
@@ -227,15 +260,32 @@ export default function DashboardOverview() {
         );
       }
 
+      /*
+       * The user's wallet signs the only Hyperliquid withdrawal action.
+       * Hyperliquid sends the USDC to Alias's Arbitrum relay address.
+       *
+       * The relay/backend then:
+       *   1. receives the Hyperliquid withdrawal on Arbitrum;
+       *   2. uses Circle Gateway/CCTP Forwarding;
+       *   3. delivers native USDC to this user's Arc wallet.
+       *
+       * The user never has to switch to Arbitrum or pay Arbitrum gas.
+       */
       await withdrawHyperliquid({
         walletClient,
-        destination: walletAddress,
+        destination: bridgeAddress,
         amount: amount.toString(),
+      });
+
+      await registerArcWithdrawal({
+        userId,
+        amount,
+        destination: walletAddress,
       });
 
       setWithdrawalAmount("");
       setWithdrawalSuccess(
-        "Withdrawal submitted. Hyperliquid will process the bridge to your wallet."
+        "Withdrawal submitted. Alias is routing the USDC back to your Arc wallet."
       );
 
       setTimeout(loadDashboard, 5000);
@@ -265,13 +315,10 @@ export default function DashboardOverview() {
   }
 
   const latest = agent?.latest_action;
-  const tradingBalance = Number(dashboard?.account_balance ?? 0);
+  const tradingBalance = Number(dashboard?.usdc_balance ?? 0);
   const marginUsed = Number(dashboard?.margin_used ?? 0);
   const withdrawable = Number(dashboard?.withdrawable ?? 0);
-  const spotAvailable = Number(
-    dashboard?.spot_usdc_available ?? 0
-  );
-  const walletAddress = address || "";
+  const spotAvailable = Number(dashboard?.spot_usdc_available ?? 0);
 
   return (
     <div className="alias-overview">
@@ -309,38 +356,47 @@ export default function DashboardOverview() {
         <p className="alias-overview-description">Loading...</p>
       ) : (
         <>
-          <div className="alias-card">
-            <div className="alias-card-icon">
-              <Wallet size={20} />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: "24px",
+              alignItems: "stretch",
+            }}
+          >
+            <div className="alias-card">
+              <div className="alias-card-icon">
+                <Wallet size={20} />
+              </div>
+              <h3>
+                $
+                {tradingBalance.toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })}
+              </h3>
+              <p>Trading account balance</p>
             </div>
-            <h3>
-              $
-              {tradingBalance.toLocaleString(undefined, {
-                maximumFractionDigits: 2,
-              })}
-            </h3>
-            <p>Perps account balance</p>
-          </div>
 
-          <div className="alias-card">
-            <div className="alias-card-icon">
-              <ShieldCheck size={20} />
+            <div className="alias-card">
+              <div className="alias-card-icon">
+                <ShieldCheck size={20} />
+              </div>
+              <h3>
+                $
+                {marginUsed.toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })}
+              </h3>
+              <p>Margin used</p>
             </div>
-            <h3>
-              $
-              {marginUsed.toLocaleString(undefined, {
-                maximumFractionDigits: 2,
-              })}
-            </h3>
-            <p>Margin used</p>
-          </div>
 
-          <div className="alias-card">
-            <div className="alias-card-icon">
-              <Activity size={20} />
+            <div className="alias-card">
+              <div className="alias-card-icon">
+                <Activity size={20} />
+              </div>
+              <h3>{dashboard?.positions?.length ?? 0}</h3>
+              <p>Open positions</p>
             </div>
-            <h3>{dashboard?.positions?.length ?? 0}</h3>
-            <p>Open positions</p>
           </div>
 
           <section className="alias-card" style={{ marginTop: "24px" }}>
@@ -389,25 +445,13 @@ export default function DashboardOverview() {
             </div>
 
             {depositError && (
-              <p
-                style={{
-                  color: "#ff6b6b",
-                  fontSize: "13px",
-                  marginTop: "12px",
-                }}
-              >
+              <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>
                 {depositError}
               </p>
             )}
 
             {depositSuccess && (
-              <p
-                style={{
-                  color: "#7ee787",
-                  fontSize: "13px",
-                  marginTop: "12px",
-                }}
-              >
+              <p style={{ color: "#7ee787", fontSize: "13px", marginTop: "12px" }}>
                 {depositSuccess}
               </p>
             )}
@@ -418,18 +462,13 @@ export default function DashboardOverview() {
               <Wallet size={20} />
             </div>
 
-            <h2 style={{ marginBottom: "8px" }}>
-              Withdraw USDC
-            </h2>
+            <h2 style={{ marginBottom: "8px" }}>Withdraw USDC</h2>
 
             <p className="alias-overview-description">
-              Withdraw available Hyperliquid USDC to your linked wallet.
+              Withdraw available Hyperliquid USDC directly back to your Arc wallet.
             </p>
 
-            <p
-              className="text-dim"
-              style={{ marginTop: "10px", fontSize: "13px" }}
-            >
+            <p className="text-dim" style={{ marginTop: "10px", fontSize: "13px" }}>
               Available: $
               {withdrawable.toLocaleString(undefined, {
                 maximumFractionDigits: 2,
@@ -470,40 +509,25 @@ export default function DashboardOverview() {
                 }
                 className="landing-primary"
               >
-                {withdrawalLoading ? "Withdrawing..." : "Withdraw"}
+                {withdrawalLoading ? "Routing..." : "Withdraw"}
               </button>
             </div>
 
-            <p
-              className="text-dim"
-              style={{ marginTop: "10px", fontSize: "12px" }}
-            >
+            <p className="text-dim" style={{ marginTop: "10px", fontSize: "12px" }}>
               Destination:{" "}
-              {walletAddress
-                ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                : "Wallet not connected"}
+              {address
+                ? `${address.slice(0, 6)}...${address.slice(-4)} · Arc`
+                : "Arc wallet not connected"}
             </p>
 
             {withdrawalError && (
-              <p
-                style={{
-                  color: "#ff6b6b",
-                  fontSize: "13px",
-                  marginTop: "12px",
-                }}
-              >
+              <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>
                 {withdrawalError}
               </p>
             )}
 
             {withdrawalSuccess && (
-              <p
-                style={{
-                  color: "#7ee787",
-                  fontSize: "13px",
-                  marginTop: "12px",
-                }}
-              >
+              <p style={{ color: "#7ee787", fontSize: "13px", marginTop: "12px" }}>
                 {withdrawalSuccess}
               </p>
             )}
@@ -514,19 +538,14 @@ export default function DashboardOverview() {
               <Activity size={20} />
             </div>
 
-            <h2 style={{ marginBottom: "8px" }}>
-              Move Spot USDC
-            </h2>
+            <h2 style={{ marginBottom: "8px" }}>Move Spot USDC</h2>
 
             <p className="alias-overview-description">
               Move USDC from your Hyperliquid Spot account into Perps so it
-              becomes withdrawable trading balance.
+              becomes available as trading balance.
             </p>
 
-            <p
-              className="text-dim"
-              style={{ marginTop: "10px", fontSize: "13px" }}
-            >
+            <p className="text-dim" style={{ marginTop: "10px", fontSize: "13px" }}>
               Spot available: $
               {spotAvailable.toLocaleString(undefined, {
                 maximumFractionDigits: 2,
@@ -572,25 +591,13 @@ export default function DashboardOverview() {
             </div>
 
             {transferError && (
-              <p
-                style={{
-                  color: "#ff6b6b",
-                  fontSize: "13px",
-                  marginTop: "12px",
-                }}
-              >
+              <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>
                 {transferError}
               </p>
             )}
 
             {transferSuccess && (
-              <p
-                style={{
-                  color: "#7ee787",
-                  fontSize: "13px",
-                  marginTop: "12px",
-                }}
-              >
+              <p style={{ color: "#7ee787", fontSize: "13px", marginTop: "12px" }}>
                 USDC moved from Spot to Perps.
               </p>
             )}
@@ -598,9 +605,7 @@ export default function DashboardOverview() {
 
           <section className="alias-next-step">
             <div>
-              <span className="alias-next-label">
-                LATEST AGENT ACTION
-              </span>
+              <span className="alias-next-label">LATEST AGENT ACTION</span>
 
               {latest ? (
                 <>
@@ -609,8 +614,7 @@ export default function DashboardOverview() {
                     {latest.size} {latest.coin}
                   </h2>
                   <p>
-                    {latest.reasoning ||
-                      "No reasoning reported by the agent."}{" "}
+                    {latest.reasoning || "No reasoning reported by the agent."}{" "}
                     {latest.confidence != null &&
                       ` — confidence ${Math.round(
                         latest.confidence * 100

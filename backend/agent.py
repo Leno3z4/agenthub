@@ -4,7 +4,7 @@ import secrets
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 
-from auth import verify_api_key
+from auth import hash_agent_token, verify_api_key
 from db import get_conn
 from hl_client import get_market_candles
 
@@ -108,7 +108,7 @@ def create_agent(
         conn.execute(
             """
             SELECT
-                agent_token
+                id
             FROM agent_connections
             WHERE user_id = %s
               AND connected = 1
@@ -131,6 +131,8 @@ def create_agent(
             }
 
         # Create a fresh ONE-TIME connection token.
+        token_hash = hash_agent_token(token)
+        
         token = (
             "alias_connect_"
             + secrets.token_urlsafe(32)
@@ -141,8 +143,8 @@ def create_agent(
             INSERT INTO agent_connections
             (
                 user_id,
-                token,
-                agent_token,
+                token_hash,
+                agent_token_hash,
                 connected,
                 created_at
             )
@@ -150,7 +152,7 @@ def create_agent(
             """,
             (
                 req.user_id,
-                token,
+                token_hash,
                 datetime.now(
                     timezone.utc
                 ).isoformat(),
@@ -245,9 +247,9 @@ def connect_agent(
             SELECT
                 *
             FROM agent_connections
-            WHERE token = %s
+            WHERE token_hash = %s
             """,
-            (req.connection_token,),
+            (hash_agent_token(req.connection_token),),
         )
 
         connection = conn.fetchone()
@@ -301,6 +303,7 @@ def connect_agent(
             "alias_agent_"
             + secrets.token_urlsafe(48)
         )
+        agent_token_hash = hash_agent_token(agent_token)
 
         now = datetime.now(
             timezone.utc
@@ -311,14 +314,14 @@ def connect_agent(
             UPDATE agent_connections
             SET
                 connected = 1,
-                agent_token = %s,
+                agent_token_hash = %s,
                 agent_name = %s,
                 provider = %s,
                 connected_at = %s
             WHERE id = %s
             """,
             (
-                agent_token,
+                agent_token_hash,
                 req.agent_name,
                 req.provider,
                 now,
@@ -357,10 +360,10 @@ def heartbeat(
             """
             SELECT user_id
             FROM agent_connections
-            WHERE agent_token = %s
+            WHERE agent_token_hash = %s
               AND connected = 1
             """,
-            (req.agent_token,),
+            (hash_agent_token(req.agent_token),),
         )
 
         connection = conn.fetchone()
@@ -403,10 +406,10 @@ def disconnect(
             """
             SELECT user_id
             FROM agent_connections
-            WHERE agent_token = %s
+            WHERE agent_token_hash = %s
               AND connected = 1
             """,
-            (req.agent_token,),
+            (hash_agent_token(req.agent_token),),
         )
 
         connection = conn.fetchone()
@@ -421,9 +424,9 @@ def disconnect(
             """
             UPDATE agent_connections
             SET connected = 0
-            WHERE agent_token = %s
+            WHERE agent_token_hash = %s
             """,
-            (req.agent_token,),
+            (hash_agent_token(req.agent_token),),
         )
 
     return {

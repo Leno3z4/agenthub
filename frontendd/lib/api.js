@@ -89,10 +89,15 @@ export async function bridgeStatus(burnTxHash) {
 export async function createAgent(userId, apiKey) {
   const res = await fetch(`${BACKEND_URL}/agent/create`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: userId, api_key: apiKey }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ user_id: userId }),
   });
+
   if (!res.ok) throw new Error(await res.text());
+
   return res.json();
 }
 
@@ -106,21 +111,36 @@ export async function getAgentStatus(userId, apiKey) {
 }
 
 export async function getAgentProfile(userId, apiKey) {
-  const res = await fetch(`${BACKEND_URL}/agent/profile/${userId}?api_key=${encodeURIComponent(apiKey)}`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${BACKEND_URL}/agent/profile/${encodeURIComponent(userId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: "no-store",
+    }
+  );
+
   if (!res.ok) throw new Error(await res.text());
+
   return res.json();
 }
 
 export async function getAgentHistory(userId, apiKey) {
-  const res = await fetch(`${BACKEND_URL}/agent/history/${userId}?api_key=${encodeURIComponent(apiKey)}`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${BACKEND_URL}/agent/history/${encodeURIComponent(userId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: "no-store",
+    }
+  );
+
   if (!res.ok) throw new Error(await res.text());
+
   return res.json();
 }
-
 export async function getMarkets() {
   const res = await fetch(`${BACKEND_URL}/markets`, { cache: "no-store" });
   if (!res.ok) throw new Error(`backend returned ${res.status}`);

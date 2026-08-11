@@ -19,7 +19,7 @@ export default function AgentPage() {
   const apiKey = session?.user?.apiKey;
   async function load() {
     const userId = localStorage.getItem("alias_user_id");
-    const apiKey = localStorage.getItem("alias_api_key");
+    
     if (!userId || !apiKey) {
       setError("Alias session not found. Complete onboarding first.");
       setLoading(false);

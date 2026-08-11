@@ -154,11 +154,21 @@ def get_account_state(user_address: str) -> dict:
         usdc_total - usdc_hold,
     )
     
-    withdrawable_total = max(
-        perp_withdrawable,
-        spot_withdrawable,
+    maintenance_available = 0.0
+    
+    token_available = state.get(
+        "tokenToAvailableAfterMaintenance",
+        [],
     )
-
+    
+    for token, amount in token_available:
+        if int(token) == 0:
+            maintenance_available = float(
+                amount or 0
+            )
+            break
+    
+    withdrawable_total = maintenance_available
     return {
         "account_value": margin.get(
             "accountValue",
@@ -169,7 +179,9 @@ def get_account_state(user_address: str) -> dict:
             "0",
         ),
         "withdrawable": str(perp_withdrawable),
-        "withdrawable_total": str(withdrawable_total),
+        "withdrawable_total": str(
+            withdrawable_total
+        ),
 
         "usdc_balance": str(
             usdc_total

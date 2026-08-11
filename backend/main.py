@@ -539,7 +539,7 @@ def _require_agent_auth(
     ):
         return user
 
-    # Agent authentication: connection token issued by /agent/create.
+    
         # Agent authentication: hashed agent bearer token.
         token_hash = hash_agent_token(credential)
         

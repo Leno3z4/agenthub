@@ -13,7 +13,7 @@ export default function AgentPage() {
   const [copied, setCopied] = useState(false);
   const {
     data: session,
-    status,
+    
   } = useSession();
   const userId = session?.user?.id;
   const apiKey = session?.user?.apiKey;

@@ -100,11 +100,82 @@ def init_db():
             "ALTER TABLE trades ADD COLUMN IF NOT EXISTS strategy TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id TEXT",
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token TEXT UNIQUE",
+            "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS token_hash TEXT",
+            "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token_hash TEXT",
         ]
 
         for statement in migrations:
             conn.execute(statement)
-
+            conn.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                idx_agent_connections_token_hash
+                ON agent_connections(token_hash)
+                WHERE token_hash IS NOT NULL
+                """
+            )
+    
+            conn.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                idx_agent_connections_agent_token_hash
+                ON agent_connections(agent_token_hash)
+                WHERE agent_token_hash IS NOT NULL
+                """
+            )
+    
+            conn.execute(
+                """
+                SELECT id, token
+                FROM agent_connections
+                WHERE token IS NOT NULL
+                  AND token_hash IS NULL
+                """
+            )
+    
+            connection_tokens = conn.fetchall()
+    
+            from auth import hash_agent_token
+    
+            for row in connection_tokens:
+                conn.execute(
+                    """
+                    UPDATE agent_connections
+                    SET token_hash = %s,
+                        token = NULL
+                    WHERE id = %s
+                    """,
+                    (
+                        hash_agent_token(row["token"]),
+                        row["id"],
+                    ),
+                )
+    
+            conn.execute(
+                """
+                SELECT id, agent_token
+                FROM agent_connections
+                WHERE agent_token IS NOT NULL
+                  AND agent_token_hash IS NULL
+                """
+            )
+    
+            agent_tokens = conn.fetchall()
+    
+            for row in agent_tokens:
+                conn.execute(
+                    """
+                    UPDATE agent_connections
+                    SET agent_token_hash = %s,
+                        agent_token = NULL
+                    WHERE id = %s
+                    """,
+                    (
+                        hash_agent_token(row["agent_token"]),
+                        row["id"],
+                    ),
+                )
+            
 
 @contextmanager
 def get_conn():

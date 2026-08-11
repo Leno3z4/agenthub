@@ -129,8 +129,7 @@ def get_account_state(user_address: str) -> dict:
             "user": user_address,
         },
     )
-    print("HL PERP STATE:", state)
-    print("HL SPOT STATE:", spot_state)
+    
     usdc_total = 0.0
     usdc_hold = 0.0
 

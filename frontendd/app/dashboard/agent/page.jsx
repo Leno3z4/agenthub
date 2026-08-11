@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Copy, RefreshCw } from "lucide-react";
 import { getAgentStatus, getAgentProfile } from "@/lib/api";
+import { useSession } from "next-auth/react";
 
 export default function AgentPage() {
   const [status, setStatus] = useState(null);
@@ -10,7 +11,12 @@ export default function AgentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-
+  const {
+    data: session,
+    status,
+  } = useSession();
+  const userId = session?.user?.id;
+  const apiKey = session?.user?.apiKey;
   async function load() {
     const userId = localStorage.getItem("alias_user_id");
     const apiKey = localStorage.getItem("alias_api_key");

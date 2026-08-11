@@ -144,8 +144,7 @@ def init_db():
             conn.execute(
                 """
                 UPDATE agent_connections
-                SET token_hash = %s,
-                    token = NULL
+                SET token_hash = %s
                 WHERE id = %s
                 """,
                 (
@@ -170,8 +169,7 @@ def init_db():
             conn.execute(
                 """
                 UPDATE agent_connections
-                SET agent_token_hash = %s,
-                    agent_token = NULL
+                SET agent_token_hash = %s
                 WHERE id = %s
                 """,
                 (

@@ -36,7 +36,7 @@ from bridge import (
     deposit_parameters,
     bridge_status,
 )
-from gateway import get_gateway_balances
+
 
 from config import (
     HYPERLIQUID_CCTP_DOMAIN,
@@ -727,27 +727,6 @@ def bridge_transfer_status(
         burn_tx_hash,
     )
 
-
-
-# ---------------------------------------------------------------------
-# Circle Gateway
-# ---------------------------------------------------------------------
-
-@app.get("/gateway/balance/{wallet_address}")
-def gateway_balance(wallet_address: str):
-    try:
-        return get_gateway_balances(wallet_address)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
-    except Exception as exc:
-        print("Gateway balance error:", exc)
-        raise HTTPException(
-            status_code=502,
-            detail="Unable to retrieve Gateway balance.",
-        )
 # ---------------------------------------------------------------------
 # Markets
 # ---------------------------------------------------------------------

@@ -119,7 +119,24 @@ export default function Onboarding() {
       setLoading(true);
       setError("");
 
-      const profile = await getAgentProfile(currentUserId);
+      let profile;
+       
+      try {
+        profile = await getAgentProfile(currentUserId);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : String(err);
+      
+        if (
+          message.includes("401") ||
+          message.includes("Unauthorized")
+        ) {
+          setStep(1);
+          return;
+        }
+      
+        throw err;
+      }
 
       if (profile.agent_address) {
         setAgentAddress(profile.agent_address);

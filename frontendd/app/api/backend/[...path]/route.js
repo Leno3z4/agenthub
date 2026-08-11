@@ -6,78 +6,130 @@ const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   "https://agenthub-g0m8.onrender.com";
 
-const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const AUTH_COOKIE =
+  process.env.NODE_ENV === "production"
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
 
-async function proxy(request, { params }) {
-  const token = await getToken({
+async function getAuthToken(request) {
+  const secret = process.env.AUTH_SECRET;
+
+  if (!secret) {
+    throw new Error("AUTH_SECRET is not configured.");
+  }
+
+  let token = await getToken({
     req: request,
-    secret: process.env.AUTH_SECRET,
+    secret,
+    secureCookie: process.env.NODE_ENV === "production",
+    cookieName: AUTH_COOKIE,
   });
 
   if (!token?.userId) {
-    return Response.json({ detail: "Unauthorized" }, { status: 401 });
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: process.env.NODE_ENV !== "production",
+      cookieName:
+        process.env.NODE_ENV === "production"
+          ? "authjs.session-token"
+          : "__Secure-authjs.session-token",
+    });
   }
 
-  const path = params.path?.join("/") || "";
-  const target = new URL(`${BACKEND_URL.replace(/\/$/, "")}/${path}`);
+  return token;
+}
+
+function getApiKey(request, token) {
+  // Current rotated credential.
+  const credentialCookie = request.cookies.get(
+    "__Host-alias_api_credential"
+  )?.value;
+
+  if (credentialCookie) {
+    const separator = credentialCookie.indexOf(":");
+
+    if (separator > 0) {
+      const userId = decodeURIComponent(
+        credentialCookie.slice(0, separator)
+      );
+
+      const apiKey = decodeURIComponent(
+        credentialCookie.slice(separator + 1)
+      );
+
+      if (
+        String(userId) === String(token?.userId) &&
+        apiKey
+      ) {
+        return apiKey;
+      }
+    }
+  }
+
+  // Fall back to the API key stored in the Auth.js token.
+  return token?.apiKey || null;
+}
+
+async function proxy(request, context) {
+  const token = await getAuthToken(request);
+
+  if (!token?.userId) {
+    return Response.json(
+      { detail: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  const apiKey = getApiKey(request, token);
+
+  if (!apiKey) {
+    return Response.json(
+      { detail: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  const path = context.params?.path?.join("/") || "";
+
+  const target = new URL(
+    `${BACKEND_URL.replace(/\/$/, "")}/${path}`
+  );
+
   target.search = new URL(request.url).search;
 
-  const incomingBody =
+  const body =
     request.method === "GET" || request.method === "HEAD"
       ? undefined
       : await request.arrayBuffer();
 
   const headers = new Headers();
+
   const contentType = request.headers.get("content-type");
 
   if (contentType) {
     headers.set("Content-Type", contentType);
   }
 
-  headers.set("Authorization", `Bearer ${token.apiKey || ""}`);
+  headers.set("Authorization", `Bearer ${apiKey}`);
 
-  let response = await fetch(target, {
+  const response = await fetch(target, {
     method: request.method,
     headers,
-    body: incomingBody,
+    body,
     cache: "no-store",
   });
 
-  /*
-   * /wallet/link intentionally rotates the API key. The newly issued
-   * key is placed in an HttpOnly cookie by that route, while the
-   * existing Auth.js JWT still contains the pre-link key.
-   *
-   * If that old JWT key is rejected, retry once with the rotated
-   * HttpOnly credential bound to the same user.
-   */
-  if (response.status === 401) {
-    const cookie = request.cookies.get("__Host-alias_api_credential")?.value || "";
-    const separator = cookie.indexOf(":");
-
-    if (separator > 0) {
-      const cookieUserId = decodeURIComponent(cookie.slice(0, separator));
-      const cookieApiKey = decodeURIComponent(cookie.slice(separator + 1));
-
-      if (cookieUserId === String(token.userId) && cookieApiKey) {
-        response = await fetch(target, {
-          method: request.method,
-          headers: new Headers({
-            ...(contentType ? { "Content-Type": contentType } : {}),
-            Authorization: `Bearer ${cookieApiKey}`,
-          }),
-          body: incomingBody,
-          cache: "no-store",
-        });
-      }
-    }
-  }
-
   const responseHeaders = new Headers();
-  const responseContentType = response.headers.get("content-type");
+
+  const responseContentType =
+    response.headers.get("content-type");
 
   if (responseContentType) {
-    responseHeaders.set("Content-Type", responseContentType);
+    responseHeaders.set(
+      "Content-Type",
+      responseContentType
+    );
   }
 
   return new Response(response.body, {

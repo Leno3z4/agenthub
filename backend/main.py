@@ -512,6 +512,7 @@ def _get_user(user_id: str):
 
 
 def _require_agent_auth(
+    connection = None
     user_id: str,
     authorization: Optional[str],
 ):

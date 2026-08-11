@@ -33,9 +33,9 @@ from config import (
     CCTP_IRIS_API,
     ARC_CCTP_DOMAIN,
     HYPERLIQUID_CCTP_DOMAIN,
+    ARC_USDC_ADDRESS,
     require,
 )
-
 
 def address_to_bytes32(address: str) -> str:
     address = address.removeprefix("0x")
@@ -195,9 +195,6 @@ def withdrawal_parameters(
         "destinationDomain": ARC_CCTP_DOMAIN,
         "sourceDomain": HYPERLIQUID_CCTP_DOMAIN,
         "mintRecipient": arc_recipient,
-        "burnToken": require(
-            "HYPERLIQUID_USDC_ADDRESS"
-        ),
         "arcUsdcAddress": require(
             "ARC_USDC_ADDRESS"
         ),

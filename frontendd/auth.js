@@ -26,10 +26,10 @@ export const {
   },
 
   callbacks: {
-   async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile }) {
       if (account?.provider === "google" || account?.provider === "twitter") {
         const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
-    
+
         const res = await fetch(url, {
           method: "POST",
           headers: {
@@ -44,22 +44,21 @@ export const {
             picture: profile.picture,
           }),
         });
-    
+
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text);
+          throw new Error(await res.text());
         }
-    
+
         const data = await res.json();
-    
+
         token.userId = data.user_id;
-        token.apiKey = data.api_key;
+        token.apiKey = data.api_key || undefined;
         token.authId = profile.sub;
         token.provider = account.provider;
       }
-    
+
       return token;
-   },
+    },
 
     async session({ session, token }) {
       if (session.user) {
@@ -68,10 +67,10 @@ export const {
           id: token.userId,
           authId: token.authId,
           provider: token.provider,
-          apiKey: token.apiKey,
         };
+        // Deliberately do NOT expose token.apiKey to the browser.
       }
-    
+
       return session;
     },
   },

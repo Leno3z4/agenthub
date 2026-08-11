@@ -53,6 +53,7 @@ export const {
         const data = await res.json();
     
         token.userId = data.user_id;
+        token.apiKey = data.api_key;
         token.authId = profile.sub;
         token.provider = account.provider;
       }
@@ -67,6 +68,7 @@ export const {
           id: token.userId,
           authId: token.authId,
           provider: token.provider,
+          apiKey: token.apiKey,
         };
       }
     

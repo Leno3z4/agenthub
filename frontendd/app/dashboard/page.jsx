@@ -54,7 +54,12 @@ export default function DashboardOverview() {
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositError, setDepositError] = useState("");
   const [depositSuccess, setDepositSuccess] = useState("");
-  
+  const {
+    data: session,
+    status,
+  } = useSession();
+  const userId = session?.user?.id;
+  const apiKey = session?.user?.apiKey;
   const [
     withdrawalAmount,
     setWithdrawalAmount,

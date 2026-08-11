@@ -10,7 +10,7 @@ import {
   DollarSign,
   Plus,
 } from "lucide-react";
-
+import { useSession } from "next-auth/react";
 import {
   useAccount,
   useWalletClient,

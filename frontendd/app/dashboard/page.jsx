@@ -215,7 +215,11 @@ export default function DashboardOverview() {
 
   async function handleWithdrawal() {
     const amount = Number(withdrawalAmount);
-    const withdrawable = Number(dashboard?.withdrawable ?? 0);
+    const withdrawable = Number(
+      dashboard?.withdrawable_total ??
+      dashboard?.withdrawable ??
+      0
+    );
     const walletAddress = address || "";
 
     if (!Number.isFinite(amount) || amount <= 0) {

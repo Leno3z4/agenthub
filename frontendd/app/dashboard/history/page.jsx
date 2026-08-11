@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { getAgentHistory } from "@/lib/api";
 
@@ -7,6 +8,12 @@ export default function HistoryPage() {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const {
+    data: session,
+    status,
+  } = useSession();
+  const userId = session?.user?.id;
+  const apiKey = session?.user?.apiKey;
 
   async function load() {
     const userId = localStorage.getItem("alias_user_id");

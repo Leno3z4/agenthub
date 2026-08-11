@@ -3,28 +3,25 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAgentStatus } from "@/lib/api";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 export default function SettingsPage() {
   const [status, setStatus] = useState(null);
+  const { data: session, status: authStatus } = useSession();
 
   useEffect(() => {
-    const userId = localStorage.getItem("alias_user_id");
-    const apiKey = localStorage.getItem("alias_api_key");
+    const userId = session?.user?.id;
 
-    if (!userId || !apiKey) return;
+    if (authStatus !== "authenticated" || !userId) {
+      return;
+    }
 
-    getAgentStatus(userId, apiKey)
+    getAgentStatus(userId)
       .then(setStatus)
       .catch(console.error);
-  }, []);
+  }, [authStatus, session?.user?.id]);
 
   async function handleLogout() {
-    localStorage.removeItem("alias_user_id");
-    localStorage.removeItem("alias_api_key");
-    localStorage.removeItem("alias_agent_address");
-    localStorage.removeItem("alias_arc_address");
-
     await signOut({
       callbackUrl: "/onboarding",
     });

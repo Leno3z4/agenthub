@@ -18,6 +18,7 @@ from auth import (
     generate_api_key,
     verify_api_key,
     require_internal_auth,
+    hash_agent_token,
 )
 from agent import router as agent_router
 
@@ -543,24 +544,26 @@ def _require_agent_auth(
         return user
 
     # Agent authentication: connection token issued by /agent/create.
-    with get_conn() as conn:
-        conn.execute(
-            """
-            SELECT
-                ac.user_id,
-                u.*
-            FROM agent_connections ac
-            JOIN users u
-                ON u.id = ac.user_id
-            WHERE ac.user_id = %s
-              AND ac.agent_token = %s
-              AND ac.connected = 1
-            """,
-            (user_id, credential),
-        )
-            
+        # Agent authentication: hashed agent bearer token.
+        token_hash = hash_agent_token(credential)
         
-        connection = conn.fetchone()
+        with get_conn() as conn:
+            conn.execute(
+                """
+                SELECT
+                    ac.user_id,
+                    u.*
+                FROM agent_connections ac
+                JOIN users u
+                    ON u.id = ac.user_id
+                WHERE ac.user_id = %s
+                  AND ac.agent_token_hash = %s
+                  AND ac.connected = 1
+                """,
+                (user_id, token_hash),
+            )
+    
+            connection = conn.fetchone()
 
     if connection is None:
         raise HTTPException(

@@ -532,34 +532,33 @@ def _require_agent_auth(
 
     credential = authorization.removeprefix("Bearer ").strip()
 
-    # Browser/user authentication: existing API key.
+    # Browser/user authentication: API key.
     if user["api_key_hash"] and verify_api_key(
         credential,
         user["api_key_hash"],
     ):
         return user
 
-    
-        # Agent authentication: hashed agent bearer token.
-        token_hash = hash_agent_token(credential)
-        
-        with get_conn() as conn:
-            conn.execute(
-                """
-                SELECT
-                    ac.user_id,
-                    u.*
-                FROM agent_connections ac
-                JOIN users u
-                    ON u.id = ac.user_id
-                WHERE ac.user_id = %s
-                  AND ac.agent_token_hash = %s
-                  AND ac.connected = 1
-                """,
-                (user_id, token_hash),
-            )
-    
-            connection = conn.fetchone()
+    # Agent authentication: hashed agent bearer token.
+    token_hash = hash_agent_token(credential)
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            SELECT
+                ac.user_id,
+                u.*
+            FROM agent_connections ac
+            JOIN users u
+                ON u.id = ac.user_id
+            WHERE ac.user_id = %s
+              AND ac.agent_token_hash = %s
+              AND ac.connected = 1
+            """,
+            (user_id, token_hash),
+        )
+
+        connection = conn.fetchone()
 
     if connection is None:
         raise HTTPException(
@@ -567,7 +566,7 @@ def _require_agent_auth(
             detail="invalid API key or agent token",
         )
 
-    return user
+    return connection
 
 
 

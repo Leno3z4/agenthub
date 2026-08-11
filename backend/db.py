@@ -101,6 +101,7 @@ def init_db():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id TEXT",
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token TEXT UNIQUE",
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS token_hash TEXT",
+            "ALTER TABLE agent_connections ALTER COLUMN token DROP NOT NULL",
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token_hash TEXT",
         ]
 

@@ -144,6 +144,19 @@ def get_account_state(user_address: str) -> dict:
             break
 
     margin = state.get("marginSummary", {})
+    perp_withdrawable = float(
+        state.get("withdrawable", 0) or 0
+    )
+    
+    spot_withdrawable = max(
+        0.0,
+        usdc_total - usdc_hold,
+    )
+    
+    withdrawable_total = max(
+        perp_withdrawable,
+        spot_withdrawable,
+    )
 
     return {
         "account_value": margin.get(
@@ -154,10 +167,8 @@ def get_account_state(user_address: str) -> dict:
             "totalMarginUsed",
             "0",
         ),
-        "withdrawable": state.get(
-            "withdrawable",
-            "0",
-        ),
+        "withdrawable": str(perp_withdrawable),
+        "withdrawable_total": str(withdrawable_total),
 
         "usdc_balance": str(
             usdc_total

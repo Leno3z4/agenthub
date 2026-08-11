@@ -211,17 +211,8 @@ export default function Onboarding() {
   
       const user = session.user;
   
-      const payload = {
-        google_id: user.authId,
-        provider: user.provider,
-        email: user.email,
-        name: user.name,
-        picture: user.image ?? null,
-      };
-  
-      const registration = await registerUser(payload);
-      const existingUserId = registration.user_id;
-      const existingApiKey = registration.api_key;
+      const existingUserId = user.id;
+      const existingApiKey = user.apiKey;
       
       setUserId(existingUserId);
       setApiKey(existingApiKey || "");

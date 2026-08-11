@@ -102,8 +102,8 @@ export default function DashboardOverview() {
   const publicClient = usePublicClient();
 
   async function loadDashboard() {
-    const userId = localStorage.getItem("alias_user_id");
-    const apiKey = localStorage.getItem("alias_api_key");
+    const userId = session?.user?.id;
+    const apiKey = session?.user?.apiKey;
     if (!userId || !apiKey) {
       setNotSetUp(true);
       setLoading(false);
@@ -128,10 +128,13 @@ export default function DashboardOverview() {
   }
 
   useEffect(() => {
+    if (status !== "authenticated" || !userId || !apiKey) return;
+  
     loadDashboard();
+  
     const interval = setInterval(loadDashboard, 15000);
     return () => clearInterval(interval);
-  }, [address]);
+  }, [status, userId, apiKey, address]);
 
   async function handleDeposit() {
     const userId = localStorage.getItem("alias_user_id");

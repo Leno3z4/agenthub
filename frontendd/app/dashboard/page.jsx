@@ -364,7 +364,6 @@ export default function DashboardOverview() {
               <h3>{dashboard?.positions?.length ?? 0}</h3>
               <p>Open positions</p>
             </div>
-          </section>
 
           <section className="alias-card" style={{ marginTop: "24px" }}>
             <div className="alias-card-icon"><Plus size={20} /></div>

@@ -212,7 +212,7 @@ export default function DashboardOverview() {
       setTransferLoading(false);
     }
   }
-
+  
   async function handleWithdrawal() {
     const amount = Number(withdrawalAmount);
     const withdrawable = Number(
@@ -243,16 +243,6 @@ export default function DashboardOverview() {
       return;
     }
 
-    const bridgeAddress =
-      process.env.NEXT_PUBLIC_HL_WITHDRAW_ROUTER_ADDRESS || "";
-
-    if (!bridgeAddress) {
-      setWithdrawalError(
-        "Withdrawal routing is not configured. Set NEXT_PUBLIC_HL_WITHDRAW_ROUTER_ADDRESS."
-      );
-      return;
-    }
-
     try {
       setWithdrawalLoading(true);
       setWithdrawalError("");
@@ -264,32 +254,80 @@ export default function DashboardOverview() {
         );
       }
 
-      /*
-       * The user's wallet signs the only Hyperliquid withdrawal action.
-       * Hyperliquid sends the USDC to Alias's Arbitrum relay address.
-       *
-       * The relay/backend then:
-       *   1. receives the Hyperliquid withdrawal on Arbitrum;
-       *   2. uses Circle Gateway/CCTP Forwarding;
-       *   3. delivers native USDC to this user's Arc wallet.
-       *
-       * The user never has to switch to Arbitrum or pay Arbitrum gas.
-       */
+      // Get the backend-controlled Arbitrum relay destination first.
+      // The user still signs exactly one Hyperliquid withdraw3 action.
+      const paramsResponse = await fetch(
+        "/api/backend/bridge/withdraw-params",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            amount: amount.toString(),
+            destination: walletAddress,
+          }),
+          cache: "no-store",
+        }
+      );
+
+      const paramsText = await paramsResponse.text();
+
+      if (!paramsResponse.ok) {
+        throw new Error(
+          paramsText || `Withdrawal parameters failed (${paramsResponse.status}).`
+        );
+      }
+
+      const params = JSON.parse(paramsText);
+
+      const withdrawalId = params.withdrawal_id;
+      const hyperliquidAmount = params.hyperliquid_amount;
+      const relayDestination = params.relay_destination;
+
+      if (!withdrawalId || !hyperliquidAmount || !relayDestination) {
+        throw new Error("Withdrawal routing parameters are incomplete.");
+      }
+
+      // Hyperliquid sends the USDC to Alias's Arbitrum relay.
+      // The backend then burns it through CCTP Forwarding Service,
+      // which delivers the native USDC to the user's Arc wallet.
       await withdrawHyperliquid({
         walletClient,
-        destination: walletAddress,
-        amount: amount.toString(),
+        destination: relayDestination,
+        amount: hyperliquidAmount,
       });
 
-      await registerArcWithdrawal({
-        userId,
-        amount,
-        destination: walletAddress,
-      });
+      const submitResponse = await fetch(
+        "/api/backend/bridge/withdraw",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            withdrawal_id: withdrawalId,
+            amount: amount.toString(),
+            destination: walletAddress,
+            hyperliquid_amount: hyperliquidAmount,
+          }),
+          cache: "no-store",
+        }
+      );
+
+      const submitText = await submitResponse.text();
+
+      if (!submitResponse.ok) {
+        throw new Error(
+          submitText || `Withdrawal submission failed (${submitResponse.status}).`
+        );
+      }
 
       setWithdrawalAmount("");
       setWithdrawalSuccess(
-        "Withdrawal submitted. Alias is routing the USDC back to your Arc wallet."
+        "Withdrawal submitted. Alias is routing the USDC to your Arc wallet."
       );
 
       setTimeout(loadDashboard, 5000);

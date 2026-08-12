@@ -85,14 +85,7 @@ export default function DashboardOverview() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState(false);
-  const tradingBalance = Number(dashboard?.usdc_balance ?? 0);
-  const marginUsed = Number(dashboard?.margin_used ?? 0);
-  const withdrawable = Number(
-    dashboard?.withdrawable_total ??
-    dashboard?.withdrawable ??
-    0
-  );
-  const spotAvailable = Number(dashboard?.spot_usdc_available ?? 0);
+  
 
   const { data: session, status } = useSession();
   const { address } = useAccount();
@@ -387,7 +380,11 @@ export default function DashboardOverview() {
   const latest = agent?.latest_action;
   const tradingBalance = Number(dashboard?.usdc_balance ?? 0);
   const marginUsed = Number(dashboard?.margin_used ?? 0);
-  const withdrawable = Number(dashboard?.withdrawable ?? 0);
+  const withdrawable = Number(
+    dashboard?.withdrawable_total ??
+    dashboard?.withdrawable ??
+    0
+  );
   const spotAvailable = Number(dashboard?.spot_usdc_available ?? 0);
 
   return (

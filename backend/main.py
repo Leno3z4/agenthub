@@ -817,33 +817,34 @@ def submit_withdrawal(
             hyperliquid_result=req.hyperliquid_result,
         )
 
-        with get_conn() as conn:
-            conn.execute(
-                """
-                INSERT INTO bridge_transfers
-                (
-                    user_id,
-                    amount_usdc,
-                    status,
-                    withdrawal_id,
-                    destination,
-                    relay_destination
-                )
-                VALUES (%s, %s, %s, %s, %s, NULL)
-                ON CONFLICT DO NOTHING
-                DO UPDATE SET
-                    amount_usdc = EXCLUDED.amount_usdc,
-                    status = EXCLUDED.status,
-                    destination = EXCLUDED.destination
-                """,
-                (
-                    user["id"],
-                    float(req.amount),
-                    result["status"],
-                    req.withdrawal_id,
-                    destination,
-                ),
-            )
+                with get_conn() as conn:
+                    conn.execute(
+                        """
+                        INSERT INTO bridge_transfers
+                        (
+                            user_id,
+                            amount_usdc,
+                            status,
+                            withdrawal_id,
+                            destination,
+                            relay_destination
+                        )
+                        VALUES (%s, %s, %s, %s, %s, NULL)
+                        ON CONFLICT (withdrawal_id)
+                        WHERE withdrawal_id IS NOT NULL
+                        DO UPDATE SET
+                            amount_usdc = EXCLUDED.amount_usdc,
+                            status = EXCLUDED.status,
+                            destination = EXCLUDED.destination
+                        """,
+                        (
+                            user["id"],
+                            float(req.amount),
+                            result["status"],
+                            req.withdrawal_id,
+                            destination,
+                        ),
+                    )
 
         return {
             "accepted": True,

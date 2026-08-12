@@ -62,13 +62,11 @@ def _validate_address(user_address: str) -> str:
 
     return user_address
 
-def get_authorized_agents(user_address: str) -> list[dict]:
-    info = Info(
-        HL_API_URL,
-        skip_ws=True,
-    )
 
+def get_authorized_agents(user_address: str) -> list[dict]:
+    info = Info(HL_API_URL, skip_ws=True)
     return info.extra_agents(user_address)
+
 
 def is_agent_authorized(
     user_address: str,
@@ -102,16 +100,11 @@ def is_agent_authorized(
 
 
 def get_account_state(user_address: str) -> dict:
-    """
-    Read Hyperliquid perpetual + spot USDC state.
-    """
+    """Read Hyperliquid perpetual + spot USDC state."""
 
     user_address = _validate_address(user_address)
 
-    info = Info(
-        HL_API_URL,
-        skip_ws=True,
-    )
+    info = Info(HL_API_URL, skip_ws=True)
 
     state = info.post(
         "/info",
@@ -129,101 +122,65 @@ def get_account_state(user_address: str) -> dict:
             "user": user_address,
         },
     )
-    
+
     usdc_total = 0.0
     usdc_hold = 0.0
 
     for balance in spot_state.get("balances", []):
         if balance.get("coin") == "USDC":
-            usdc_total = float(
-                balance.get("total", 0)
-            )
-            usdc_hold = float(
-                balance.get("hold", 0)
-            )
+            usdc_total = float(balance.get("total", 0) or 0)
+            usdc_hold = float(balance.get("hold", 0) or 0)
             break
 
     margin = state.get("marginSummary", {})
+
+    # Hyperliquid's native withdrawable field is the amount currently
+    # withdrawable from the Perp/HyperCore withdrawal balance.
     perp_withdrawable = float(
         state.get("withdrawable", 0) or 0
     )
-    
+
+    # Spot USDC that is not locked by a Spot order.
     spot_withdrawable = max(
         0.0,
         usdc_total - usdc_hold,
     )
-    
-    maintenance_available = 0.0
-    
-    token_available = state.get(
-        "tokenToAvailableAfterMaintenance",
-        [],
+
+    # The UI may withdraw either an already-withdrawable Perp balance
+    # or available Spot USDC. If the source is Spot, the frontend moves
+    # the requested amount + the $1 HL fee to Perps before withdraw3.
+    withdrawable_total = max(
+        perp_withdrawable,
+        spot_withdrawable,
     )
-    
-    for token, amount in token_available:
-        if int(token) == 0:
-            maintenance_available = float(
-                amount or 0
-            )
-            break
-    
-    withdrawable_total = maintenance_available
+
     return {
-        "account_value": margin.get(
-            "accountValue",
-            "0",
-        ),
-        "margin_used": margin.get(
-            "totalMarginUsed",
-            "0",
-        ),
-        "withdrawable": str(spot_withdrawable),
-        "withdrawable_total": str(
-            withdrawable_total
-        ),
+        "account_value": margin.get("accountValue", "0"),
+        "margin_used": margin.get("totalMarginUsed", "0"),
 
-        "usdc_balance": str(
-            usdc_total
-        ),
+        # Keep this field compatible with the dashboard.
+        "withdrawable": str(withdrawable_total),
+        "withdrawable_total": str(withdrawable_total),
 
-        "usdc_available": str(
-            max(
-                0.0,
-                usdc_total - usdc_hold,
-            )
-        ),
+        # Explicit source balances for newer UI/backend code.
+        "perp_withdrawable": str(perp_withdrawable),
+        "spot_usdc_balance": str(usdc_total),
+        "spot_usdc_available": str(spot_withdrawable),
 
-        "spot_usdc_balance": str(
-            usdc_total
-        ),
-
-        "spot_usdc_available": str(
-            max(
-                0.0,
-                usdc_total - usdc_hold,
-            )
-        ),
+        "usdc_balance": str(usdc_total),
+        "usdc_available": str(spot_withdrawable),
 
         "positions": [
             p["position"]
-            for p in state.get(
-                "assetPositions",
-                [],
-            )
+            for p in state.get("assetPositions", [])
         ],
     }
 
 
 def get_markets() -> list[dict]:
-    """
-    Full universe of tradable perp markets.
-    """
+    """Full universe of tradable perp markets."""
 
-    info = Info(
-        HL_API_URL,
-        skip_ws=True,
-    )
-
+    info = Info(HL_API_URL, skip_ws=True)
     meta, asset_ctxs = info.meta_and_asset_ctxs()
 
     return [
@@ -236,10 +193,7 @@ def get_markets() -> list[dict]:
             "open_interest": ctx.get("openInterest"),
             "day_volume": ctx.get("dayNtlVlm"),
         }
-        for asset, ctx in zip(
-            meta["universe"],
-            asset_ctxs,
-        )
+        for asset, ctx in zip(meta["universe"], asset_ctxs)
     ]
 
 
@@ -248,23 +202,10 @@ def get_market_candles(
     interval: str = "1h",
     hours: int = 48,
 ) -> list[dict]:
+    end_time = int(time.time() * 1000)
+    start_time = end_time - max(1, hours) * 60 * 60 * 1000
 
-    end_time = int(
-        time.time() * 1000
-    )
-
-    start_time = (
-        end_time
-        - max(1, hours)
-        * 60
-        * 60
-        * 1000
-    )
-
-    info = Info(
-        HL_API_URL,
-        skip_ws=True,
-    )
+    info = Info(HL_API_URL, skip_ws=True)
 
     candles = info.post(
         "/info",
@@ -300,17 +241,13 @@ def execute_trade(
     leverage: int | None = None,
     slippage: float = 0.01,
 ) -> dict:
-
     exchange = get_exchange_for_agent(
         agent_private_key,
         account_address,
     )
 
     if leverage is not None:
-        exchange.update_leverage(
-            leverage,
-            coin,
-        )
+        exchange.update_leverage(leverage, coin)
 
     return exchange.market_open(
         name=coin,
@@ -327,7 +264,6 @@ def execute_close(
     size: Optional[float] = None,
     slippage: float = 0.01,
 ) -> dict:
-
     exchange = get_exchange_for_agent(
         agent_private_key,
         account_address,

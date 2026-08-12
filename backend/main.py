@@ -720,16 +720,20 @@ def bridge_deposit(
             (
                 user_id,
                 amount_usdc,
-                burn_tx_hash,
-                status
+                status,
+                withdrawal_id,
+                destination,
+                relay_destination
             )
-            VALUES (%s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, NULL)
+            ON CONFLICT DO NOTHING
             """,
             (
                 user["id"],
-                req.amount_usdc_units / 1_000_000,
-                req.burn_tx_hash,
-                "pending",
+                float(req.amount),
+                result["status"],
+                req.withdrawal_id,
+                destination,
             ),
         )
 

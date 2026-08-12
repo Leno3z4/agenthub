@@ -830,7 +830,7 @@ def submit_withdrawal(
                     relay_destination
                 )
                 VALUES (%s, %s, %s, %s, %s, NULL)
-                ON CONFLICT (withdrawal_id)
+                ON CONFLICT DO NOTHING
                 DO UPDATE SET
                     amount_usdc = EXCLUDED.amount_usdc,
                     status = EXCLUDED.status,

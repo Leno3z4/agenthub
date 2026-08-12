@@ -725,21 +725,19 @@ def bridge_deposit(
                 destination,
                 relay_destination
             )
-            VALUES (%s, %s, %s, %s, %s, NULL)
-            ON CONFLICT DO NOTHING
+            VALUES (%s, %s, %s, NULL, NULL, NULL)
             """,
             (
                 user["id"],
-                float(req.amount),
-                result["status"],
-                req.withdrawal_id,
-                destination,
+                req.amount_usdc_units / 1_000_000,
+                "pending",
             ),
         )
 
     return {
         "accepted": True,
         "burn_tx_hash": req.burn_tx_hash,
+        "status": "pending",
     }
 
 

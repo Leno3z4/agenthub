@@ -315,67 +315,7 @@ a {
   box-shadow: none;
 }
 
-.landing-page .landing-arrow {
-  position: relative;
-  display: inline-block;
-  flex: 0 0 auto;
-}
 
-.landing-page .landing-arrow-out {
-  width: 14px;
-  height: 14px;
-}
-
-.landing-page .landing-arrow-out::before {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  top: 1px;
-  right: 1px;
-  border-top: 1.5px solid currentColor;
-  border-right: 1.5px solid currentColor;
-}
-
-.landing-page .landing-arrow-out::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 1.5px;
-  top: 4px;
-  left: 1px;
-  background: currentColor;
-  transform: rotate(-45deg);
-  transform-origin: right center;
-}
-
-.landing-page .landing-arrow-down {
-  width: 10px;
-  height: 14px;
-  margin-left: 5px;
-}
-
-.landing-page .landing-arrow-down::before {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  left: 1px;
-  bottom: 0;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
-}
-
-.landing-page .landing-arrow-down::after {
-  content: "";
-  position: absolute;
-  width: 1.5px;
-  height: 10px;
-  left: 4px;
-  top: 0;
-  background: currentColor;
-}
 
 .landing-page .landing-secondary {
   color: #92988f;

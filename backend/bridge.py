@@ -32,7 +32,7 @@ Backend responsibilities:
 
 import time
 import requests
-
+from typing import Any
 from config import (
     CCTP_IRIS_API,
     HYPERLIQUID_CCTP_DOMAIN,

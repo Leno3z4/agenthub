@@ -215,11 +215,6 @@ export default function DashboardOverview() {
   
   async function handleWithdrawal() {
     const amount = Number(withdrawalAmount);
-    const withdrawable = Number(
-      dashboard?.withdrawable_total ??
-      dashboard?.withdrawable ??
-      0
-    );
     const walletAddress = address || "";
 
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -229,17 +224,6 @@ export default function DashboardOverview() {
 
     if (!walletAddress) {
       setWithdrawalError("Connect your wallet first.");
-      return;
-    }
-
-    const maximum = Math.max(0, withdrawable - 1);
-
-    if (amount > maximum) {
-      setWithdrawalError(
-        `Maximum withdrawable amount is $${maximum.toFixed(
-          2
-        )} after the $1 Hyperliquid withdrawal fee.`
-      );
       return;
     }
 
@@ -254,8 +238,10 @@ export default function DashboardOverview() {
         );
       }
 
-      // Get the backend-controlled Arbitrum relay destination first.
-      // The user still signs exactly one Hyperliquid withdraw3 action.
+      /*
+       * Ask the backend for the current source balance and dynamic
+       * CCTP forwarding fee. The backend does NOT receive or hold funds.
+       */
       const paramsResponse = await fetch(
         "/api/backend/bridge/withdraw-params",
         {
@@ -276,29 +262,57 @@ export default function DashboardOverview() {
 
       if (!paramsResponse.ok) {
         throw new Error(
-          paramsText || `Withdrawal parameters failed (${paramsResponse.status}).`
+          paramsText ||
+          `Withdrawal parameters failed (${paramsResponse.status}).`
         );
       }
 
-      const params = JSON.parse(paramsText);
+      let params;
+
+      try {
+        params = JSON.parse(paramsText);
+      } catch {
+        throw new Error(
+          "Withdrawal parameters returned invalid JSON."
+        );
+      }
 
       const withdrawalId = params.withdrawal_id;
       const hyperliquidAmount = params.hyperliquid_amount;
-      const relayDestination = params.relay_destination;
+      const sourceDex = params.source_dex ?? "";
+      const maximumReceivable = Number(
+        params.maximum_receivable ?? 0
+      );
 
-      if (!withdrawalId || !hyperliquidAmount || !relayDestination) {
-        throw new Error("Withdrawal routing parameters are incomplete.");
+      if (!withdrawalId || !hyperliquidAmount) {
+        throw new Error(
+          "Withdrawal parameters are incomplete."
+        );
       }
 
-      // Hyperliquid sends the USDC to Alias's Arbitrum relay.
-      // The backend then burns it through CCTP Forwarding Service,
-      // which delivers the native USDC to the user's Arc wallet.
-      await withdrawHyperliquid({
+      if (!Number.isFinite(maximumReceivable)) {
+        throw new Error(
+          "Withdrawal maximum is invalid."
+        );
+      }
+
+      /*
+       * The user signs ONE Hyperliquid action.
+       *
+       * The destination is their Arc wallet directly.
+       * No Arbitrum address, relay wallet, approval, or backend key.
+       */
+      const hyperliquidResult = await withdrawHyperliquid({
         walletClient,
-        destination: relayDestination,
+        destination: walletAddress,
         amount: hyperliquidAmount,
+        sourceDex,
       });
 
+      /*
+       * Record the already-submitted Hyperliquid withdrawal.
+       * The backend does not perform another blockchain transaction.
+       */
       const submitResponse = await fetch(
         "/api/backend/bridge/withdraw",
         {
@@ -312,6 +326,8 @@ export default function DashboardOverview() {
             amount: amount.toString(),
             destination: walletAddress,
             hyperliquid_amount: hyperliquidAmount,
+            source_dex: sourceDex,
+            hyperliquid_result: hyperliquidResult,
           }),
           cache: "no-store",
         }
@@ -321,19 +337,23 @@ export default function DashboardOverview() {
 
       if (!submitResponse.ok) {
         throw new Error(
-          submitText || `Withdrawal submission failed (${submitResponse.status}).`
+          submitText ||
+          `Withdrawal recording failed (${submitResponse.status}).`
         );
       }
 
       setWithdrawalAmount("");
+
       setWithdrawalSuccess(
-        "Withdrawal submitted. Alias is routing the USDC to your Arc wallet."
+        "Withdrawal submitted. USDC is being routed from HyperCore through HyperEVM and CCTP to your Arc wallet."
       );
 
       setTimeout(loadDashboard, 5000);
     } catch (err) {
       setWithdrawalError(
-        err instanceof Error ? err.message : "Withdrawal failed."
+        err instanceof Error
+          ? err.message
+          : "Withdrawal failed."
       );
     } finally {
       setWithdrawalLoading(false);

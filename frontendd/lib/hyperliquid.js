@@ -189,63 +189,62 @@ export async function withdrawHyperliquid({
   walletClient,
   destination,
   amount,
-  spotAvailable = 0,
 }) {
-  validateWalletClient(walletClient);
-  validateAddress(destination, "withdrawal destination");
+  if (!walletClient) {
+    throw new Error("Wallet is not connected.");
+  }
 
-  const requestedAmount = validateAmount(
-    amount,
-    "withdrawal amount"
-  );
+  if (!walletClient.account) {
+    throw new Error("Wallet account is unavailable.");
+  }
 
-  const availableSpot = Math.max(
-    0,
-    Number(spotAvailable) || 0
-  );
+  if (!destination) {
+    throw new Error("No withdrawal destination is linked.");
+  }
 
-  if (requestedAmount <= 0) {
+  if (!/^0x[a-fA-F0-9]{40}$/.test(destination)) {
+    throw new Error("Invalid withdrawal destination.");
+  }
+
+  const numericAmount = Number(amount);
+
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
     throw new Error("Enter a valid withdrawal amount.");
   }
 
-  /*
-   * Hyperliquid charges a $1 withdrawal fee.
-   *
-   * If the funds are currently in Spot, move the requested
-   * withdrawal amount + the fee into Perps first.
-   */
-  if (availableSpot > 0) {
-    const requiredFromSpot =
-      requestedAmount + WITHDRAWAL_FEE;
-
-    if (requiredFromSpot > availableSpot + 1e-9) {
-      throw new Error(
-        `Not enough available Spot USDC. ` +
-          `You need $${requiredFromSpot.toFixed(2)} ` +
-          `including the $${WITHDRAWAL_FEE} withdrawal fee.`
-      );
-    }
-
-    await transferSpotToPerps({
-      walletClient,
-      amount: requiredFromSpot.toFixed(6),
-    });
-  }
-
-  const nonce = getNonce();
+  const nonce = Date.now();
 
   const action = {
     type: "withdraw3",
     signatureChainId: TESTNET_SIGNATURE_CHAIN_ID,
     hyperliquidChain: "Testnet",
     destination,
-    amount: requestedAmount.toString(),
+    amount: String(amount),
     time: nonce,
   };
 
   return submitUserAction({
     walletClient,
     action,
-    types: WITHDRAW_TYPES,
+    types: {
+      "HyperliquidTransaction:Withdraw": [
+        {
+          name: "hyperliquidChain",
+          type: "string",
+        },
+        {
+          name: "destination",
+          type: "string",
+        },
+        {
+          name: "amount",
+          type: "string",
+        },
+        {
+          name: "time",
+          type: "uint64",
+        },
+      ],
+    },
   });
 }

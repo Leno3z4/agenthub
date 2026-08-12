@@ -671,12 +671,15 @@ class WithdrawalParametersRequest(BaseModel):
     amount: str
     destination: str
 
+
 class WithdrawalConfirmRequest(BaseModel):
     user_id: str
     withdrawal_id: str
     amount: str
     destination: str
     hyperliquid_amount: str
+    source_dex: str = ""
+    hyperliquid_result: dict | None = None
 
 
 @app.post("/bridge/deposit-params")
@@ -757,9 +760,7 @@ def get_withdrawal_parameters(
         req.user_id,
         authorization,
     )
-    # The destination is supplied by the authenticated browser wallet.
-    # Keep the existing auth helper out of the amount calculation; the
-    # frontend proxy already authenticates the request.
+
     try:
         return create_withdrawal(
             user_address=user["wallet_address"],
@@ -767,13 +768,21 @@ def get_withdrawal_parameters(
             arc_destination=req.destination,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+    except Exception as exc:
+        print("WITHDRAWAL PARAMETER ERROR:", repr(exc))
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to calculate current withdrawal fees.",
+        )
 
 
 @app.post("/bridge/withdraw")
 def submit_withdrawal(
     req: WithdrawalConfirmRequest,
-    background_tasks: BackgroundTasks,
     authorization: Optional[str] = Header(None),
 ):
     user = _require_agent_auth(
@@ -783,44 +792,28 @@ def submit_withdrawal(
 
     try:
         destination = req.destination.strip()
-        if destination.lower() != str(user["wallet_address"]).lower():
-            raise ValueError("Withdrawal destination does not match the linked wallet.")
+
+        if destination.lower() != str(
+            user["wallet_address"]
+        ).lower():
+            raise ValueError(
+                "Withdrawal destination does not match the linked wallet."
+            )
 
         if not req.withdrawal_id:
-            raise ValueError("Withdrawal ID is required.")
+            raise ValueError(
+                "Withdrawal ID is required."
+            )
+
+        result = process_withdrawal(
+            withdrawal_id=req.withdrawal_id,
+            hyperliquid_amount=req.hyperliquid_amount,
+            arc_destination=destination,
+            source_dex=req.source_dex,
+            hyperliquid_result=req.hyperliquid_result,
+        )
 
         with get_conn() as conn:
-            conn.execute(
-                """
-                ALTER TABLE bridge_transfers
-                ADD COLUMN IF NOT EXISTS withdrawal_id TEXT
-                """
-            )
-            conn.execute(
-                """
-                ALTER TABLE bridge_transfers
-                ADD COLUMN IF NOT EXISTS destination TEXT
-                """
-            )
-            conn.execute(
-                """
-                ALTER TABLE bridge_transfers
-                ADD COLUMN IF NOT EXISTS relay_destination TEXT
-                """
-            )
-            conn.execute(
-                """
-                ALTER TABLE bridge_transfers
-                ADD COLUMN IF NOT EXISTS forward_tx_hash TEXT
-                """
-            )
-            conn.execute(
-                """
-                ALTER TABLE bridge_transfers
-                ADD COLUMN IF NOT EXISTS error TEXT
-                """
-            )
-
             conn.execute(
                 """
                 INSERT INTO bridge_transfers
@@ -832,74 +825,45 @@ def submit_withdrawal(
                     destination,
                     relay_destination
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, NULL)
+                ON CONFLICT (withdrawal_id)
+                DO UPDATE SET
+                    amount_usdc = EXCLUDED.amount_usdc,
+                    status = EXCLUDED.status,
+                    destination = EXCLUDED.destination
                 """,
                 (
                     user["id"],
                     float(req.amount),
-                    "processing",
+                    result["status"],
                     req.withdrawal_id,
                     destination,
-                    None,
                 ),
             )
-
-        def worker():
-            try:
-                result = process_withdrawal(
-                    withdrawal_id=req.withdrawal_id,
-                    hyperliquid_amount=req.hyperliquid_amount,
-                    arc_destination=destination,
-                )
-
-                with get_conn() as conn:
-                    conn.execute(
-                        """
-                        UPDATE bridge_transfers
-                        SET
-                            status = %s,
-                            burn_tx_hash = %s,
-                            forward_tx_hash = %s
-                        WHERE withdrawal_id = %s
-                        """,
-                        (
-                            result["status"],
-                            result.get("burn_tx_hash"),
-                            result.get("forward_tx_hash"),
-                            req.withdrawal_id,
-                        ),
-                    )
-            except Exception as exc:
-                print(
-                    "WITHDRAWAL PROCESSING FAILED:",
-                    req.withdrawal_id,
-                    repr(exc),
-                )
-                with get_conn() as conn:
-                    conn.execute(
-                        """
-                        UPDATE bridge_transfers
-                        SET status = %s, error = %s
-                        WHERE withdrawal_id = %s
-                        """,
-                        (
-                            "failed",
-                            str(exc),
-                            req.withdrawal_id,
-                        ),
-                    )
-
-        background_tasks.add_task(worker)
 
         return {
             "accepted": True,
             "withdrawal_id": req.withdrawal_id,
-            "status": "processing",
-            "route": "hypercore->arbitrum->cctp->arc",
+            "status": result["status"],
+            "route": result["route"],
+            "source_dex": req.source_dex,
         }
 
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+    except Exception as exc:
+        print(
+            "WITHDRAWAL RECORDING FAILED:",
+            req.withdrawal_id,
+            repr(exc),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Withdrawal was submitted but could not be recorded.",
+        )
 
 
 @app.get("/bridge/withdraw/status/{burn_tx_hash}")
@@ -909,7 +873,11 @@ def get_withdrawal_status(
     try:
         return withdrawal_status(burn_tx_hash)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        )
+
 
 # ---------------------------------------------------------------------
 # Markets

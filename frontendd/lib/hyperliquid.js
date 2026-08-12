@@ -1,18 +1,34 @@
 import { signUserSignedAction } from "@nktkas/hyperliquid/signing";
 
 const EXCHANGE_URL = "https://api.hyperliquid-testnet.xyz/exchange";
+
+// Hyperliquid Testnet EIP-712 signing chain for normal Hyperliquid actions.
 const TESTNET_SIGNATURE_CHAIN_ID = "0x66eee";
 const TESTNET_CHAIN_ID = 421614;
 
-async function submitUserAction({ walletClient, action, types }) {
+// Arc Testnet destination values.
+// Arc EVM chain ID: 5042002 = 0x4cef52
+// Arc CCTP domain: 26
+const ARC_TESTNET_SIGNATURE_CHAIN_ID = "0x4cef52";
+const ARC_TESTNET_CHAIN_ID = 5042002;
+const ARC_TESTNET_CCTP_DOMAIN = 26;
+
+async function submitUserAction({
+  walletClient,
+  action,
+  types,
+  signingChainId = TESTNET_CHAIN_ID,
+}) {
   if (!walletClient) throw new Error("Wallet is not connected.");
-  if (!walletClient.account) throw new Error("Wallet account is unavailable.");
+  if (!walletClient.account) {
+    throw new Error("Wallet account is unavailable.");
+  }
 
   const signature = await signUserSignedAction({
     wallet: walletClient,
     action,
     types,
-    chainId: TESTNET_CHAIN_ID,
+    chainId: signingChainId,
   });
 
   const response = await fetch(EXCHANGE_URL, {
@@ -26,9 +42,13 @@ async function submitUserAction({ walletClient, action, types }) {
   });
 
   const body = await response.text();
-  if (!response.ok) throw new Error(body);
+
+  if (!response.ok) {
+    throw new Error(body || `Hyperliquid request failed (${response.status}).`);
+  }
 
   let parsed;
+
   try {
     parsed = JSON.parse(body);
   } catch {
@@ -36,14 +56,23 @@ async function submitUserAction({ walletClient, action, types }) {
   }
 
   if (parsed?.status === "err") {
-    throw new Error(parsed.response ?? "Hyperliquid rejected the action.");
+    throw new Error(
+      parsed.response || "Hyperliquid rejected the action."
+    );
   }
 
   return parsed;
 }
 
-export async function approveAgent({ walletClient, agentAddress }) {
-  if (!agentAddress) throw new Error("Agent address is required.");
+
+export async function approveAgent({
+  walletClient,
+  agentAddress,
+}) {
+  if (!agentAddress) {
+    throw new Error("Agent address is required.");
+  }
+
   const nonce = Date.now();
 
   return submitUserAction({
@@ -67,7 +96,11 @@ export async function approveAgent({ walletClient, agentAddress }) {
   });
 }
 
-export async function transferSpotToPerps({ walletClient, amount }) {
+
+export async function transferSpotToPerps({
+  walletClient,
+  amount,
+}) {
   const nonce = Date.now();
 
   return submitUserAction({
@@ -91,45 +124,78 @@ export async function transferSpotToPerps({ walletClient, amount }) {
   });
 }
 
-/*
- * Low-level Hyperliquid withdrawal helper only.
- * The dashboard withdrawal flow should call the backend route instead,
- * so the user experiences one operation:
- * HyperCore -> Arbitrum -> CCTP -> Arc.
+
+/**
+ * Withdraw USDC:
+ *
+ * HyperCore -> HyperEVM -> CCTP -> Arc
+ *
+ * The linked user wallet signs this action directly.
+ * There is no Arbitrum relay wallet and no backend withdrawal key.
+ *
+ * sourceDex:
+ *   ""      = Hyperliquid perp balance
+ *   "spot"  = Hyperliquid Spot balance
  */
 export async function withdrawHyperliquid({
   walletClient,
   destination,
   amount,
+  sourceDex = "",
 }) {
-  if (!destination) throw new Error("Hyperliquid withdrawal destination is missing.");
+  if (!destination) {
+    throw new Error(
+      "Arc withdrawal destination is missing."
+    );
+  }
+
   if (!/^0x[a-fA-F0-9]{40}$/.test(destination)) {
-    throw new Error("Invalid Hyperliquid withdrawal destination.");
+    throw new Error(
+      "Invalid Arc withdrawal destination."
+    );
   }
 
   const numericAmount = Number(amount);
+
   if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
     throw new Error("Enter a valid withdrawal amount.");
   }
 
-  const time = Date.now();
+  if (sourceDex !== "" && sourceDex !== "spot") {
+    throw new Error("Invalid Hyperliquid withdrawal source.");
+  }
+
+  const nonce = Date.now();
 
   return submitUserAction({
     walletClient,
+    signingChainId: ARC_TESTNET_CHAIN_ID,
     action: {
-      type: "withdraw3",
-      signatureChainId: TESTNET_SIGNATURE_CHAIN_ID,
+      type: "sendToEvmWithData",
       hyperliquidChain: "Testnet",
-      destination,
+      signatureChainId: ARC_TESTNET_SIGNATURE_CHAIN_ID,
+      token: "USDC",
       amount: String(amount),
-      time,
+      sourceDex,
+      destinationRecipient: destination,
+      addressEncoding: "hex",
+      destinationChainId: ARC_TESTNET_CCTP_DOMAIN,
+      gasLimit: 200000,
+      data: "0x",
+      nonce,
     },
     types: {
-      "HyperliquidTransaction:Withdraw": [
+      "HyperliquidTransaction:SendToEvmWithData": [
         { name: "hyperliquidChain", type: "string" },
-        { name: "destination", type: "string" },
+        { name: "token", type: "string" },
         { name: "amount", type: "string" },
-        { name: "time", type: "uint64" },
+        { name: "sourceDex", type: "string" },
+        { name: "destinationRecipient", type: "string" },
+        { name: "addressEncoding", type: "string" },
+        { name: "destinationChainId", type: "uint32" },
+        { name: "gasLimit", type: "uint64" },
+        { name: "data", type: "bytes" },
+        { name: "nonce", type: "uint64" },
       ],
     },
   });

@@ -2,18 +2,23 @@
 import Nav from "../components/Nav";
 import ProductPreview from "../components/ProductPreview";
 import Link from "next/link";
-
+import { useState } from "react";
 export default function Home() {
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
   return (
     <main className="landing-page">
       {/* REAL LANDING PAGE VIDEO */}
       <video
-        className="landing-video"
+        className={`landing-video ${videoReady ? "is-ready" : ""}`}
         autoPlay
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
+        aria-hidden="true"
+        onCanPlay={() => setVideoReady(true)}
+        onError={() => setVideoFailed(true)}
       >
         <source src="/videos/hero-bg.mp4" type="video/mp4" />
       </video>
@@ -41,9 +46,9 @@ export default function Home() {
           </h1>
 
           <p>
-            Bring your own wallet, model, and logic.
-            Alias is the execution layer between your
-            agent and perpetual markets.
+            Alias is infrastructure for AI agents that trade perpetual markets.
+            Bring your own wallet, model, and strategy while Alias handles the
+            execution layer between your agent and the market.
           </p>
 
           <div className="landing-actions">
@@ -52,8 +57,8 @@ export default function Home() {
               <span>↗</span>
             </Link>
 
-            <a href="#system" className="landing-secondary">
-              Explore infrastructure
+            <a href="#about" className="landing-secondary">
+              Learn how it works
               <span>↓</span>
             </a>
           </div>
@@ -64,7 +69,31 @@ export default function Home() {
           <ProductPreview />
         </div>
       </section>
-
+      <section id="about" className="landing-about">
+        <div className="about-label">WHAT IS ALIAS?</div>
+      
+        <div className="about-content">
+          <h2>
+            An execution layer
+            <br />
+            <em>built for agents.</em>
+          </h2>
+      
+          <div className="about-copy">
+            <p>
+              AI agents can reason about markets, but reasoning alone does not
+              execute a trade. Alias connects an agent&apos;s decision-making layer
+              to perpetual markets through a controlled execution interface.
+            </p>
+      
+            <p>
+              You provide the wallet, the agent, and the strategy. Alias provides
+              the infrastructure that turns those decisions into actual market
+              actions without becoming the decision-maker.
+            </p>
+          </div>
+        </div>
+      </section>
       {/* SYSTEM */}
       <section id="system" className="landing-system">
         <div className="system-heading">

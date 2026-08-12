@@ -62,8 +62,17 @@ a {
   object-fit: cover;
   object-position: center;
   z-index: 0;
-  opacity: 0.72;
+  opacity: 0;
   filter: saturate(0.75) contrast(1.08);
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity;
+  transition: opacity 0.5s ease;
+}
+
+.landing-page .landing-video.is-ready {
+  opacity: 0.72;
 }
 
 .landing-page .landing-overlay {
@@ -527,6 +536,74 @@ a {
   z-index: -1;
 }
 
+
+
+
+/* =========================================================
+   ABOUT
+   ========================================================= */
+
+.landing-page .landing-about {
+  position: relative;
+  z-index: 2;
+
+  padding: 150px max(40px, 7vw);
+
+  border-top: 1px solid var(--alias-line);
+  background: var(--alias-black);
+}
+
+.landing-page .about-label {
+  max-width: 1250px;
+  margin: 0 auto 70px;
+
+  color: var(--alias-lime);
+
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.landing-page .about-content {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 80px;
+
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+.landing-page .about-content h2 {
+  margin: 0;
+
+  font-size: clamp(48px, 6vw, 82px);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+  font-weight: 500;
+}
+
+.landing-page .about-content h2 em {
+  color: #62685e;
+  font-style: normal;
+}
+
+.landing-page .about-copy {
+  align-self: end;
+  max-width: 420px;
+}
+
+.landing-page .about-copy p {
+  margin: 0 0 24px;
+
+  color: #858b82;
+
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.landing-page .about-copy p:last-child {
+  margin-bottom: 0;
+}
 /* =========================================================
    SYSTEM
    ========================================================= */
@@ -760,6 +837,14 @@ a {
     width: 92%;
 
     margin: 80px auto 0;
+  }
+  .landing-page .landing-about {
+    padding: 100px 20px;
+  }
+  
+  .landing-page .about-content {
+    grid-template-columns: 1fr;
+    gap: 40px;
   }
 
   .landing-page .system-heading {

@@ -806,44 +806,38 @@ def submit_withdrawal(
             raise ValueError(
                 "Withdrawal ID is required."
             )
-
-            result = process_withdrawal(
-                withdrawal_id=req.withdrawal_id,
-                hyperliquid_amount=req.hyperliquid_amount,
-                arc_destination=destination,
-                source_dex=req.source_dex,
-                hyperliquid_result=req.hyperliquid_result,
-            )
         
-            with get_conn() as conn:
-                conn.execute(
-                    """
-                    INSERT INTO bridge_transfers
-                    (
-                        user_id,
-                        amount_usdc,
-                        status,
-                        withdrawal_id,
-                        destination,
-                        relay_destination
-                    )
-                    VALUES (%s, %s, %s, %s, %s, NULL)
-                    ON CONFLICT (withdrawal_id)
-                    WHERE withdrawal_id IS NOT NULL
-                    DO UPDATE SET
-                        amount_usdc = EXCLUDED.amount_usdc,
-                        status = EXCLUDED.status,
-                        destination = EXCLUDED.destination
-                    """,
-                    (
-                        user["id"],
-                        float(req.amount),
-                        result["status"],
-                        req.withdrawal_id,
-                        destination,
-                    ),
+        result = process_withdrawal(
+            withdrawal_id=req.withdrawal_id,
+            hyperliquid_amount=req.hyperliquid_amount,
+            arc_destination=destination,
+            source_dex=req.source_dex,
+            hyperliquid_result=req.hyperliquid_result,
+        )
+        
+        with get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO bridge_transfers
+                (
+                    user_id,
+                    amount_usdc,
+                    status,
+                    withdrawal_id,
+                    destination,
+                    relay_destination
                 )
-
+                VALUES (%s, %s, %s, %s, %s, NULL)
+                ON CONFLICT DO NOTHING
+                """,
+                (
+                    user["id"],
+                    float(req.amount),
+                    result["status"],
+                    req.withdrawal_id,
+                    destination,
+                ),
+            )
         return {
             "accepted": True,
             "withdrawal_id": req.withdrawal_id,

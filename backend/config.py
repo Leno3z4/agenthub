@@ -89,6 +89,10 @@ ENCRYPTION_KEY = require("ENCRYPTION_KEY")
 
 
 
+# ---------------------------------------------------------------------
+# Arbitrum Sepolia — HyperCore withdrawal relay
+# ---------------------------------------------------------------------
+
 ARBITRUM_RPC_URL = os.getenv(
     "ARBITRUM_RPC_URL",
     "https://sepolia-rollup.arbitrum.io/rpc",

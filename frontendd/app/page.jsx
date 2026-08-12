@@ -54,12 +54,10 @@ export default function Home() {
           <div className="landing-actions">
             <Link href="/onboarding" className="landing-primary">
               Launch app
-              <span className="landing-arrow landing-arrow-out" aria-hidden="true" />
             </Link>
 
             <a href="#about" className="landing-secondary">
               Learn how it works
-              <span className="landing-arrow landing-arrow-down" aria-hidden="true" />
             </a>
           </div>
         </div>

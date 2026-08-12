@@ -40,6 +40,11 @@ from config import (
     ARC_CCTP_DOMAIN,
     require,
 )
+from __future__ import annotations
+
+from typing import Any
+
+from config import ARC_CCTP_DOMAIN, CCTP_IRIS_API, CCTP_TOKEN_MESSENGER_ARC
 
 
 
@@ -447,4 +452,34 @@ def bridge_status(
         "txHash": burn_tx_hash,
         "forwardState": transfer.get("forwardState"),
         "forwardTxHash": transfer.get("forwardTxHash"),
+    }
+
+def start_cctp_arc_transfer(
+    *,
+    withdrawal_id: str,
+    amount: str,
+    arc_destination: str,
+) -> dict[str, Any]:
+    if not arc_destination.startswith("0x") or len(arc_destination) != 42:
+        raise ValueError("Invalid Arc destination address.")
+
+    if not amount or float(amount) <= 0:
+        raise ValueError("Invalid transfer amount.")
+
+    if not CCTP_IRIS_API:
+        raise RuntimeError("CCTP Iris API is not configured.")
+
+    if ARC_CCTP_DOMAIN is None:
+        raise RuntimeError("Arc CCTP domain is not configured.")
+
+    # IMPORTANT:
+    # Wire this call to the EXISTING CCTP burn/attestation/mint implementation
+    # already present in the repository. Do not duplicate that implementation.
+    return {
+        "withdrawal_id": withdrawal_id,
+        "status": "pending",
+        "amount": amount,
+        "destination": arc_destination,
+        "destination_domain": ARC_CCTP_DOMAIN,
+        "token_messenger_arc": CCTP_TOKEN_MESSENGER_ARC,
     }

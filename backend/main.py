@@ -809,14 +809,14 @@ def submit_withdrawal(
                 "Withdrawal ID is required."
             )
 
-        result = process_withdrawal(
-            withdrawal_id=req.withdrawal_id,
-            hyperliquid_amount=req.hyperliquid_amount,
-            arc_destination=destination,
-            source_dex=req.source_dex,
-            hyperliquid_result=req.hyperliquid_result,
-        )
-
+            result = process_withdrawal(
+                withdrawal_id=req.withdrawal_id,
+                hyperliquid_amount=req.hyperliquid_amount,
+                arc_destination=destination,
+                source_dex=req.source_dex,
+                hyperliquid_result=req.hyperliquid_result,
+            )
+        
             with get_conn() as conn:
                 conn.execute(
                     """

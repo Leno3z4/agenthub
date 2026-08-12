@@ -103,6 +103,12 @@ def init_db():
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS token_hash TEXT",
             "ALTER TABLE agent_connections ALTER COLUMN token DROP NOT NULL",
             "ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS agent_token_hash TEXT",
+            "ALTER TABLE bridge_transfers ADD COLUMN IF NOT EXISTS withdrawal_id TEXT",
+            "ALTER TABLE bridge_transfers ADD COLUMN IF NOT EXISTS destination TEXT",
+            "ALTER TABLE bridge_transfers ADD COLUMN IF NOT EXISTS relay_destination TEXT",
+            "ALTER TABLE bridge_transfers ADD COLUMN IF NOT EXISTS forward_tx_hash TEXT",
+            "ALTER TABLE bridge_transfers ADD COLUMN IF NOT EXISTS error TEXT",
+
         ]
 
         # Run ALL migrations before creating indexes that depend on them.
@@ -125,6 +131,15 @@ def init_db():
             ON agent_connections(agent_token_hash)
             WHERE agent_token_hash IS NOT NULL
             """
+        )
+
+        conn.execute(
+            '''
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_bridge_transfers_withdrawal_id
+            ON bridge_transfers(withdrawal_id)
+            WHERE withdrawal_id IS NOT NULL
+            '''
         )
 
         from auth import hash_agent_token

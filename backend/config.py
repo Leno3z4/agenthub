@@ -48,11 +48,13 @@ CCTP_TOKEN_MESSENGER_ARC = os.getenv(
 )
 
 ARC_CCTP_DOMAIN = int(
-    require("ARC_CCTP_DOMAIN")
+    os.getenv("ARC_CCTP_DOMAIN", "26")
 )
 
+# HyperEVM is CCTP domain 19.
+# HyperCore -> EVM withdrawals route through HyperEVM before CCTP.
 HYPERLIQUID_CCTP_DOMAIN = int(
-    require("HYPERLIQUID_CCTP_DOMAIN")
+    os.getenv("HYPERLIQUID_CCTP_DOMAIN", "19")
 )
 
 CCTP_FORWARDER = os.getenv(
@@ -62,7 +64,7 @@ CCTP_FORWARDER = os.getenv(
 
 
 # ---------------------------------------------------------------------
-# HyperCore
+# HyperCore / HyperEVM
 # ---------------------------------------------------------------------
 
 CORE_DEPOSIT_WALLET = os.getenv(
@@ -73,6 +75,15 @@ CORE_DEPOSIT_WALLET = os.getenv(
 HL_API_URL = os.getenv(
     "HL_API_URL",
     "https://api.hyperliquid-testnet.xyz",
+)
+
+HYPEREVM_RPC_URL = os.getenv(
+    "HYPEREVM_RPC_URL",
+    "https://rpc.hyperliquid-testnet.xyz/evm",
+)
+
+HYPEREVM_CHAIN_ID = int(
+    os.getenv("HYPEREVM_CHAIN_ID", "998")
 )
 
 
@@ -86,40 +97,3 @@ DB_PATH = os.getenv(
 )
 
 ENCRYPTION_KEY = require("ENCRYPTION_KEY")
-
-
-
-# ---------------------------------------------------------------------
-# Arbitrum Sepolia — HyperCore withdrawal relay
-# ---------------------------------------------------------------------
-
-ARBITRUM_RPC_URL = os.getenv(
-    "ARBITRUM_RPC_URL",
-    "https://sepolia-rollup.arbitrum.io/rpc",
-)
-
-ARBITRUM_CHAIN_ID = int(
-    os.getenv("ARBITRUM_CHAIN_ID", "421614")
-)
-
-ARBITRUM_CCTP_DOMAIN = int(
-    os.getenv("ARBITRUM_CCTP_DOMAIN", "3")
-)
-
-ARBITRUM_USDC_ADDRESS = os.getenv(
-    "ARBITRUM_USDC_ADDRESS",
-    "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
-)
-
-ARBITRUM_TOKEN_MESSENGER = os.getenv(
-    "ARBITRUM_TOKEN_MESSENGER",
-    "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA",
-)
-
-HL_WITHDRAW_RECEIVER_ADDRESS = require(
-    "HL_WITHDRAW_RECEIVER_ADDRESS"
-)
-
-WITHDRAW_RELAYER_PRIVATE_KEY = require(
-    "WITHDRAW_RELAYER_PRIVATE_KEY"
-)

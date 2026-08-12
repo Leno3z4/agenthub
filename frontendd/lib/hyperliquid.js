@@ -1,8 +1,11 @@
 import { signUserSignedAction } from "@nktkas/hyperliquid/signing";
 
-const EXCHANGE_URL = "https://api.hyperliquid-testnet.xyz/exchange";
+const EXCHANGE_URL =
+  "https://api.hyperliquid-testnet.xyz/exchange";
+
 const TESTNET_SIGNATURE_CHAIN_ID = "0x66eee";
 const TESTNET_CHAIN_ID = 421614;
+const WITHDRAWAL_FEE = 1;
 
 const APPROVE_AGENT_TYPES = {
   "HyperliquidTransaction:ApproveAgent": [
@@ -45,7 +48,9 @@ function validateWalletClient(walletClient) {
   }
 
   if (typeof walletClient.signTypedData !== "function") {
-    throw new Error("Connected wallet does not support EIP-712 signing.");
+    throw new Error(
+      "Connected wallet does not support EIP-712 signing."
+    );
   }
 }
 
@@ -56,6 +61,22 @@ function validateAddress(address, fieldName = "address") {
   ) {
     throw new Error(`Invalid ${fieldName}.`);
   }
+}
+
+function validateAmount(amount, fieldName = "amount") {
+  const numeric = Number(amount);
+
+  if (
+    amount === undefined ||
+    amount === null ||
+    amount === "" ||
+    !Number.isFinite(numeric) ||
+    numeric <= 0
+  ) {
+    throw new Error(`Enter a valid ${fieldName}.`);
+  }
+
+  return numeric;
 }
 
 async function submitUserAction({
@@ -106,19 +127,14 @@ async function submitUserAction({
 
   if (parsed?.status === "err") {
     throw new Error(
-      parsed.response || "Hyperliquid rejected the action."
+      parsed.response ||
+        "Hyperliquid rejected the action."
     );
   }
 
   return parsed;
 }
 
-/**
- * Approve Alias's delegated Hyperliquid agent wallet.
- *
- * This is signed by the user's connected wallet.
- * The agent receives trading permission only.
- */
 export async function approveAgent({
   walletClient,
   agentAddress,
@@ -144,24 +160,12 @@ export async function approveAgent({
   });
 }
 
-/**
- * Move USDC from spot balance to perpetuals balance.
- */
 export async function transferSpotToPerps({
   walletClient,
   amount,
 }) {
   validateWalletClient(walletClient);
-
-  if (
-    amount === undefined ||
-    amount === null ||
-    amount === "" ||
-    !Number.isFinite(Number(amount)) ||
-    Number(amount) <= 0
-  ) {
-    throw new Error("Enter a valid transfer amount.");
-  }
+  validateAmount(amount, "transfer amount");
 
   const nonce = getNonce();
 
@@ -181,25 +185,51 @@ export async function transferSpotToPerps({
   });
 }
 
-/**
- * Withdraw USDC from Hyperliquid to an EVM address.
- */
 export async function withdrawHyperliquid({
   walletClient,
   destination,
   amount,
+  spotAvailable = 0,
 }) {
   validateWalletClient(walletClient);
   validateAddress(destination, "withdrawal destination");
 
-  if (
-    amount === undefined ||
-    amount === null ||
-    amount === "" ||
-    !Number.isFinite(Number(amount)) ||
-    Number(amount) <= 0
-  ) {
+  const requestedAmount = validateAmount(
+    amount,
+    "withdrawal amount"
+  );
+
+  const availableSpot = Math.max(
+    0,
+    Number(spotAvailable) || 0
+  );
+
+  if (requestedAmount <= 0) {
     throw new Error("Enter a valid withdrawal amount.");
+  }
+
+  /*
+   * Hyperliquid charges a $1 withdrawal fee.
+   *
+   * If the funds are currently in Spot, move the requested
+   * withdrawal amount + the fee into Perps first.
+   */
+  if (availableSpot > 0) {
+    const requiredFromSpot =
+      requestedAmount + WITHDRAWAL_FEE;
+
+    if (requiredFromSpot > availableSpot + 1e-9) {
+      throw new Error(
+        `Not enough available Spot USDC. ` +
+          `You need $${requiredFromSpot.toFixed(2)} ` +
+          `including the $${WITHDRAWAL_FEE} withdrawal fee.`
+      );
+    }
+
+    await transferSpotToPerps({
+      walletClient,
+      amount: requiredFromSpot.toFixed(6),
+    });
   }
 
   const nonce = getNonce();
@@ -209,7 +239,7 @@ export async function withdrawHyperliquid({
     signatureChainId: TESTNET_SIGNATURE_CHAIN_ID,
     hyperliquidChain: "Testnet",
     destination,
-    amount: String(amount),
+    amount: requestedAmount.toString(),
     time: nonce,
   };
 

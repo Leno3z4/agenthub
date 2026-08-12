@@ -38,13 +38,9 @@ from config import (
     HYPERLIQUID_CCTP_DOMAIN,
     CCTP_FORWARDER,
     ARC_CCTP_DOMAIN,
+    CCTP_TOKEN_MESSENGER_ARC,
     require,
 )
-from __future__ import annotations
-
-from typing import Any
-
-from config import ARC_CCTP_DOMAIN, CCTP_IRIS_API, CCTP_TOKEN_MESSENGER_ARC
 
 
 

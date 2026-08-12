@@ -1,11 +1,12 @@
 """
 Hyperliquid execution backend.
 
-The user's real wallet never signs trades directly.
+The user's real wallet never signs trades directly for agent trading.
 Alias generates one delegated signing key per user and the user
 approves that address once through Hyperliquid's approveAgent action.
 
-The delegated agent can trade, but cannot withdraw user funds.
+Withdrawal is different: the user's linked wallet signs the
+sendToEvmWithData action directly.
 """
 
 from typing import Optional
@@ -100,7 +101,7 @@ def is_agent_authorized(
 
 
 def get_account_state(user_address: str) -> dict:
-    """Read Hyperliquid perpetual + spot USDC state."""
+    """Read Hyperliquid perp + spot USDC state."""
 
     user_address = _validate_address(user_address)
 
@@ -134,38 +135,48 @@ def get_account_state(user_address: str) -> dict:
 
     margin = state.get("marginSummary", {})
 
-    # Hyperliquid's native withdrawable field is the amount currently
-    # withdrawable from the Perp/HyperCore withdrawal balance.
-    perp_withdrawable = float(
-        state.get("withdrawable", 0) or 0
+    # Hyperliquid's native withdrawable field for the perp account.
+    perp_withdrawable = max(
+        0.0,
+        float(state.get("withdrawable", 0) or 0),
     )
 
-    # Spot USDC that is not locked by a Spot order.
+    # USDC in Spot that is not locked by an order.
     spot_withdrawable = max(
         0.0,
         usdc_total - usdc_hold,
     )
 
-    # The UI may withdraw either an already-withdrawable Perp balance
-    # or available Spot USDC. If the source is Spot, the frontend moves
-    # the requested amount + the $1 HL fee to Perps before withdraw3.
-    withdrawable_total = max(
-        perp_withdrawable,
-        spot_withdrawable,
-    )
+    # The withdrawal flow chooses the larger actually-available source.
+    # This is important: sendToEvmWithData must use sourceDex="spot"
+    # when the funds are in Spot, otherwise it attempts to withdraw
+    # from the perp balance and can fail with an apparent $0 balance.
+    if perp_withdrawable >= spot_withdrawable and perp_withdrawable > 0:
+        withdrawal_source = "perp"
+        withdrawal_source_dex = ""
+        withdrawable_total = perp_withdrawable
+    elif spot_withdrawable > 0:
+        withdrawal_source = "spot"
+        withdrawal_source_dex = "spot"
+        withdrawable_total = spot_withdrawable
+    else:
+        withdrawal_source = None
+        withdrawal_source_dex = None
+        withdrawable_total = 0.0
 
     return {
         "account_value": margin.get("accountValue", "0"),
         "margin_used": margin.get("totalMarginUsed", "0"),
 
-        # Keep this field compatible with the dashboard.
         "withdrawable": str(withdrawable_total),
         "withdrawable_total": str(withdrawable_total),
 
-        # Explicit source balances for newer UI/backend code.
         "perp_withdrawable": str(perp_withdrawable),
         "spot_usdc_balance": str(usdc_total),
         "spot_usdc_available": str(spot_withdrawable),
+
+        "withdrawal_source": withdrawal_source,
+        "withdrawal_source_dex": withdrawal_source_dex,
 
         "usdc_balance": str(usdc_total),
         "usdc_available": str(spot_withdrawable),

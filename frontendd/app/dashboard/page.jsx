@@ -277,7 +277,7 @@ export default function DashboardOverview() {
        */
       await withdrawHyperliquid({
         walletClient,
-        destination: bridgeAddress,
+        destination: walletAddress,
         amount: amount.toString(),
       });
 

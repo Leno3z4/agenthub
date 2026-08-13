@@ -1,6 +1,6 @@
 from typing import Optional
 from pathlib import Path
-from rate_limit import rate-limit
+from rate_limit import rate_limit
 from config import require
 from fastapi import (
     FastAPI,

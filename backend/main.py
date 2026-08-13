@@ -990,7 +990,29 @@ def agent_trade(
         user_id,
         authorization,
     )
-
+    if not req.coin.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Coin is required.",
+        )
+    
+    if req.size <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Trade size must be greater than zero.",
+        )
+    
+    if req.leverage is not None and req.leverage <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Leverage must be greater than zero.",
+        )
+    
+    if req.confidence is not None and not 0 <= req.confidence <= 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Confidence must be between 0 and 1.",
+        )
     if not user["agent_key_encrypted"]:
         raise HTTPException(
             status_code=409,

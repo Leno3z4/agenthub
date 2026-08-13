@@ -1714,3 +1714,67 @@ a {
     padding: 13px;
   }
 }
+
+
+/* =========================================================
+   MOBILE NAVIGATION FIX
+   ========================================================= */
+
+@media (max-width: 560px) {
+  .landing-page .landing-nav {
+    width: 100%;
+    max-width: none;
+    height: 78px;
+    padding: 0 12px;
+    margin: 0;
+  }
+
+  .landing-page .landing-logo {
+    flex: 0 0 auto;
+    font-size: 19px;
+  }
+
+  .landing-page .landing-nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .landing-page .landing-login {
+    display: none;
+  }
+
+  .landing-page .landing-launch {
+    flex: 0 0 auto;
+    min-width: 112px;
+    max-width: none;
+    height: 39px;
+    padding: 0 15px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 390px) {
+  .landing-page .landing-nav {
+    padding: 0 10px;
+  }
+
+  .landing-page .landing-logo {
+    font-size: 19px;
+  }
+
+  .landing-page .landing-nav-right {
+    gap: 8px;
+  }
+
+  .landing-page .landing-launch {
+    min-width: 108px;
+    height: 37px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+}

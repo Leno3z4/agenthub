@@ -56,7 +56,7 @@ from agent_session import (
     touch_session,
     destroy_session,
 )
-
+MAX_TRADE_NOTIONAL = 500.0
 app = FastAPI(title="Alias Backend")
 app.include_router(agent_router)
 
@@ -594,6 +594,7 @@ def _require_agent_auth(
         credential,
         user["api_key_hash"],
     ):
+        user["auth_role"] = "user"
         return user
 
     # Agent authentication: hashed agent bearer token.
@@ -622,7 +623,8 @@ def _require_agent_auth(
             status_code=401,
             detail="invalid API key or agent token",
         )
-
+    
+    connection["auth_role"] = "agent"
     return connection
 
 
@@ -828,6 +830,12 @@ def get_withdrawal_parameters(
         authorization,
     )
 
+    if user.get("auth_role") == "agent":
+        raise HTTPException(
+            status_code=403,
+            detail="Agents cannot access withdrawal parameters.",
+        )
+
     try:
         return create_withdrawal(
             user_address=user["wallet_address"],
@@ -863,6 +871,12 @@ def submit_withdrawal(
         req.user_id,
         authorization,
     )
+
+    if user.get("auth_role") == "agent":
+        raise HTTPException(
+            status_code=403,
+            detail="Agents cannot execute withdrawals.",
+        )
 
     try:
         destination = req.destination.strip()
@@ -990,6 +1004,72 @@ def agent_trade(
         user_id,
         authorization,
     )
+    if not req.coin.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Coin is required.",
+        )
+    
+    if req.size <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Trade size must be greater than zero.",
+        )
+    
+    markets = get_markets()
+    
+    market = next(
+        (
+            m
+            for m in markets
+            if str(m["coin"]).upper()
+            == req.coin.strip().upper()
+        ),
+        None,
+    )
+    
+    if market is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Unknown or unsupported market.",
+        )
+    
+    mark_price = float(market.get("mark_price") or 0)
+    
+    if mark_price <= 0:
+        raise HTTPException(
+            status_code=503,
+            detail="Market price is currently unavailable.",
+        )
+    
+    notional = req.size * mark_price
+    
+    if notional > MAX_TRADE_NOTIONAL:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Trade notional ${notional:.2f} exceeds "
+                f"the ${MAX_TRADE_NOTIONAL:.2f} maximum."
+            ),
+        )
+    
+    if req.leverage is not None:
+        if req.leverage <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Leverage must be greater than zero.",
+            )
+    
+        max_leverage = int(market.get("max_leverage") or 0)
+    
+        if max_leverage > 0 and req.leverage > max_leverage:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Maximum leverage for {market['coin']} "
+                    f"is {max_leverage}x."
+                ),
+            )
     if not req.coin.strip():
         raise HTTPException(
             status_code=400,

@@ -1505,3 +1505,212 @@ a {
     max-width: 100%;
   }
 }
+
+
+/* =========================================================
+   LANDING MOBILE OVERFLOW FIX
+   ========================================================= */
+
+.landing-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.landing-page .landing-nav,
+.landing-page .landing-hero,
+.landing-page .landing-about,
+.landing-page .landing-system,
+.landing-page .landing-closing,
+.landing-page .landing-footer {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 800px) {
+  .landing-page .landing-nav {
+    width: calc(100% - 32px);
+  }
+
+  .landing-page .landing-hero {
+    width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
+    overflow: visible;
+  }
+
+  .landing-page .hero-product {
+    width: 100%;
+    max-width: 100%;
+    right: auto;
+    left: auto;
+  }
+
+  .landing-page .product-window {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .landing-page {
+    overflow-x: clip;
+  }
+
+  .landing-page .landing-nav {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+  }
+
+  .landing-page .landing-nav-right {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .landing-page .landing-launch {
+    min-width: 0;
+    max-width: 130px;
+    padding: 0 14px;
+    white-space: nowrap;
+  }
+
+  .landing-page .landing-hero {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+    padding-top: 55px;
+    padding-bottom: 45px;
+  }
+
+  .landing-page .landing-hero-copy {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .landing-page .landing-eyebrow {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .landing-page .landing-hero h1 {
+    max-width: 100%;
+    font-size: clamp(43px, 13vw, 57px);
+    line-height: 0.9;
+    letter-spacing: -0.065em;
+  }
+
+  .landing-page .landing-hero-copy > p {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .landing-page .landing-actions {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .landing-page .hero-product {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 55px;
+  }
+
+  .landing-page .product-window {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .landing-page .product-window-body {
+    min-width: 0;
+  }
+
+  .landing-page .product-content {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .landing-page .landing-about,
+  .landing-page .landing-system {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .landing-page .about-content,
+  .landing-page .system-heading,
+  .landing-page .system-grid {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .landing-page .about-content h2,
+  .landing-page .system-heading h2 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .landing-page .system-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .landing-page .landing-closing {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .landing-page .landing-closing h2 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .landing-page .landing-footer {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .landing-page .landing-logo {
+    font-size: 19px;
+  }
+
+  .landing-page .landing-nav-right {
+    gap: 8px;
+  }
+
+  .landing-page .landing-launch {
+    height: 37px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .landing-page .landing-hero {
+    padding-top: 45px;
+  }
+
+  .landing-page .landing-hero h1 {
+    font-size: 45px;
+  }
+
+  .landing-page .landing-hero-copy > p {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .landing-page .hero-product {
+    margin-top: 45px;
+  }
+
+  .landing-page .product-sidebar {
+    width: 42px;
+  }
+
+  .landing-page .product-content {
+    padding: 13px;
+  }
+}

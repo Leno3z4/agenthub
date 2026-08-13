@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
+from collections import defaultdict, deque
+from threading import Lock
 import secrets
+import time
 
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Request
 from pydantic import BaseModel
 
 from auth import hash_agent_token, verify_api_key
@@ -13,6 +16,58 @@ router = APIRouter(
     prefix="/agent",
     tags=["agent"],
 )
+
+
+
+_RATE_LIMITS = {
+    "connect": (5, 60),
+    "heartbeat": (60, 60),
+    "disconnect": (10, 60),
+}
+
+_rate_limit_buckets = defaultdict(deque)
+_rate_limit_lock = Lock()
+
+
+def _rate_limit(
+    request: Request,
+    action: str,
+    identity: str,
+):
+    limit, window = _RATE_LIMITS[action]
+    now = time.monotonic()
+
+    ip = request.client.host if request.client else "unknown"
+
+    keys = [
+        f"{action}:ip:{ip}",
+        f"{action}:identity:{identity}",
+    ]
+
+    with _rate_limit_lock:
+        for key in keys:
+            bucket = _rate_limit_buckets[key]
+
+            while bucket and now - bucket[0] >= window:
+                bucket.popleft()
+
+            if len(bucket) >= limit:
+                retry_after = max(
+                    1,
+                    int(window - (now - bucket[0])),
+                )
+
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many requests. Try again later.",
+                    headers={
+                        "Retry-After": str(retry_after),
+                    },
+                )
+
+        for key in keys:
+            _rate_limit_buckets[key].append(now)
+
 
 
 class CreateAgentRequest(BaseModel):
@@ -239,7 +294,17 @@ def get_agent_profile(
 @router.post("/connect")
 def connect_agent(
     req: ConnectAgentRequest,
+    request: Request,
 ):
+    connection_token_hash = hash_agent_token(
+        req.connection_token
+    )
+
+    _rate_limit(
+        request,
+        "connect",
+        connection_token_hash,
+    )
     with get_conn() as conn:
 
         conn.execute(
@@ -249,7 +314,7 @@ def connect_agent(
             FROM agent_connections
             WHERE token_hash = %s
             """,
-            (hash_agent_token(req.connection_token),),
+            (connection_token_hash,),
         )
 
         connection = conn.fetchone()

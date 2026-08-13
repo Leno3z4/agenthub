@@ -1310,158 +1310,60 @@ a {
 }
 
 
-/* =========================================================
-   RESPONSIVE OVERRIDES
-   ========================================================= */
-
-/* Tablet */
-@media (max-width: 960px) {
-  .dashboard-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-sidebar {
-    width: 100%;
-    min-height: auto;
-    position: relative;
-  }
-
-  .dashboard-main {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .dashboard-content {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .market-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Mobile */
 @media (max-width: 640px) {
-  .dashboard-layout {
-    display: block;
+  .alias-markets-page {
     width: 100%;
     min-width: 0;
   }
 
-  .dashboard-sidebar {
-    width: 100%;
-    padding: 12px;
+  .alias-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
   }
 
-  .dashboard-main,
-  .dashboard-content {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    overflow-x: hidden;
-  }
-
-  .dashboard-grid,
-  .market-grid {
-    grid-template-columns: 1fr;
-    width: 100%;
-  }
-
-  .dashboard-card,
-  .market-card {
-    width: 100%;
+  .alias-page-header > div {
     min-width: 0;
   }
 
-  .dashboard-header {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .dashboard-header h1,
-  .dashboard-header h2 {
-    max-width: 100%;
+  .alias-page-header h1 {
     overflow-wrap: anywhere;
   }
 
-  .dashboard-actions {
+  .alias-search {
     width: 100%;
-    flex-wrap: wrap;
+    max-width: none;
   }
 
-  .dashboard-actions button {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-
-  .form-row {
-    flex-direction: column;
-  }
-
-  .form-row > * {
+  .alias-market-table {
     width: 100%;
-    min-width: 0;
-  }
-
-  input,
-  select,
-  textarea {
-    max-width: 100%;
-  }
-
-  button {
-    max-width: 100%;
-  }
-
-  .table-container {
-    width: 100%;
-    max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  table {
-    min-width: 620px;
+  .alias-market-head,
+  .alias-market-row {
+    min-width: 600px;
+  }
+
+  .alias-market-row {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .alias-market-footer {
+    width: 100%;
+    overflow-wrap: anywhere;
   }
 }
 
-/* Small phones */
 @media (max-width: 430px) {
-  .dashboard-sidebar {
-    padding: 10px;
-  }
-
-  .dashboard-main {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .dashboard-content {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .dashboard-card,
-  .market-card {
-    padding: 14px;
-  }
-
-  .dashboard-header {
-    gap: 8px;
-  }
-
-  .dashboard-header h1 {
+  .alias-page-header h1 {
     font-size: 24px;
     line-height: 1.15;
   }
 
-  .dashboard-header h2 {
-    font-size: 18px;
+  .alias-page-header p {
+    max-width: 100%;
   }
 }

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 _sessions: dict[str, dict] = {}
 
-SESSION_DURATION = timedelta(days=30)
+SESSION_DURATION = timedelta(days=365)
 
 
 def create_session(api_key: str) -> str:

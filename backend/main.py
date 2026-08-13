@@ -125,6 +125,12 @@ def link_wallet(
     x_internal_auth: Optional[str] = Header(None),
 ):
     require_internal_auth(x_internal_auth)
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=req.google_id,
+    )
 
     with get_conn() as conn:
         conn.execute(
@@ -366,6 +372,12 @@ def register_user(
     req: RegisterUserRequest,
     x_internal_auth: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=req.google_id,
+    )
     require_internal_auth(x_internal_auth)
 
     with get_conn() as conn:
@@ -703,6 +715,12 @@ def bridge_deposit(
     req: DepositCompleteRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=req.user_id,
+    )
     """
     Called after the user's wallet successfully broadcasts
     depositForBurn(). The backend simply records the bridge
@@ -759,6 +777,12 @@ def get_withdrawal_parameters(
     req: WithdrawalParametersRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=10,
+        window=60,
+        identity=req.user_id,
+    )
     user = _require_agent_auth(
         req.user_id,
         authorization,
@@ -788,6 +812,12 @@ def submit_withdrawal(
     req: WithdrawalConfirmRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=3,
+        window=60,
+        identity=req.user_id,
+    )
     user = _require_agent_auth(
         req.user_id,
         authorization,
@@ -907,6 +937,13 @@ def agent_trade(
     req: TradeRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=10,
+        window=60,
+        identity=user_id,
+    )
+
     user = _require_agent_auth(
         user_id,
         authorization,
@@ -1045,6 +1082,12 @@ def agent_close(
     req: CloseRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=10,
+        window=60,
+        identity=user_id,
+    )
     user = _require_agent_auth(
         user_id,
         authorization,
@@ -1124,6 +1167,12 @@ def agent_connect(
     req: AgentConnectRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=req.user_id,
+    )
     """
     Called once by the agent after the user pastes the skill.
     Exchanges the API key for a long-lived session token.
@@ -1147,6 +1196,12 @@ def agent_connect(
 def agent_heartbeat(
     req: AgentHeartbeatRequest,
 ):
+    rate_limit(
+        request,
+        limit=30,
+        window=60,
+        identity=req.session_token,
+    )
     if not validate_session(req.session_token):
         raise HTTPException(
             401,
@@ -1163,6 +1218,12 @@ def agent_heartbeat(
 def agent_disconnect(
     req: AgentDisconnectRequest,
 ):
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=req.session_token,
+    )
     destroy_session(req.session_token)
 
     return {

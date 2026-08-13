@@ -417,7 +417,17 @@ def connect_agent(
 @router.post("/heartbeat")
 def heartbeat(
     req: HeartbeatRequest,
+    request: Request,
 ):
+    agent_token_hash = hash_agent_token(
+        req.agent_token
+    )
+
+    _rate_limit(
+        request,
+        "heartbeat",
+        agent_token_hash,
+    )
 
     with get_conn() as conn:
 
@@ -428,7 +438,7 @@ def heartbeat(
             WHERE agent_token_hash = %s
               AND connected = 1
             """,
-            (hash_agent_token(req.agent_token),),
+            (agent_token_hash,),
         )
 
         connection = conn.fetchone()
@@ -463,7 +473,17 @@ def heartbeat(
 @router.post("/disconnect")
 def disconnect(
     req: DisconnectRequest,
+    request: Request,
 ):
+    agent_token_hash = hash_agent_token(
+        req.agent_token
+    )
+
+    _rate_limit(
+        request,
+        "disconnect",
+        agent_token_hash,
+    )
 
     with get_conn() as conn:
 
@@ -474,7 +494,7 @@ def disconnect(
             WHERE agent_token_hash = %s
               AND connected = 1
             """,
-            (hash_agent_token(req.agent_token),),
+            (agent_token_hash,),
         )
 
         connection = conn.fetchone()
@@ -491,7 +511,7 @@ def disconnect(
             SET connected = 0
             WHERE agent_token_hash = %s
             """,
-            (hash_agent_token(req.agent_token),),
+            (agent_token_hash,),
         )
 
     return {

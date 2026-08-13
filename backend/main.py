@@ -121,6 +121,7 @@ class LinkWalletResponse(BaseModel):
 
 @app.post("/wallet/link", response_model=LinkWalletResponse)
 def link_wallet(
+    request: Request,
     req: LinkWalletRequest,
     x_internal_auth: Optional[str] = Header(None),
 ):

@@ -147,7 +147,17 @@ def link_wallet(
             (req.google_id, req.email),
         )
         existing = conn.fetchone()
-
+        conn.execute(
+            """
+            UPDATE agent_connections
+            SET
+                connected = 0,
+                token_hash = NULL,
+                agent_token_hash = NULL
+            WHERE user_id = %s
+            """,
+            (existing["id"],),
+        )
         if existing is None:
             raise HTTPException(
                 status_code=404,
@@ -362,6 +372,18 @@ def repair_agent(
                 encrypted_key,
                 user_id,
             ),
+        )
+    
+        conn.execute(
+            """
+            UPDATE agent_connections
+            SET
+                connected = 0,
+                token_hash = NULL,
+                agent_token_hash = NULL
+            WHERE user_id = %s
+            """,
+            (user_id,),
         )
 
     print(

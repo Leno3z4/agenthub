@@ -17,7 +17,11 @@ class RateLimiter:
             requests = self._requests[key]
 
             cutoff = now - window
-            requests[:] = [timestamp for timestamp in requests if timestamp > cutoff]
+            requests[:] = [
+                timestamp
+                for timestamp in requests
+                if timestamp > cutoff
+            ]
 
             if len(requests) >= limit:
                 raise HTTPException(
@@ -41,13 +45,18 @@ def rate_limit(
 ):
     ip = request.client.host if request.client else "unknown"
 
-    if identity:
-        key = f"{ip}:{identity}"
-    else:
-        key = ip
-
+    # IP-level protection.
     limiter.check(
-        key,
+        f"ip:{ip}",
         limit=limit,
         window=window,
     )
+
+    # Identity-level protection.
+    # Prevents bypassing the limiter by switching accounts.
+    if identity:
+        limiter.check(
+            f"identity:{identity}",
+            limit=limit,
+            window=window,
+        )

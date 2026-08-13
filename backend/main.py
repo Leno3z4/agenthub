@@ -282,9 +282,16 @@ class RegisterUserRequest(BaseModel):
 
 @app.post("/agent/repair")
 def repair_agent(
+    request: Request,
     user_id: str,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=3,
+        window=60,
+        identity=user_id,
+    )
     user = _require_agent_auth(
         user_id,
         authorization,
@@ -472,9 +479,16 @@ def register_user(
 
 @app.post("/wallet/confirm-permissions")
 def confirm_permissions(
+    request: Request,
     req: ConfirmPermissionsRequest,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=req.user_id,
+    )
     _require_agent_auth(
         req.user_id,
         authorization,
@@ -714,6 +728,7 @@ def bridge_deposit_params(
 
 @app.post("/bridge/deposit")
 def bridge_deposit(
+    request: Request,
     req: DepositCompleteRequest,
     authorization: Optional[str] = Header(None),
 ):
@@ -776,6 +791,7 @@ def bridge_transfer_status(
 
 @app.post("/bridge/withdraw-params")
 def get_withdrawal_parameters(
+    request: Request,
     req: WithdrawalParametersRequest,
     authorization: Optional[str] = Header(None),
 ):
@@ -811,6 +827,7 @@ def get_withdrawal_parameters(
 
 @app.post("/bridge/withdraw")
 def submit_withdrawal(
+    request: Request,
     req: WithdrawalConfirmRequest,
     authorization: Optional[str] = Header(None),
 ):
@@ -935,6 +952,7 @@ class TradeRequest(BaseModel):
 
 @app.post("/users/{user_id}/trade")
 def agent_trade(
+    request: Request,
     user_id: str,
     req: TradeRequest,
     authorization: Optional[str] = Header(None),
@@ -1080,6 +1098,7 @@ class AgentDisconnectRequest(BaseModel):
 
 @app.post("/users/{user_id}/close")
 def agent_close(
+    request: Request,
     user_id: str,
     req: CloseRequest,
     authorization: Optional[str] = Header(None),
@@ -1196,6 +1215,7 @@ def agent_connect(
 
 @app.post("/agent/heartbeat")
 def agent_heartbeat(
+    request: Request,
     req: AgentHeartbeatRequest,
 ):
     rate_limit(
@@ -1218,6 +1238,7 @@ def agent_heartbeat(
 
 @app.post("/agent/disconnect")
 def agent_disconnect(
+    request: Request,
     req: AgentDisconnectRequest,
 ):
     rate_limit(

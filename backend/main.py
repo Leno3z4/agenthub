@@ -369,6 +369,7 @@ def repair_agent(
 
 @app.post("/users/register")
 def register_user(
+    request: Request,
     req: RegisterUserRequest,
     x_internal_auth: Optional[str] = Header(None),
 ):

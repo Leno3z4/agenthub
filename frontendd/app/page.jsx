@@ -33,8 +33,7 @@ export default function Home() {
       <section className="landing-hero">
         <div className="landing-hero-copy">
           <div className="landing-eyebrow">
-            
-            AUTONOMOUS PERPETUAL INFRASTRUCTURE
+          
           </div>
           <h1>
             Connect your

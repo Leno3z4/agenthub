@@ -165,7 +165,13 @@ export default function Home() {
       {/* FOOTER */}
       <footer className="landing-footer">
         <span>ALIAS</span>
-        <span>Autonomous perpetual infrastructure</span>
+      
+        <div className="landing-footer-links">
+          <Link href="/terms">Terms</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/risk">Risk Disclosure</Link>
+        </div>
+      
         <span>2026</span>
       </footer>
     </main>

@@ -59,7 +59,7 @@ from agent_session import (
 
 
 from evm_routes import router as evm_router
-
+from evm_apexiswap_routes import router as apexiswap_router
 app = FastAPI(title="Alias Backend")
 
 app.include_router(agent_router)

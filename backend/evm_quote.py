@@ -1,15 +1,10 @@
-"""
-Quote validation layer.
-
-The first version uses the Uniswap v3 Quoter contract supplied by configuration.
-It never sends a transaction and never signs anything.
-"""
-
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 from web3 import Web3
+
+from evm_pool_discovery import checksum
 
 
 QUOTER_V2_ABI = [
@@ -45,17 +40,14 @@ QUOTER_V2_ABI = [
 class Quote:
     amount_in: int
     amount_out: int
-    minimum_amount_out: int
+    amount_out_minimum: int
     token_in: str
     token_out: str
     fee: int
     gas_estimate: int
 
-
-def _addr(value: str) -> str:
-    if not Web3.is_address(value):
-        raise ValueError(f"Invalid address: {value}")
-    return Web3.to_checksum_address(value)
+    def as_dict(self):
+        return asdict(self)
 
 
 def quote_exact_input_single(
@@ -65,38 +57,40 @@ def quote_exact_input_single(
     token_out: str,
     amount_in: int,
     fee: int,
-    slippage_bps: int = 100,
+    slippage_bps: int,
 ) -> Quote:
+    if not quoter_address:
+        raise ValueError("UNISWAP_V3_QUOTER_V2 is not configured.")
     if amount_in <= 0:
-        raise ValueError("amount_in must be positive")
+        raise ValueError("amount_in must be positive.")
     if not 0 <= slippage_bps <= 5000:
-        raise ValueError("slippage_bps must be between 0 and 5000")
+        raise ValueError("slippage_bps must be between 0 and 5000.")
 
     quoter = w3.eth.contract(
-        address=_addr(quoter_address),
+        address=checksum(quoter_address),
         abi=QUOTER_V2_ABI,
     )
 
-    amount_out, _, _, gas_estimate = quoter.functions.quoteExactInputSingle(
-        (
-            _addr(token_in),
-            _addr(token_out),
-            amount_in,
-            fee,
-            0,
-        )
-    ).call()
-
-    minimum_amount_out = (
-        amount_out * (10_000 - slippage_bps) // 10_000
+    amount_out, _, _, gas_estimate = (
+        quoter.functions.quoteExactInputSingle(
+            (
+                checksum(token_in),
+                checksum(token_out),
+                amount_in,
+                fee,
+                0,
+            )
+        ).call()
     )
+
+    minimum = amount_out * (10_000 - slippage_bps) // 10_000
 
     return Quote(
         amount_in=amount_in,
         amount_out=amount_out,
-        minimum_amount_out=minimum_amount_out,
-        token_in=_addr(token_in),
-        token_out=_addr(token_out),
+        amount_out_minimum=minimum,
+        token_in=checksum(token_in),
+        token_out=checksum(token_out),
         fee=fee,
         gas_estimate=gas_estimate,
     )

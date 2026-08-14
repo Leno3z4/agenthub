@@ -31,11 +31,7 @@ export default function Home() {
 
       {/* HERO */}
       <section className="landing-hero">
-        <div className="landing-hero-copy">
-          <div className="landing-eyebrow">
-            <span className="eyebrow-dot" />
-            AUTONOMOUS PERPETUAL INFRASTRUCTURE
-          </div>
+        
 
           <h1>
             Connect your

@@ -1859,3 +1859,21 @@ a {
     line-height: 1.7;
   }
 }
+
+.landing-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.landing-footer-links a {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .landing-footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px 20px;
+  }
+}

@@ -43,7 +43,7 @@ from withdrawal import (
     process_withdrawal,
     withdrawal_status,
 )
-
+app = FastAPI()
 
 from config import (
     HYPERLIQUID_CCTP_DOMAIN,
@@ -65,6 +65,148 @@ from agent_session import (
 MAX_TRADE_NOTIONAL = 500.0
 
 
+from evm.rpc import get_web3
+from dex.achswap import (
+    ACHSWAP_CHAIN_ID,
+    build_approval_if_needed,
+    build_swap,
+    quote as achswap_quote,
+)
+
+
+
+class AchSwapQuoteRequest(BaseModel):
+    token_in: str
+    token_out: str
+    amount_in: int
+    slippage_bps: int = 100
+
+
+@app.post("/evm/achswap/quote")
+def get_achswap_quote(req: AchSwapQuoteRequest):
+    try:
+        w3 = get_web3(expected_chain_id=5042002)
+
+        quote = achswap_quote(
+            w3,
+            req.token_in,
+            req.token_out,
+            req.amount_in,
+            req.slippage_bps,
+        )
+
+        return {
+            "chain_id": w3.eth.chain_id,
+            "token_in": quote.token_in,
+            "token_out": quote.token_out,
+            "amount_in": quote.amount_in,
+            "expected_out": quote.expected_out,
+            "minimum_out": quote.minimum_out,
+            "route_data": quote.route_data,
+        }
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        print("ACHSWAP QUOTE ERROR:", repr(exc))
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to obtain AchSwap quote.",
+        )
+
+
+class AchSwapSwapRequest(BaseModel):
+    token_in: str
+    token_out: str
+    amount_in: int
+    slippage_bps: int = 100
+    sender: str
+
+
+@app.post("/evm/achswap/swap")
+def build_achswap_swap(req: AchSwapSwapRequest):
+    try:
+        w3 = get_web3(expected_chain_id=ACHSWAP_CHAIN_ID)
+
+        q = achswap_quote(
+            w3,
+            req.token_in,
+            req.token_out,
+            req.amount_in,
+            req.slippage_bps,
+        )
+
+        approval = build_approval_if_needed(
+            w3,
+            req.sender,
+            q.token_in,
+            q.amount_in,
+        )
+
+        if approval is not None:
+            return {
+                "status": "approval_required",
+                "approval": {
+                    "chainId": approval["chainId"],
+                    "to": approval["to"],
+                    "data": approval["data"],
+                    "value": str(approval.get("value", 0)),
+                    "nonce": approval["nonce"],
+                    "gas": approval.get("gas"),
+                    "maxFeePerGas": (
+                        str(approval["maxFeePerGas"])
+                        if "maxFeePerGas" in approval
+                        else None
+                    ),
+                    "maxPriorityFeePerGas": (
+                        str(approval["maxPriorityFeePerGas"])
+                        if "maxPriorityFeePerGas" in approval
+                        else None
+                    ),
+                },
+            }
+
+        tx = build_swap(w3, req.sender, q)
+
+        return {
+            "status": "ready",
+            "swap": {
+                "chainId": tx["chainId"],
+                "to": tx["to"],
+                "data": tx["data"],
+                "value": str(tx.get("value", 0)),
+                "nonce": tx["nonce"],
+                "gas": tx.get("gas"),
+                "maxFeePerGas": (
+                    str(tx["maxFeePerGas"])
+                    if "maxFeePerGas" in tx
+                    else None
+                ),
+                "maxPriorityFeePerGas": (
+                    str(tx["maxPriorityFeePerGas"])
+                    if "maxPriorityFeePerGas" in tx
+                    else None
+                ),
+            },
+            "quote": {
+                "token_in": q.token_in,
+                "token_out": q.token_out,
+                "amount_in": q.amount_in,
+                "expected_out": q.expected_out,
+                "minimum_out": q.minimum_out,
+                "route_data": q.route_data,
+            },
+        }
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        print("ACHSWAP SWAP BUILD ERROR:", repr(exc))
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to build AchSwap swap transaction.",
+        )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -85,7 +227,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
-    init_db()
+    pass
 
 
 SKILL_TEXT = Path(__file__).parent.joinpath("ALIAS_SKILL.md").read_text()

@@ -56,6 +56,11 @@ from agent_session import (
     touch_session,
     destroy_session,
 )
+
+
+from evm_routes import router as evm_router
+
+app.include_router(evm_router)
 MAX_TRADE_NOTIONAL = 500.0
 app = FastAPI(title="Alias Backend")
 app.include_router(agent_router)

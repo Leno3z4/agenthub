@@ -158,7 +158,6 @@ export default function Home() {
 
         <Link href="/onboarding" className="landing-primary">
           Enter Alias
-          <span>↗</span>
         </Link>
       </section>
 

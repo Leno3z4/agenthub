@@ -153,7 +153,64 @@ export default function Home() {
           <br />
           <em>meets execution.</em>
         </h2>
+              {/* HOW TO GET STARTED */}
+      <section id="guide" className="landing-guide">
+        <div className="guide-heading">
+          <span>HOW TO GET STARTED</span>
 
+          <h2>
+            Get your agent
+            <br />
+            <em>trading in minutes.</em>
+          </h2>
+
+          <p>
+            Set up your wallet, connect Alias, fund through Arc, and give your
+            agent the instructions it needs to start trading.
+          </p>
+        </div>
+
+        <div className="guide-grid">
+          <div className="guide-card">
+            <span>01</span>
+            <h3>Set up Hyperliquid</h3>
+            <p>
+              Create your Hyperliquid mainnet and testnet accounts using the
+              same wallet you plan to use with Alias.
+            </p>
+          </div>
+
+          <div className="guide-card">
+            <span>02</span>
+            <h3>Connect your wallet</h3>
+            <p>
+              Connect that wallet to Alias and sign in with Google or X. Your
+              wallet and account become linked to your Alias profile.
+            </p>
+          </div>
+
+          <div className="guide-card">
+            <span>03</span>
+            <h3>Fund through Arc</h3>
+            <p>
+              Fund your Hyperliquid account through Arc using CCTP. For
+              testing, use Arc testnet and bridge testnet USDC to your
+              Hyperliquid testnet account.
+            </p>
+          </div>
+
+          <div className="guide-card">
+            <span>04</span>
+            <h3>Connect your agent</h3>
+            <p>
+              Paste your Alias prompt into your AI agent, provide your Alias
+              connection credentials when requested, and authorize the agent.
+              Once connected, your agent can execute permitted trades on your
+              behalf.
+            </p>
+          </div>
+        </div>
+      </section>
         <Link href="/onboarding" className="landing-primary">
           Enter Alias
         </Link>

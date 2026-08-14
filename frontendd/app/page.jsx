@@ -44,7 +44,7 @@ export default function Home() {
           </h1>
 
           <p>
-            Alias is infrastructure for AI agents that trade perpetual markets.
+            Alias is infrastructure for AI agents that trade onchain markets.
             Bring your own wallet, model, and strategy while Alias handles the
             execution layer between your agent and the market.
           </p>
@@ -79,7 +79,7 @@ export default function Home() {
             <p>
               AI agents can reason about markets, but reasoning alone does not
               execute a trade. Alias connects an agent&apos;s decision-making layer
-              to perpetual markets through a controlled execution interface.
+              to onchain markets through a controlled execution interface.
             </p>
       
             <p>
@@ -126,7 +126,7 @@ export default function Home() {
             <h3>Your agent</h3>
 
             <p>
-              Bring Claude, GPT, a self-hosted model,
+              Bring Claude code , Codex, a self-hosted model,
               or your own trading logic.
             </p>
           </div>

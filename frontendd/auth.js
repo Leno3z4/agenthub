@@ -29,6 +29,14 @@ export const {
     async jwt({ token, account, profile }) {
       if (account?.provider === "google" || account?.provider === "twitter") {
         const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
+        const identityId =
+          account.provider === "twitter"
+            ? profile?.data?.id || profile?.id || profile?.sub
+            : profile?.sub;
+
+        if (!identityId) {
+          throw new Error("Missing OAuth account ID");
+        }
 
         const res = await fetch(url, {
           method: "POST",
@@ -37,7 +45,7 @@ export const {
             "X-Internal-Auth": process.env.BACKEND_INTERNAL_SECRET,
           },
           body: JSON.stringify({
-            google_id: profile.sub,
+            google_id: identityId,
             provider: account.provider,
             email: profile.email,
             name: profile.name,
@@ -53,7 +61,7 @@ export const {
 
         token.userId = data.user_id;
         token.apiKey = data.api_key || undefined;
-        token.authId = profile.sub;
+        token.authId = identityId;
         token.provider = account.provider;
       }
 
@@ -68,7 +76,6 @@ export const {
           authId: token.authId,
           provider: token.provider,
         };
-        // Deliberately do NOT expose token.apiKey to the browser.
       }
 
       return session;

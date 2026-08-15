@@ -25,7 +25,7 @@ import {
   getDashboard,
   getAgentStatus,
 } from "@/lib/api";
-
+import { executeAchSwap } from "@/lib/achswap";
 function StatusDot({ active = false }) {
   return (
     <span
@@ -85,7 +85,10 @@ export default function DashboardOverview() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState(false);
-  
+  const [swapAmount, setSwapAmount] = useState("");
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [swapError, setSwapError] = useState("");
+  const [swapSuccess, setSwapSuccess] = useState("");
 
   const { data: session, status } = useSession();
   const { address } = useAccount();
@@ -360,7 +363,48 @@ export default function DashboardOverview() {
       setWithdrawalLoading(false);
     }
   }
+  async function handleAchSwap() {
+    setSwapError("");
+    setSwapSuccess("");
+    setSwapLoading(true);
 
+    try {
+      if (!address) {
+        throw new Error("Connect your Arc wallet first.");
+      }
+
+      const amountUnits = BigInt(
+        Math.floor(Number(swapAmount) * 1_000_000)
+      );
+
+      if (amountUnits <= 0n) {
+        throw new Error("Enter a valid USDC amount.");
+      }
+
+      const result = await executeAchSwap({
+        walletClient,
+        publicClient,
+        tokenIn: "0x3600000000000000000000000000000000000000",
+        tokenOut: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+        amountIn: amountUnits,
+        slippageBps: 100,
+      });
+
+      setSwapSuccess(
+        `Swap confirmed: ${result.hash}`
+      );
+      setSwapAmount("");
+    } catch (err) {
+      console.error(err);
+      setSwapError(
+        err instanceof Error
+          ? err.message
+          : "Swap failed."
+      );
+    } finally {
+      setSwapLoading(false);
+    }
+  }
   if (notSetUp) {
     return (
       <div className="alias-overview">
@@ -669,7 +713,63 @@ export default function DashboardOverview() {
               </p>
             )}
           </section>
+          <section className="alias-card" style={{ marginTop: "24px" }}>
+            <div className="alias-card-icon">
+              <Activity size={20} />
+            </div>
 
+            <h2 style={{ marginBottom: "8px" }}>Swap USDC → EURC</h2>
+
+            <p className="alias-overview-description">
+              Swap USDC for EURC on Arc Testnet through AchSwap.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "16px",
+              }}
+            >
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={swapAmount}
+                onChange={(e) => setSwapAmount(e.target.value)}
+                placeholder="USDC amount"
+                disabled={swapLoading}
+                style={{
+                  flex: 1,
+                  border: "1px solid var(--line)",
+                  borderRadius: "6px",
+                  background: "transparent",
+                  padding: "10px 12px",
+                  color: "inherit",
+                }}
+              />
+
+              <button
+                onClick={handleAchSwap}
+                disabled={swapLoading || !swapAmount || !walletClient}
+                className="landing-primary"
+              >
+                {swapLoading ? "Swapping..." : "Swap"}
+              </button>
+            </div>
+
+            {swapError && (
+              <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>
+                {swapError}
+              </p>
+            )}
+
+            {swapSuccess && (
+              <p style={{ color: "#7ee787", fontSize: "13px", marginTop: "12px" }}>
+                {swapSuccess}
+              </p>
+            )}
+          </section>
           <section className="alias-next-step">
             <div>
               <span className="alias-next-label">LATEST AGENT ACTION</span>

@@ -29,7 +29,11 @@ export const {
     async jwt({ token, account, profile }) {
       if (account?.provider === "google" || account?.provider === "twitter") {
         const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
-
+        console.log("REGISTER URL:", url);
+        console.log(
+          "INTERNAL SECRET PRESENT:",
+          Boolean(process.env.BACKEND_INTERNAL_SECRET)
+        );
         const res = await fetch(url, {
           method: "POST",
           headers: {

@@ -19,6 +19,11 @@ export const {
       clientId: process.env.TWITTER_CLIENT_ID,
       clientSecret: process.env.TWITTER_CLIENT_SECRET,
       version: "2.0",
+      authorization: {
+        params: {
+          "user.fields": "id,name,username,profile_image_url",
+        },
+      },
     }),
   ],
 
@@ -30,13 +35,23 @@ export const {
     async jwt({ token, account, profile }) {
       if (account?.provider === "google" || account?.provider === "twitter") {
         const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
-        const identityId =
-          account.provider === "twitter"
-            ? profile?.data?.id || profile?.id || profile?.sub
-            : profile?.sub;
+        const isTwitter = account.provider === "twitter";
+        const twitterProfile = isTwitter ? profile?.data : undefined;
+        const identityId = isTwitter ? twitterProfile?.id : profile?.sub;
+        const email = profile?.email;
+        const name = isTwitter
+          ? twitterProfile?.name || twitterProfile?.username
+          : profile?.name;
+        const picture = isTwitter
+          ? twitterProfile?.profile_image_url
+          : profile?.picture;
 
         if (!identityId) {
           throw new Error("Missing OAuth account ID");
+        }
+
+        if (!email || !name) {
+          throw new Error("Missing required OAuth profile fields");
         }
 
         const res = await fetch(url, {
@@ -48,9 +63,9 @@ export const {
           body: JSON.stringify({
             google_id: identityId,
             provider: account.provider,
-            email: profile.email,
-            name: profile.name,
-            picture: profile.picture,
+            email,
+            name,
+            picture,
           }),
         });
 

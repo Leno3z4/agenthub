@@ -1,1 +1,0 @@
-"""DEX adapters for Alias."""

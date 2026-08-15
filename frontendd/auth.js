@@ -20,8 +20,9 @@ export const {
       clientSecret: process.env.TWITTER_CLIENT_SECRET,
       version: "2.0",
       authorization: {
+        url: "https://twitter.com/i/oauth2/authorize",
         params: {
-          "user.fields": "id,name,username,profile_image_url",
+          scope: "users.read tweet.read offline.access",
         },
       },
     }),
@@ -38,7 +39,7 @@ export const {
         const isTwitter = account.provider === "twitter";
         const twitterProfile = isTwitter ? profile?.data : undefined;
         const identityId = isTwitter ? twitterProfile?.id : profile?.sub;
-        const email = profile?.email;
+        const email = profile?.email || null;
         const name = isTwitter
           ? twitterProfile?.name || twitterProfile?.username
           : profile?.name;
@@ -50,8 +51,8 @@ export const {
           throw new Error("Missing OAuth account ID");
         }
 
-        if (!email || !name) {
-          throw new Error("Missing required OAuth profile fields");
+        if (!name) {
+          throw new Error("Missing required OAuth profile name");
         }
 
         const res = await fetch(url, {
@@ -61,7 +62,8 @@ export const {
             "X-Internal-Auth": process.env.BACKEND_INTERNAL_SECRET,
           },
           body: JSON.stringify({
-            google_id: identityId,
+            google_id: isTwitter ? null : identityId,
+            x_id: isTwitter ? identityId : null,
             provider: account.provider,
             email,
             name,

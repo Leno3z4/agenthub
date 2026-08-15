@@ -19,12 +19,6 @@ export const {
       clientId: process.env.TWITTER_CLIENT_ID,
       clientSecret: process.env.TWITTER_CLIENT_SECRET,
       version: "2.0",
-      authorization: {
-        url: "https://twitter.com/i/oauth2/authorize",
-        params: {
-          scope: "users.read tweet.read offline.access",
-        },
-      },
     }),
   ],
 
@@ -38,14 +32,18 @@ export const {
         const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/register`;
         const isTwitter = account.provider === "twitter";
         const twitterProfile = isTwitter ? profile?.data : undefined;
-        const identityId = isTwitter ? twitterProfile?.id : profile?.sub;
-        const email = profile?.email || null;
+        const identityId = isTwitter
+          ? twitterProfile?.id || profile?.id || profile?.sub
+          : profile?.sub;
         const name = isTwitter
-          ? twitterProfile?.name || twitterProfile?.username
+          ? twitterProfile?.name || twitterProfile?.username || profile?.name
           : profile?.name;
         const picture = isTwitter
-          ? twitterProfile?.profile_image_url
+          ? twitterProfile?.profile_image_url || profile?.picture
           : profile?.picture;
+        const email = isTwitter
+          ? profile?.email || `${identityId}@x.alias.local`
+          : profile?.email;
 
         if (!identityId) {
           throw new Error("Missing OAuth account ID");

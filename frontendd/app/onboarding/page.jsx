@@ -209,43 +209,7 @@ export default function Onboarding() {
 
   
 
-  async function fundWallet() {
-    if (!walletClient || !publicClient || !address) {
-      setError("Connect your wallet first.");
-      return;
-    }
 
-    const numericAmount = Number(amount);
-
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setError("Enter a valid USDC amount.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-
-      await depositUSDC({
-        walletClient,
-        publicClient,
-        userId,
-        amount: numericAmount,
-      });
-
-      setStep(3);
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Deposit failed."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function prepareAgentConnection(currentUserId) {
     try {
@@ -486,7 +450,7 @@ export default function Onboarding() {
           )}
         </div>
       
-      ) : step === 3 ? (
+      ) : step === 2 ? (
         <div className="space-y-4">
           <div className="text-sm text-dim">
             Copy this prompt and paste it into the agent you want to

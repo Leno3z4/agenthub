@@ -47,7 +47,7 @@ export default function Onboarding() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [initialized, setInitialized] = useState(false);
-
+  const [riskAcknowledged, setRiskAcknowledged] = useState(false);
   const userId = session?.user?.id || "";
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
@@ -436,6 +436,29 @@ export default function Onboarding() {
           </button>
         </div>
       ) : step === 1 ? (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+          <p className="text-sm font-medium">
+            Before you connect
+          </p>
+        
+          <p className="mt-2 text-xs leading-5 text-white/60">
+            Alias gives connected agents the ability to execute trades on your
+            behalf. Trading can result in partial or total loss of funds. You are
+            responsible for your agent's actions and for the permissions you grant.
+          </p>
+        
+          <label className="mt-4 flex cursor-pointer items-start gap-3 text-xs">
+            <input
+              type="checkbox"
+              checked={riskAcknowledged}
+              onChange={(e) => setRiskAcknowledged(e.target.checked)}
+            />
+            <span>
+              I understand the risks and authorize Alias to proceed.
+            </span>
+          </label>
+        </div>
+        disabled={!riskAcknowledged || loading}
         <div className="flex flex-col items-center gap-4">
           <ConnectButton />
 

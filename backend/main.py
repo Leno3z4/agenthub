@@ -677,9 +677,32 @@ def _mark_agent_active(
             """,
             (user_id,),
         )
-# ---------------------------------------------------------------------
-# Agent status
-# ---------------------------------------------------------------------
+
+
+
+
+@app.post("/users/{user_id}/api-key/regenerate")
+def regenerate_api_key(
+    user_id: str,
+    authorization: Optional[str] = Header(None),
+):
+    user = _require_agent_auth(user_id, authorization)
+
+    api_key, api_key_hash = generate_api_key()
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET api_key_hash = %s
+            WHERE id = %s
+            """,
+            (api_key_hash, user_id),
+        )
+
+    return {
+        "api_key": api_key,
+    }
 
 @app.get("/users/{user_id}/agent/status")
 def agent_status(

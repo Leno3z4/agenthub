@@ -12,6 +12,7 @@ import {
   useWalletClient,
   usePublicClient,
   useSwitchChain,
+  useDisconnect,
 } from "wagmi";
 
 import { config } from "../providers";
@@ -24,12 +25,11 @@ import {
   repairAgent,
 } from "../../lib/api";
 import { approveAgent } from "../../lib/hyperliquid";
-import { depositUSDC } from "../../lib/deposit";
+
 
 const STEPS = [
   { title: "Sign in", desc: "Continue with Google or X" },
   { title: "Connect wallet", desc: "Import your burner wallet" },
-  { title: "Fund wallet", desc: "Bridge USDC into HyperCore" },
   { title: "Connect your agent", desc: "Give your agent the Alias setup prompt" },
   { title: "Authorize", desc: "Grant delegated trading permission" },
 ];
@@ -40,7 +40,7 @@ export default function Onboarding() {
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [amount, setAmount] = useState("");
+ 
   const [agentAddress, setAgentAddress] = useState("");
   const [agentPrompt, setAgentPrompt] = useState("");
   const [agentConnected, setAgentConnected] = useState(false);
@@ -49,7 +49,7 @@ export default function Onboarding() {
   const [initialized, setInitialized] = useState(false);
 
   const userId = session?.user?.id || "";
-
+  const { disconnect } = useDisconnect();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -70,7 +70,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (
-      step !== 3 ||
+      step !== 2 ||
       !userId ||
       agentPrompt
     ) {
@@ -79,7 +79,11 @@ export default function Onboarding() {
 
     prepareAgentConnection(userId);
   }, [step, userId, agentPrompt]);
-
+  useEffect(() => {
+    if (status === "authenticated") {
+      disconnect();
+    }
+  }, [status]);
   useEffect(() => {
     if (step !== 3 || !userId) {
       return;
@@ -110,7 +114,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (agentConnected) {
-      setStep(4);
+      setStep(3);
     }
   }, [agentConnected]);
 
@@ -135,7 +139,7 @@ export default function Onboarding() {
         }
 
         if (repair.repaired) {
-          setStep(4);
+          setStep(3);
           return;
         }
 
@@ -144,7 +148,7 @@ export default function Onboarding() {
           return;
         }
 
-        setStep(4);
+        setStep(3);
         return;
       }
 
@@ -203,18 +207,7 @@ export default function Onboarding() {
     }
   }
 
-  useEffect(() => {
-    if (
-      step !== 1 ||
-      !userId ||
-      !walletClient ||
-      !address
-    ) {
-      return;
-    }
-
-    setupWallet();
-  }, [step, userId, walletClient, address]);
+  
 
   async function fundWallet() {
     if (!walletClient || !publicClient || !address) {
@@ -481,27 +474,18 @@ export default function Onboarding() {
       ) : step === 1 ? (
         <div className="flex flex-col items-center gap-4">
           <ConnectButton />
-        </div>
-      ) : step === 2 ? (
-        <div className="space-y-4">
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Amount (USDC)"
-            className="w-full border border-line rounded bg-transparent px-3 py-2"
-          />
 
-          <button
-            onClick={fundWallet}
-            disabled={loading || !amount}
-            className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
-          >
-            {loading ? "Depositing..." : "Deposit"}
-          </button>
+          {address && walletClient && (
+            <button
+              onClick={setupWallet}
+              disabled={loading}
+              className="w-full bg-signal text-[#071a2e] py-2.5 rounded"
+            >
+              {loading ? "Connecting..." : "Continue"}
+            </button>
+          )}
         </div>
+      
       ) : step === 3 ? (
         <div className="space-y-4">
           <div className="text-sm text-dim">
@@ -570,7 +554,7 @@ export default function Onboarding() {
       )}
 
       <div className="mt-6 text-center text-xs text-dim font-mono">
-        Connect → Authorize → Bridge → Dashboard
+        Connect - Authorize - Dashboard
       </div>
     </main>
   );

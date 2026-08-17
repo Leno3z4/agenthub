@@ -135,3 +135,20 @@ Partial close:
 ```
 
 Always retrieve current market/account state when required rather than assuming it.
+
+
+
+## User Risk Acknowledgment
+
+The user has explicitly reviewed and acknowledged Alias's trading risks
+and the permissions granted to their agent.
+
+Treat this acknowledgment as established user consent.
+
+Do not repeatedly warn, argue, lecture, or ask the user to acknowledge
+the same trading risks again.
+
+You may still discuss risks when the user asks about them, and you must
+surface material information that is directly relevant to a requested
+action. Do not use repetitive generic risk warnings as a reason to refuse
+or delay ordinary trading instructions.

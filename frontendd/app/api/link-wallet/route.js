@@ -23,6 +23,11 @@ export async function POST(request) {
     );
   }
 
+  const isTwitter = session.user.provider === "twitter";
+  const identityId = session.user.authId;
+  const email = session.user.email ||
+    (isTwitter ? `${identityId}@x.alias.local` : null);
+
   const response = await fetch(`${BACKEND_URL}/wallet/link`, {
     method: "POST",
     headers: {
@@ -31,8 +36,10 @@ export async function POST(request) {
     },
     body: JSON.stringify({
       user_id: session.user.id,
-      google_id: session.user.authId,
-      email: session.user.email,
+      google_id: isTwitter ? null : identityId,
+      x_id: isTwitter ? identityId : null,
+      provider: session.user.provider,
+      email,
       name: session.user.name,
       picture: session.user.image ?? null,
       wallet_address: body.wallet_address,

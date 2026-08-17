@@ -105,12 +105,13 @@ def root():
 
 class LinkWalletRequest(BaseModel):
     user_id: str
-    google_id: str
-    email: str
+    google_id: str | None = None
+    x_id: str | None = None
+    email: str | None = None
     name: str
     wallet_address: str
     picture: str | None = None
-
+    provider: str
    
 
 
@@ -130,7 +131,7 @@ def link_wallet(
         request,
         limit=5,
         window=60,
-        identity=req.google_id,
+        identity=req.google_id or req.x_id or req.email or req.user_id,
     )
 
     with get_conn() as conn:
@@ -142,9 +143,18 @@ def link_wallet(
                 agent_address,
                 agent_key_encrypted
             FROM users
-            WHERE google_id = %s OR email = %s
+            WHERE
+                (x_id = %s AND %s = 'twitter')
+                OR (google_id = %s AND %s = 'google')
+                OR email = %s
             """,
-            (req.google_id, req.email),
+            (
+                req.x_id,
+                req.provider,
+                req.google_id,
+                req.provider,
+                req.email,
+            ),
         )
         existing = conn.fetchone()
         
@@ -160,7 +170,7 @@ def link_wallet(
         ):
             raise HTTPException(
                 status_code=409,
-                detail="This Google account already has a different wallet linked.",
+                detail="This account already has a different wallet linked.",
             )
 
         api_key, api_key_hash = generate_api_key()
@@ -208,18 +218,24 @@ def link_wallet(
                 SET
                     wallet_address = %s,
                     google_id = %s,
+                    x_id = %s,
                     email = %s,
                     name = %s,
                     picture = %s,
+                    provider = %s,
+                    provider_id = %s,
                     api_key_hash = %s
                 WHERE id = %s
                 """,
                 (
                     req.wallet_address,
                     req.google_id,
+                    req.x_id,
                     req.email,
                     req.name,
                     req.picture,
+                    req.provider,
+                    req.google_id or req.x_id,
                     api_key_hash,
                     existing["id"],
                 ),
@@ -250,6 +266,7 @@ def link_wallet(
             SET
                 wallet_address = %s,
                 google_id = %s,
+                x_id = %s,
                 email = %s,
                 name = %s,
                 picture = %s,
@@ -262,9 +279,11 @@ def link_wallet(
             (
                 req.wallet_address,
                 req.google_id,
+                req.x_id,
                 req.email,
                 req.name,
                 req.picture,
+                req.google_id or req.x_id,
                 agent_address,
                 encrypt(agent_private_key),
                 api_key_hash,

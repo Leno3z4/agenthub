@@ -283,8 +283,9 @@ class ConfirmPermissionsRequest(BaseModel):
 import uuid
 
 class RegisterUserRequest(BaseModel):
-    google_id: str
-    email: str
+    google_id: str | None = None
+    x_id: str | None = None
+    email: str | None = None
     name: str
     picture: str | None = None
     provider: str
@@ -407,23 +408,49 @@ def register_user(
         request,
         limit=5,
         window=60,
-        identity=req.google_id,
+        identity=req.google_id or req.x_id or req.email or "unknown",
     )
     require_internal_auth(x_internal_auth)
 
     with get_conn() as conn:
-        conn.execute(
-            """
-            SELECT
-                id,
-                wallet_address,
-                agent_address,
-                permissions_confirmed
-            FROM users
-            WHERE google_id = %s OR email = %s
-            """,
-            (req.google_id, req.email),
-        )
+        if req.provider == "twitter":
+            if not req.x_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="x_id is required for Twitter registration",
+                )
+        
+            conn.execute(
+                """
+                SELECT
+                    id,
+                    wallet_address,
+                    agent_address,
+                    permissions_confirmed
+                FROM users
+                WHERE x_id = %s OR email = %s
+                """,
+                (req.x_id, req.email),
+            )
+        else:
+            if not req.google_id or not req.email:
+                raise HTTPException(
+                    status_code=400,
+                    detail="google_id and email are required for Google registration",
+                )
+        
+            conn.execute(
+                """
+                SELECT
+                    id,
+                    wallet_address,
+                    agent_address,
+                    permissions_confirmed
+                FROM users
+                WHERE google_id = %s OR email = %s
+                """,
+                (req.google_id, req.email),
+            )
         existing = conn.fetchone()
 
         # Existing account.
@@ -435,17 +462,23 @@ def register_user(
                 UPDATE users
                 SET
                     google_id = %s,
+                    x_id = %s,
                     email = %s,
                     name = %s,
                     picture = %s,
+                    provider = %s,
+                    provider_id = %s,
                     api_key_hash = %s
                 WHERE id = %s
                 """,
                 (
                     req.google_id,
+                    req.x_id,
                     req.email,
                     req.name,
                     req.picture,
+                    req.provider,
+                    req.google_id or req.x_id,
                     api_key_hash,
                     existing["id"],
                 ),
@@ -480,16 +513,17 @@ def register_user(
                 agent_key_encrypted,
                 api_key_hash
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL, NULL, NULL)
             """,
             (
                 user_id,
                 req.google_id,
-                req.google_id,
+                req.google_id or req.x_id,
                 req.email,
                 req.name,
                 req.picture,
                 req.provider,
+                req.x_id,
             ),
         )
 

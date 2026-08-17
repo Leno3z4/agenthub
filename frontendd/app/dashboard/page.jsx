@@ -24,6 +24,7 @@ import {
 import {
   getDashboard,
   getAgentStatus,
+  regenerateApiKey,
 } from "@/lib/api";
 
 function StatusDot({ active = false }) {
@@ -85,7 +86,10 @@ export default function DashboardOverview() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState(false);
-  
+
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState("");
 
   const { data: session, status } = useSession();
   const { address } = useAccount();
@@ -211,6 +215,28 @@ export default function DashboardOverview() {
       );
     } finally {
       setTransferLoading(false);
+    }
+  }
+  
+  async function handleRegenerateApiKey() {
+    if (!userId) return;
+  
+    try {
+      setApiKeyLoading(true);
+      setApiKeyError("");
+      setApiKey("");
+  
+      const data = await regenerateApiKey(userId);
+  
+      setApiKey(data.api_key);
+    } catch (err) {
+      setApiKeyError(
+        err instanceof Error
+          ? err.message
+          : "Failed to regenerate API key."
+      );
+    } finally {
+      setApiKeyLoading(false);
     }
   }
   
@@ -599,7 +625,7 @@ export default function DashboardOverview() {
               </p>
             )}
           </section>
-
+          
           <section className="alias-card" style={{ marginTop: "24px" }}>
             <div className="alias-card-icon">
               <Activity size={20} />
@@ -698,10 +724,50 @@ export default function DashboardOverview() {
                 </>
               )}
             </div>
-
+            
             <Link href="/dashboard/agent" className="landing-primary">
               View agent <ArrowUpRight size={18} />
             </Link>
+          </section>
+          <section className="alias-card" style={{ marginTop: "24px" }}>
+            <div className="alias-card-icon">
+              <ShieldCheck size={20} />
+            </div>
+          
+            <h2 style={{ marginBottom: "8px" }}>API key</h2>
+          
+            <p className="alias-overview-description">
+              Regenerate your Alias API key. Your previous key will stop working immediately.
+            </p>
+          
+            <button
+              onClick={handleRegenerateApiKey}
+              disabled={apiKeyLoading}
+              className="landing-primary"
+              style={{ marginTop: "16px" }}
+            >
+              {apiKeyLoading ? "Regenerating..." : "Regenerate API key"}
+            </button>
+          
+            {apiKey && (
+              <div
+                className="font-mono text-xs break-all"
+                style={{
+                  marginTop: "16px",
+                  padding: "12px",
+                  border: "1px solid var(--line)",
+                  borderRadius: "6px",
+                }}
+              >
+                {apiKey}
+              </div>
+            )}
+          
+            {apiKeyError && (
+              <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>
+                {apiKeyError}
+              </p>
+            )}
           </section>
         </>
       )}

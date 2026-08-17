@@ -204,3 +204,9 @@ export function fmtVolume(value) {
     return `${(n / 1_000).toFixed(1)}K`;
   return n.toFixed(0);
 }
+export async function regenerateApiKey(userId) {
+  return privateFetch(
+    `users/${encodeURIComponent(userId)}/api-key/regenerate`,
+    { method: "POST" }
+  );
+}

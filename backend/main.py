@@ -99,6 +99,30 @@ def root():
         "Alias backend is live. "
         "Paste /skill into your agent's chat to get started."
     )
+
+
+
+@app.post("/users/{user_id}/risk-acknowledgment")
+def acknowledge_risk(
+    user_id: str,
+    authorization: Optional[str] = Header(None),
+):
+    _require_agent_auth(user_id, authorization)
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET
+                risk_acknowledged = TRUE,
+                risk_acknowledged_at = CURRENT_TIMESTAMP,
+                risk_acknowledgment_version = '1'
+            WHERE id = %s
+            """,
+            (user_id,),
+        )
+
+    return {"acknowledged": True}
 # ---------------------------------------------------------------------
 # Wallet linking
 # ---------------------------------------------------------------------

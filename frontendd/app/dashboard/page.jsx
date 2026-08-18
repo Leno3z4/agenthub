@@ -25,6 +25,7 @@ import {
   getAgentStatus,
   regenerateApiKey,
   transferSpotToPerps,
+  regenerateConnectionToken,
 } from "@/lib/api";
 
 function StatusDot({ active = false }) {
@@ -90,6 +91,10 @@ export default function DashboardOverview() {
   const [apiKey, setApiKey] = useState("");
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [apiKeyError, setApiKeyError] = useState("");
+
+  const [connectionToken, setConnectionToken] = useState("");
+  const [connectionTokenLoading, setConnectionTokenLoading] = useState(false);
+  const [connectionTokenError, setConnectionTokenError] = useState("");
 
   const { data: session, status } = useSession();
   const { address } = useAccount();
@@ -211,6 +216,27 @@ export default function DashboardOverview() {
       );
     } finally {
       setTransferLoading(false);
+    }
+  }
+  async function handleRegenerateConnectionToken() {
+    if (!userId) return;
+  
+    try {
+      setConnectionTokenLoading(true);
+      setConnectionTokenError("");
+      setConnectionToken("");
+  
+      const data = await regenerateConnectionToken(userId);
+  
+      setConnectionToken(data.connection_token);
+    } catch (err) {
+      setConnectionTokenError(
+        err instanceof Error
+          ? err.message
+          : "Failed to generate connection token."
+      );
+    } finally {
+      setConnectionTokenLoading(false);
     }
   }
   async function handleRegenerateApiKey() {

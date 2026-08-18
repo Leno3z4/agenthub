@@ -47,6 +47,13 @@ export async function registerUser(data) {
   return JSON.parse(text);
 }
 
+export async function acknowledgeRisk(userId) {
+  return privateFetch(
+    `users/${encodeURIComponent(userId)}/risk-acknowledgment`,
+    { method: "POST" }
+  );
+}
+
 export async function linkWallet({ wallet_address }) {
   const res = await fetch("/api/link-wallet", {
     method: "POST",

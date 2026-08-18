@@ -730,10 +730,24 @@ def _mark_agent_active(
 
 @app.post("/users/{user_id}/api-key/regenerate")
 def regenerate_api_key(
+    request: Request,
     user_id: str,
     authorization: Optional[str] = Header(None),
 ):
+    rate_limit(
+        request,
+        limit=5,
+        window=60,
+        identity=user_id,
+    )
+
     user = _require_agent_auth(user_id, authorization)
+
+    if user.get("auth_role") != "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the account owner can regenerate the API key.",
+        )
 
     api_key, api_key_hash = generate_api_key()
 
@@ -750,7 +764,6 @@ def regenerate_api_key(
     return {
         "api_key": api_key,
     }
-
 @app.get("/users/{user_id}/agent/status")
 def agent_status(
     user_id: str,

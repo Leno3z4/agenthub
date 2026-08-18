@@ -202,10 +202,7 @@ def transfer_spot_to_perps(
         amount,
         to_perp=True,
     )
-    exchange.usd_class_transfer(
-        amount,
-        to_perp=False,
-    )
+    
 def get_markets() -> list[dict]:
     """Full universe of tradable perp markets."""
 

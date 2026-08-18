@@ -501,9 +501,9 @@ def register_user(
         existing = conn.fetchone()
 
         # Existing account.
+                # Existing account.
+                # Existing account.
         if existing:
-            api_key, api_key_hash = generate_api_key()
-
             conn.execute(
                 """
                 UPDATE users
@@ -514,8 +514,7 @@ def register_user(
                     name = %s,
                     picture = %s,
                     provider = %s,
-                    provider_id = %s,
-                    api_key_hash = %s
+                    provider_id = %s
                 WHERE id = %s
                 """,
                 (
@@ -526,21 +525,20 @@ def register_user(
                     req.picture,
                     req.provider,
                     req.google_id or req.x_id,
-                    api_key_hash,
                     existing["id"],
                 ),
             )
+
             return {
                 "user_id": existing["id"],
                 "new_user": False,
-                "api_key": api_key,
+                "api_key": None,
                 "wallet_connected": bool(existing["wallet_address"]),
                 "agent_created": bool(existing["agent_address"]),
                 "permissions_approved": bool(
                     existing["permissions_confirmed"]
                 ),
             }
-
         # Brand-new account.
         user_id = str(uuid.uuid4())
 

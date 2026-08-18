@@ -19,12 +19,12 @@ import {
 import { depositUSDC } from "@/lib/deposit";
 import {
   withdrawHyperliquid,
-  transferSpotToPerps,
 } from "@/lib/hyperliquid";
 import {
   getDashboard,
   getAgentStatus,
   regenerateApiKey,
+  transferSpotToPerps,
 } from "@/lib/api";
 
 function StatusDot({ active = false }) {
@@ -179,33 +179,29 @@ export default function DashboardOverview() {
   async function handleTransferSpotToPerps() {
     const amount = Number(transferAmount);
     const spotAvailable = Number(dashboard?.spot_usdc_available ?? 0);
-
+  
     if (!Number.isFinite(amount) || amount <= 0) {
       setTransferError("Enter a valid amount.");
       return;
     }
-
+  
     if (amount > spotAvailable) {
       setTransferError("Amount exceeds available Spot USDC.");
       return;
     }
-
+  
+    if (!userId) {
+      setTransferError("Your Alias session is missing.");
+      return;
+    }
+  
     try {
       setTransferLoading(true);
       setTransferError("");
       setTransferSuccess(false);
-
-      if (!walletClient) {
-        throw new Error(
-          "Wallet client is not ready. Try again after the network switches."
-        );
-      }
-
-      await transferSpotToPerps({
-        walletClient,
-        amount: amount.toString(),
-      });
-
+  
+      await transferSpotToPerps(userId, amount);
+  
       setTransferAmount("");
       setTransferSuccess(true);
       await loadDashboard();
@@ -217,7 +213,6 @@ export default function DashboardOverview() {
       setTransferLoading(false);
     }
   }
-  
   async function handleRegenerateApiKey() {
     if (!userId) return;
   

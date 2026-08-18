@@ -23,7 +23,6 @@ import {
 import {
   getDashboard,
   getAgentStatus,
-  regenerateApiKey,
   transferSpotToPerps,
   regenerateConnectionToken,
 } from "@/lib/api";
@@ -87,10 +86,6 @@ export default function DashboardOverview() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState(false);
-
-  const [apiKey, setApiKey] = useState("");
-  const [apiKeyLoading, setApiKeyLoading] = useState(false);
-  const [apiKeyError, setApiKeyError] = useState("");
 
   const [connectionToken, setConnectionToken] = useState("");
   const [connectionTokenLoading, setConnectionTokenLoading] = useState(false);
@@ -237,27 +232,6 @@ export default function DashboardOverview() {
       );
     } finally {
       setConnectionTokenLoading(false);
-    }
-  }
-  async function handleRegenerateApiKey() {
-    if (!userId) return;
-  
-    try {
-      setApiKeyLoading(true);
-      setApiKeyError("");
-      setApiKey("");
-  
-      const data = await regenerateApiKey(userId);
-  
-      setApiKey(data.api_key);
-    } catch (err) {
-      setApiKeyError(
-        err instanceof Error
-          ? err.message
-          : "Failed to regenerate API key."
-      );
-    } finally {
-      setApiKeyLoading(false);
     }
   }
   
@@ -755,39 +729,74 @@ export default function DashboardOverview() {
               <ShieldCheck size={20} />
             </div>
           
-            <h2 style={{ marginBottom: "8px" }}>API key</h2>
+            <h2 style={{ marginBottom: "8px" }}>
+              Agent Connection
+            </h2>
           
             <p className="alias-overview-description">
-              Regenerate your Alias API key. Your previous key will stop working immediately.
+              Generate a one-time connection token for your AI agent.
+              The token can only be used once to connect the agent to Alias.
             </p>
           
             <button
-              onClick={handleRegenerateApiKey}
-              disabled={apiKeyLoading}
+              onClick={handleRegenerateConnectionToken}
+              disabled={connectionTokenLoading}
               className="landing-primary"
               style={{ marginTop: "16px" }}
             >
-              {apiKeyLoading ? "Regenerating..." : "Regenerate API key"}
+              {connectionTokenLoading
+                ? "Generating..."
+                : "Generate Connection Token"}
             </button>
           
-            {apiKey && (
-              <div
-                className="font-mono text-xs break-all"
+            {connectionTokenError && (
+              <p
                 style={{
-                  marginTop: "16px",
-                  padding: "12px",
-                  border: "1px solid var(--line)",
-                  borderRadius: "6px",
+                  color: "#ff6b6b",
+                  fontSize: "13px",
+                  marginTop: "12px",
                 }}
               >
-                {apiKey}
-              </div>
+                {connectionTokenError}
+              </p>
             )}
           
-            {apiKeyError && (
-              <p style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "12px" }}>
-                {apiKeyError}
-              </p>
+            {connectionToken && (
+              <div style={{ marginTop: "16px" }}>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    opacity: 0.6,
+                    marginBottom: "8px",
+                  }}
+                >
+                  One-time connection token
+                </p>
+          
+                <code
+                  style={{
+                    display: "block",
+                    padding: "12px",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    overflowWrap: "anywhere",
+                    fontSize: "13px",
+                  }}
+                >
+                  {connectionToken}
+                </code>
+          
+                <p
+                  style={{
+                    fontSize: "12px",
+                    opacity: 0.6,
+                    marginTop: "8px",
+                  }}
+                >
+                  Use this token to connect your agent. It becomes invalid
+                  after a successful connection.
+                </p>
+              </div>
             )}
           </section>
         </>

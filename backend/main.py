@@ -473,7 +473,8 @@ def register_user(
                     id,
                     wallet_address,
                     agent_address,
-                    permissions_confirmed
+                    permissions_confirmed,
+                    risk_acknowledged
                 FROM users
                 WHERE x_id = %s OR email = %s
                 """,
@@ -492,7 +493,8 @@ def register_user(
                     id,
                     wallet_address,
                     agent_address,
-                    permissions_confirmed
+                    permissions_confirmed,
+                    risk_acknowledged
                 FROM users
                 WHERE google_id = %s OR email = %s
                 """,
@@ -538,6 +540,9 @@ def register_user(
                 "permissions_approved": bool(
                     existing["permissions_confirmed"]
                 ),
+                "risk_acknowledged": bool(
+                    existing["risk_acknowledged"]
+                ),
             }
         # Brand-new account.
         user_id = str(uuid.uuid4())
@@ -576,6 +581,7 @@ def register_user(
             "user_id": user_id,
             "new_user": True,
             "api_key": None,
+            "risk_acknowledged": False,
         }
 
 @app.post("/wallet/confirm-permissions")

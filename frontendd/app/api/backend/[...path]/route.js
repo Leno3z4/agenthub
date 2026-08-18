@@ -70,7 +70,9 @@ function getApiKey(request, token) {
   // Fall back to the API key stored in the Auth.js token.
   return token?.apiKey || null;
 }
-
+function isApiKeyRegenerationPath(path) {
+  return /^users\/[^/]+\/api-key\/regenerate$/.test(path);
+}
 async function proxy(request, context) {
   const token = await getAuthToken(request);
 
@@ -81,16 +83,20 @@ async function proxy(request, context) {
     );
   }
 
+  const path = context.params?.path?.join("/") || "";
+
+  const regenerationPath =
+    request.method === "POST" &&
+    isApiKeyRegenerationPath(path);
+
   const apiKey = getApiKey(request, token);
 
-  if (!apiKey) {
+  if (!apiKey && !regenerationPath) {
     return Response.json(
       { detail: "Unauthorized" },
       { status: 401 }
     );
   }
-
-  const path = context.params?.path?.join("/") || "";
 
   const target = new URL(
     `${BACKEND_URL.replace(/\/$/, "")}/${path}`
@@ -111,7 +117,9 @@ async function proxy(request, context) {
     headers.set("Content-Type", contentType);
   }
 
-  headers.set("Authorization", `Bearer ${apiKey}`);
+  if (apiKey) {
+    headers.set("Authorization", `Bearer ${apiKey}`);
+  }
 
   const response = await fetch(target, {
     method: request.method,

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
     agent_key_encrypted BYTEA,
     api_key_hash TEXT,
     permissions_confirmed INTEGER DEFAULT 0,
+    risk_acknowledged BOOLEAN DEFAULT FALSE,
     last_seen TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -91,6 +92,7 @@ def init_db():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS agent_key_encrypted BYTEA",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key_hash TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions_confirmed INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS risk_acknowledged BOOLEAN DEFAULT FALSE",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS provider TEXT",

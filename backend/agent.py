@@ -232,6 +232,103 @@ def create_agent(
         ),
     }
 
+
+@router.post("/connection-token/{user_id}")
+def regenerate_connection_token(
+    user_id: str,
+    authorization: str | None = Header(None),
+):
+    api_key = _extract_api_key(authorization)
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            SELECT
+                id,
+                api_key_hash,
+                wallet_address,
+                agent_address
+            FROM users
+            WHERE id = %s
+            """,
+            (user_id,),
+        )
+
+        user = conn.fetchone()
+
+        if user is None:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found",
+            )
+
+        if (
+            not user["api_key_hash"]
+            or not verify_api_key(
+                api_key,
+                user["api_key_hash"],
+            )
+        ):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key",
+            )
+
+        if not user["wallet_address"]:
+            raise HTTPException(
+                status_code=409,
+                detail="Wallet not linked",
+            )
+
+        if not user["agent_address"]:
+            raise HTTPException(
+                status_code=409,
+                detail="Agent wallet has not been created",
+            )
+
+        # Invalidate any existing unused connection tokens.
+        conn.execute(
+            """
+            UPDATE agent_connections
+            SET token_hash = NULL
+            WHERE user_id = %s
+              AND connected = 0
+            """,
+            (user_id,),
+        )
+
+        token = (
+            "alias_connect_"
+            + secrets.token_urlsafe(32)
+        )
+
+        token_hash = hash_agent_token(token)
+
+        conn.execute(
+            """
+            INSERT INTO agent_connections
+            (
+                user_id,
+                token_hash,
+                agent_token_hash,
+                connected,
+                created_at
+            )
+            VALUES (%s, %s, NULL, 0, %s)
+            """,
+            (
+                user_id,
+                token_hash,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
+    return {
+        "connection_token": token,
+    }
+
+
+    
 @router.get("/profile/{user_id}")
 def get_agent_profile(
     user_id: str,

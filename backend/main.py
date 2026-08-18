@@ -31,6 +31,7 @@ from hl_client import (
     execute_close,
     get_markets,
     is_agent_authorized,
+    transfer_spot_to_perps,
 )
 
 from bridge import (
@@ -1385,6 +1386,120 @@ def agent_close(
                 req.strategy,
             ),
         )
+
+    return result
+
+
+
+
+
+
+class SpotToPerpsRequest(BaseModel):
+    amount: float
+
+
+@app.post("/users/{user_id}/transfer-spot-to-perps")
+def transfer_spot_to_perps_endpoint(
+    request: Request,
+    user_id: str,
+    req: SpotToPerpsRequest,
+    authorization: Optional[str] = Header(None),
+):
+    rate_limit(
+        request,
+        limit=10,
+        window=60,
+        identity=user_id,
+    )
+
+    user = _require_agent_auth(
+        user_id,
+        authorization,
+    )
+
+    if user.get("auth_role") != "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the linked user can transfer Spot funds to Perps.",
+        )
+
+    if req.amount <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Transfer amount must be greater than zero.",
+        )
+
+    if not user["agent_key_encrypted"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Agent signing key is missing. Repair the agent.",
+        )
+
+    try:
+        agent_private_key = decrypt(
+            user["agent_key_encrypted"]
+        )
+    except Exception as exc:
+        print(
+            "AGENT KEY DECRYPTION FAILED:",
+            repr(exc),
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="Stored agent signing key cannot be decrypted. Repair the agent.",
+        )
+
+    try:
+        derived_address = Account.from_key(
+            agent_private_key
+        ).address
+    except Exception as exc:
+        print(
+            "AGENT KEY INVALID:",
+            repr(exc),
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="Stored agent signing key is invalid. Repair the agent.",
+        )
+
+    if derived_address.lower() != user["agent_address"].lower():
+        print(
+            "AGENT KEY/ADDRESS MISMATCH:",
+            user["agent_address"],
+            derived_address,
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="Stored agent key does not match the agent address. Repair the agent.",
+        )
+
+    if not is_agent_authorized(
+        user["wallet_address"],
+        user["agent_address"],
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Agent is not authorized by Hyperliquid. Authorize the agent from your wallet.",
+        )
+
+    try:
+        result = transfer_spot_to_perps(
+            agent_private_key=agent_private_key,
+            account_address=user["wallet_address"],
+            amount=req.amount,
+        )
+    except Exception as exc:
+        print(
+            "SPOT TO PERPS TRANSFER FAILED:",
+            repr(exc),
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Hyperliquid Spot to Perps transfer failed.",
+        )
+
+    _mark_agent_active(user_id)
 
     return result
 # ---------------------------------------------------------------------

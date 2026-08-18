@@ -732,7 +732,10 @@ def _mark_agent_active(
 def regenerate_api_key(
     request: Request,
     user_id: str,
-    authorization: Optional[str] = Header(None),
+    alias_user_id: Optional[str] = Header(
+        None,
+        alias="X-Alias-User-Id",
+    ),
 ):
     rate_limit(
         request,
@@ -741,12 +744,33 @@ def regenerate_api_key(
         identity=user_id,
     )
 
-    user = _require_agent_auth(user_id, authorization)
+    if not alias_user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authenticated Alias session required.",
+        )
 
-    if user.get("auth_role") != "user":
+    if str(alias_user_id) != str(user_id):
         raise HTTPException(
             status_code=403,
-            detail="Only the account owner can regenerate the API key.",
+            detail="You can only regenerate your own API key.",
+        )
+
+    with get_conn() as conn:
+        conn.execute(
+            """
+            SELECT id
+            FROM users
+            WHERE id = %s
+            """,
+            (user_id,),
+        )
+        user = conn.fetchone()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found.",
         )
 
     api_key, api_key_hash = generate_api_key()

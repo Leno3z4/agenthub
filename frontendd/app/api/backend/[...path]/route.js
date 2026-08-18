@@ -120,7 +120,9 @@ async function proxy(request, context) {
   if (apiKey) {
     headers.set("Authorization", `Bearer ${apiKey}`);
   }
-
+  if (regenerationPath) {
+    headers.set("X-Alias-User-Id", String(token.userId));
+  }
   const response = await fetch(target, {
     method: request.method,
     headers,

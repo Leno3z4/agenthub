@@ -124,6 +124,15 @@ export default function Onboarding() {
       setError("");
 
       const profile = await getAgentProfile(currentUserId);
+      if (
+        profile.risk_acknowledged &&
+        profile.wallet_connected &&
+        profile.agent_created &&
+        profile.permissions_approved
+      ) {
+        router.replace("/dashboard");
+        return;
+      }
       if (profile.agent_address) {
         setAgentAddress(profile.agent_address);
       }

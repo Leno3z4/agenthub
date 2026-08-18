@@ -210,3 +210,29 @@ export async function regenerateApiKey(userId) {
     { method: "POST" }
   );
 }
+
+
+export async function transferSpotToPerps(userId, amount) {
+  const response = await fetch(
+    `/api/backend/users/${userId}/transfer-spot-to-perps`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.detail || "Failed to transfer Spot funds to Perps."
+    );
+  }
+
+  return data;
+}

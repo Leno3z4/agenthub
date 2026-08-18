@@ -104,6 +104,15 @@ export async function deposit(userId, burnTxHash, amount) {
   });
 }
 
+export async function regenerateConnectionToken(userId) {
+  return privateFetch(
+    `agent/connection-token/${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+    }
+  );
+}
+
 export async function getAgentStatus(userId) {
   return privateFetch(
     `users/${encodeURIComponent(userId)}/agent/status`

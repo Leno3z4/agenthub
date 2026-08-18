@@ -129,6 +129,21 @@ export async function getDashboard(userId) {
   );
 }
 
+export async function transferSpotToPerps(userId, amount) {
+  return privateFetch(
+    `users/${encodeURIComponent(userId)}/transfer-spot-to-perps`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount,
+      }),
+    }
+  );
+}
+
 export async function depositParams(amount, hypercoreRecipient) {
   const res = await fetch(`${BACKEND_URL}/bridge/deposit-params`, {
     method: "POST",
